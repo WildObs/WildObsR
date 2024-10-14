@@ -1,0 +1,12 @@
+#R basics
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+#DS_Store must be ignored
+.DS_Store
+.DS_Store?
+**/.DS_Store
+# User-specific files
+.Ruserdata
+*.Rproj

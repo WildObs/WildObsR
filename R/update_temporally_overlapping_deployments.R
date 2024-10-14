@@ -1,0 +1,226 @@
+#### Function to group temporally overlapping deploymentIDs.
+### This function assumes that the locaitonID values provided are already spatially distinct
+## This should be used in step1 to ensure deploymentID tags make sense
+# and re-used in step3 to verify deploymentIDs are temporally and spatially distinct. 
+
+update_temporally_overlapping_deployments = function(deps, obs, media){
+  
+  ### Add a few warnings to make sure data is ready to go
+  
+  # Make sure deploymentStart is present in deps 
+  if (!("deploymentStart" %in% colnames(deps))) {
+    stop("Input deployments must have 'deploymentStart' column.")
+  }
+  # Make sure deploymentEnd is present in deps 
+  if (!("deploymentEnd" %in% colnames(deps))) {
+    stop("Input deployments must have 'deploymentEnd' column.")
+  }
+  # Make sure locationID is present in obs 
+  if (!("locationID" %in% colnames(deps))) {
+    stop("Input deployments must have 'locationID' column.")
+  }
+  # Make sure deploymentID is present in obs 
+  if (!("deploymentID" %in% colnames(deps))) {
+    stop("Input deployments must have 'deploymentID' column.")
+  }
+  # Make sure deploymentGroups is present in obs 
+  if (!("deploymentGroups" %in% colnames(deps))) {
+    stop("Input deployments must have 'deploymentGroups' column, even if it is just all 'NA' values")
+  }
+  
+  ### Ensure deploymentID is clear and matching between files! 
+  # deps and obs
+  if(length(setdiff(deps$deploymentID, obs$deploymentID)) + 
+     length(setdiff(obs$deploymentID, deps$deploymentID)) != 0){
+    stop("The deploymentID values between the deployments and observations data files do not match perfectly! This needs to be resolved before running this function.")
+  }
+  # deps and media
+  if(length(setdiff(deps$deploymentID, media$deploymentID)) + 
+     length(setdiff(media$deploymentID, deps$deploymentID)) != 0){
+    stop("The deploymentID values between the deployments and media data files do not match perfectly! This needs to be resolved before running this function.")
+  }
+  # media and obs
+  if(length(setdiff(media$deploymentID, obs$deploymentID)) + 
+     length(setdiff(obs$deploymentID, media$deploymentID)) != 0){
+    stop("The deploymentID values between the media and observations data files do not match perfectly! This needs to be resolved before running this function.")
+  }
+  
+  ## make a list to store results 
+  deps_list = list()
+  
+  ## and a dataframe to store all problematic and new deployments
+  prob_deps_df = data.frame("new_deploymentID" = character(), 
+                            "old_deploymentID"= character(), 
+                            "locationID"= character(), stringsAsFactors = FALSE)
+  ## check every locationID! 
+  for(i in 1:length(unique(deps$locationID))){
+    
+    ## grab the location + data
+    loc = unique(deps$locationID)[i]
+    loc_dat = deps[deps$locationID == loc,]
+    ## and organize via start date/time
+    loc_dat = loc_dat[order(loc_dat$deploymentStart),]
+    
+    ## only calculate time differences and groupings if there are multiple deploymentIDs! 
+    if(nrow(loc_dat) > 1){
+      # Initialize a group column
+      loc_dat$group <- 1
+      
+      # Loop through each deployment and check for overlaps
+      for (l in 2:nrow(loc_dat)) {
+        
+        ## calculate time difference from the next start date/time w/ the previous end date/time. 
+        time_diff = as.numeric(difftime(loc_dat$deploymentStart[l], 
+                                        loc_dat$deploymentEnd[l - 1], 
+                                        units = "hours"))
+        
+        ### Check if the current deployment is active during a similar time as the previous one
+        overlap_check = loc_dat$deploymentStart[l] <= loc_dat$deploymentEnd[l - 1]
+        
+        ## if theres an overlap, 
+        if (overlap_check) {
+          # then assign the same group as the previous row
+          loc_dat$group[l] <- loc_dat$group[l - 1]
+        } else if (time_diff <= 24 && time_diff >= 0) {
+          # If the time difference is less than 24 hours, group with the previous row as well
+          loc_dat$group[l] <- loc_dat$group[l - 1]
+        } else {
+          # Otherwise, assign a new group
+          loc_dat$group[l] <- loc_dat$group[l - 1] + 1
+        } # end overlap check 
+      } # end per row
+        
+      ## now grab those groups w/ several cams 
+      groups = names(table(loc_dat$group)[table(loc_dat$group)>1])
+      
+      ## inspect for curious testing development
+      # loc_dat[, c("deploymentID", "group", "deploymentStart", "deploymentEnd")]
+      
+      ## make a temporary list for binding w/in the nested loops
+      temp = list()
+      
+      ## ONLY if there are multiple groups, then we inspect
+      if(length(groups) > 0){
+        ## for each group
+        for(g in 1:length(groups)){
+          
+          ## grab the problematic deployments
+          prob_deps = loc_dat$deploymentID[loc_dat$group == groups[g]]
+          
+          # create a new deploymentID name 
+          new_dep = paste(loc, "deployment", g, sep = "_")
+          
+          # find matching data in deps
+          new_d = deps[deps$deploymentID %in% prob_deps, ]
+          # grab the new min/max date/time
+          new_start = min(new_d$deploymentStart)
+          new_end = max(new_d$deploymentEnd)
+          # and the first deploymentGroup
+          new_dgroup = new_d$deploymentGroups[new_d$deploymentStart == new_start]
+          
+          # and overwrite old data 
+          new_d$deploymentID = new_dep
+          new_d$deploymentEnd = new_end
+          new_d$deploymentStart = new_start
+          new_d$deploymentGroups = new_dgroup
+          
+          # and make it distinct! 
+          new_d = distinct(new_d)
+          
+          ## make sure we are only one row now
+          if(nrow(new_d) > 1){
+            # but if were not, dont combine and let us know
+            # print(paste("There was an error combining deployment info from locationID:",
+            #             loc, "group number:", paste(g, ".", sep = ""), "This could be because they do not share all deployment info (e.g. featureType). Inspect this data carefully!"))
+            # and skip to the next iteration
+            next
+          }else{
+            
+            ## save info about which deployments had problems 
+            temp_df = data.frame("new_deploymentID" = rep(new_dep, length.out = length(prob_deps)),
+                                 "old_deploymentID" = prob_deps, 
+                                 "locationID" = rep(loc, , length.out = length(prob_deps)))
+            # and rbind w/ overal df 
+            prob_deps_df = distinct(rbind(prob_deps_df, temp_df))
+            
+            ## and save the new deployments in the list!
+            temp[[g]] = new_d
+            
+            ## and give us a statement
+            print(paste("The locationID:", loc, "had", length(prob_deps),
+                        "temporally overlapping deployments in group", paste(g, ".", sep = ""), 
+                        "These have now been condensed into one row with the updated deploymentID:",
+                        unique(new_d$deploymentID)))
+            
+          } # end single row condition
+        } # end loop per group. 
+      } # end zero length groups condition
+    }else{
+      next
+    } # end condition for multiple rows in loc_dat
+    
+    ## combine temp into one dataframe
+    temp_df = do.call(rbind, temp)
+    
+    ## and save this in the bigger list
+    deps_list[[i]] = temp_df
+    
+  } # end loop per locationID
+ 
+  # Remove NULL elements in the list 
+  deps_list <- Filter(Negate(is.null), deps_list)
+  
+  ## combine list into dataframe
+  new_deps = do.call(rbind, deps_list)
+  
+  ## remove the problem deploymentIDs from og deployments
+  deps = deps[! deps$deploymentID %in% unique(prob_deps_df$old_deploymentID), ]
+  
+  ## and combine w/ the updated data
+  deps = rbind(new_deps, deps)
+  
+  ### but dont forget to update media and obs too! 
+  
+  # Use match() to ensure one-to-one mapping between old and new deploymentID
+  match_media = match(media$deploymentID, prob_deps_df$old_deploymentID)
+  # Replace only the matched deploymentIDs
+  media$deploymentID[!is.na(match_media)] = prob_deps_df$new_deploymentID[match_media[!is.na(match_media)]]
+  
+  ## and do the same for obs
+  match_obs = match(obs$deploymentID, prob_deps_df$old_deploymentID)
+  obs$deploymentID[!is.na(match_obs)] = prob_deps_df$new_deploymentID[match_obs[!is.na(match_obs)]]
+  
+  ### FINALLY, double check were still kosher for depID
+  # deps and obs
+  if(length(setdiff(deps$deploymentID, obs$deploymentID)) + 
+     length(setdiff(obs$deploymentID, deps$deploymentID)) != 0){
+    stop("The deploymentID values between the deployments and observations data files do not match after preforming function calculations. This is really problematic, and Im sorry but I dont know what to do for you. Maybe go back to the drawing board and consider a new career far away from computers. You will be happier.")
+  }
+  # deps and media
+  if(length(setdiff(deps$deploymentID, media$deploymentID)) + 
+     length(setdiff(media$deploymentID, deps$deploymentID)) != 0){
+    stop("The deploymentID values between the deployments and media data files do not match after preforming function calculations. This is really problematic, and Im sorry but I dont know what to do for you. Maybe go back to the drawing board and consider a new career far away from computers. You will be happier.")
+  }
+  # media and obs
+  if(length(setdiff(media$deploymentID, obs$deploymentID)) + 
+     length(setdiff(obs$deploymentID, media$deploymentID)) != 0){
+    stop("The deploymentID values between the media and observations data files do not match after preforming function calculations. This is really problematic, and Im sorry but I dont know what to do for you. Maybe go back to the drawing board and consider a new career far away from computers. You will be happier.")
+  }
+  
+  ### now save everything in a clear list
+  results = list("deployments" = deps,
+                 "observations" = obs,
+                 "media" = media)
+  
+  
+  ## Finally, return the updated list of results  
+  return(results)
+  
+} # end function
+
+# testing clean up 
+# rm(i,l,g,loc,loc_dat, time_diff, groups, deps_list, 
+#    prob_deps_df, temp, temp_df, overlap_check, 
+#    new_dep, new_d, new_dgroup, new_end, new_start,
+#    new_deps, prob_deps, match_media, match_obs)
+
