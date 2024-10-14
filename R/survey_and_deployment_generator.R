@@ -31,7 +31,6 @@
 #' @importFrom stringr str_remove str_extract
 #' @importFrom chron years
 #' @importFrom plyr ddply
-#' @importFrom stats ave
 #'
 #' @author Zachary Amir
 #'
