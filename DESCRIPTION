@@ -2,8 +2,7 @@ Package: WildObsR
 Type: Package
 Title: A package for wrangling tabular data generated from wildlife cameras 
 Version: 0.1.0
-Authors@R: person("Zachary", "Amir", email = "z.amir@uq.edu.au", role = c("aut", "cre")),
-           person("Tom", "Bruce", email = "tom.bruce@uq.edu.au", role = c("aut", ctb"))
+Authors: person("Zachary", "Amir", email = "z.amir@uq.edu.au", role = c("aut", "cre"))
 Maintainer: Zachary Amir <z.amir@uq.edu.au>
 Description: A collection of tools for analyzing wildlife observation data, including functions for data cleaning, visualization, and statistical analysis.
 License: MIT LICENSE
