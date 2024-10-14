@@ -17,7 +17,6 @@
 #'
 #' @return The function does not return any value, but prints messages about column matching and discrepancies to the console.
 #'
-#' @importFrom base setdiff
 #'
 #' @examples
 #' # Example usage:
