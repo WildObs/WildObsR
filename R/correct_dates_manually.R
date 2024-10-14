@@ -9,13 +9,6 @@
 #' correct_dates_manually(obs)
 #' @author Tom Bruce tom.bruce at uq.edu.au
 #' @export
-
-
-### NEED TO DO:
-# Need to convert syntax into camtrap DP columns
-# Need to think carefully about the use of an interactive function when we need to knit documents... doesnt make sense!
-
-#Made a function to manually change dates for specified placenames if needed, thanks ChatGPT.
 correct_dates_manually <- function(data) {
 
   # Check if the placenames and Photo.Date columns exist
@@ -52,3 +45,7 @@ correct_dates_manually <- function(data) {
   return(data)
 }
 
+
+### NEED TO DO:
+# Need to convert syntax into camtrap DP columns
+# Need to think carefully about the use of an interactive function when we need to knit documents... doesnt make sense!
