@@ -35,7 +35,7 @@
 #' @author Zachary Amir
 #'
 #' @export
-survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 100){
+survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 100, szn_filter = TRUE){
 
   ###First make our changes to column names between OG format and camtrapDP
   #deploymentID = deployment_id
@@ -185,6 +185,7 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
       dates = do.call(rbind, temp)
 
       ## quick loop to avoid survey's w/ too few detections
+      if(szn_filter == TRUE){ #Start szn_filter conditional
       for(u in 1:length(unique(dates$season))){
 
         ## if the below code is true and we reduced the number of seasons less than var value,
@@ -240,6 +241,8 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
         }# end loop breaking conditional
 
       } # end quick loop for short survey splits
+
+    } #End szn_filter conditional
 
       # summarize season's starting year via ddply
       szn = ddply(dates, .(season), summarize,
