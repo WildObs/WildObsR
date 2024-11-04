@@ -52,6 +52,10 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
   #And source
   changed_source_caps = FALSE
 
+  #And landscape
+  changed_landscape_caps = FALSE
+  change_landscape_deps = FALSE
+
 
   # Check and rename columns if necessary
   if ("deployment_id" %in% colnames(caps)) {
@@ -70,6 +74,11 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
     changed_source_caps = TRUE
   }
 
+    if ("Landscape" %in% colnames(caps)) {
+    colnames(caps)[colnames(caps) == "Landscape"] = "locationName"
+    changed_landscap_caps = TRUE
+  }
+
   #Same for deps
   # Check and rename columns if necessary
   if ("deployment_id" %in% colnames(deps)) {
@@ -83,6 +92,10 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
     changed_placename_deps = TRUE
   }
 
+    if ("Landscape" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "Landscape"] = "locationName"
+    changed_landscape_deps = TRUE
+  }
 
   #### ensure data checks are valid to implement function
 
@@ -119,6 +132,9 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
 
     # and thin data
     dl = caps[caps$locationName == land,]
+
+    #Make sure our dates are in the correct format
+    dl$Photo.Date = as.Date(dl$Photo.Date)
 
     # select first and last date of the survey
     surv_start = min(dl$Photo.Date)
@@ -420,6 +436,10 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
 
   if (changed_placename_caps) {
     colnames(results)[colnames(results) == "locationID"] <- "placename"
+  }
+
+  if (changed_landscape_caps) {
+    colnames(results)[colnames(results) == "locationName"] <- "Landscape"
   }
 
   #Return the results as the output
