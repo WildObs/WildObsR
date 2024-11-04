@@ -346,7 +346,7 @@ locationName_verification <- function(dep, Landscapes_path, dist, state = NULL) 
       lon_col <- if ("Longitude" %in% names(dep)) "Longitude" else "longitude"
 
       # Convert dep data.frame to a SpatVector using the appropriate lat/lon column names
-      dep_sp <- vect(dep, geom = c(lon_col, lat_col), crs = crs_info)  # crs_info is the projection you want to use (e.g. "EPSG:4326")
+      dep_sp <- vect(dep, geom = c(lon_col, lat_col), crs = "EPSG:4326")  # crs_info is the projection you want to use (e.g. "EPSG:4326")
 
       # Reproject dep_sp to match the CRS of gdb_data using spTransform
       dep_sp <- project(dep_sp, crs_info)  # Ensure crs_info is the desired CRS for reprojecting
