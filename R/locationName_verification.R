@@ -346,7 +346,7 @@ locationName_verification <- function(dep, Landscapes_path, dist, state = NULL) 
       lon_col <- if ("Longitude" %in% names(dep)) "Longitude" else "longitude"
 
       # Convert dep data.frame to a SpatVector using the appropriate lat/lon column names
-      dep_sp <- vect(dep, geom = c(lon_col, lat_col), crs = crs_info)  # crs_info is the projection you want to use (e.g. "EPSG:4326")
+      dep_sp <- vect(dep, geom = c(lon_col, lat_col), crs = "EPSG:4326")  # crs_info is the projection you want to use (e.g. "EPSG:4326")
 
       # Reproject dep_sp to match the CRS of gdb_data using spTransform
       dep_sp <- project(dep_sp, crs_info)  # Ensure crs_info is the desired CRS for reprojecting
@@ -384,40 +384,55 @@ locationName_verification <- function(dep, Landscapes_path, dist, state = NULL) 
     # Check if there are any missing values in area_name
     if (any(is.na(dep$area_name))) {
 
-      crs_info = terra::crs("EPSG:4326")
-
-      # Identify the rows with missing values
-      missing_rows <- which(is.na(dep$area_name))
-
-      # Create a SpatVector for points with non-NA area_name
-      non_na_points <- vect(dep[!is.na(dep$area_name), ], geom = c(lon_col, lat_col), crs = crs_info)
+    crs_info = terra::crs("EPSG:4326") #Lat long as terra distances automatically outputs meters
+  
+    # Identify the rows with missing values
+     missing_rows <- which(is.na(dep$area_name))
+  
+    # Create a SpatVector for points with non-NA area_name
+    non_na_points <- vect(dep[!is.na(dep$area_name), ], geom = c(lon_col, lat_col), crs = crs_info)
 
       # Loop over each missing row
       for (missing_row in missing_rows) {
-        # Extract coordinates of the point with missing area_name
-        missing_coords <- c(dep[missing_row, lon_col], dep[missing_row, lat_col])
+    # Extract coordinates of the point with missing area_name
+    missing_coords <- c(dep[missing_row, lon_col], dep[missing_row, lat_col])
+    #Extract the missing placename
+    missing_placename <- dep[missing_row, "placename"]
 
+    # Create a data frame with appropriate column names
+    missing_point_df <- data.frame(longitude = missing_coords[1], latitude = missing_coords[2])
 
-        # Create a data frame with appropriate column names
-        missing_point_df <- data.frame(longitude = missing_coords[1], latitude = missing_coords[2])
+    # Create a SpatVector for the point with the missing area_name
+    # Ensure crs_info is defined with the correct CRS (Coordinate Reference System)
+    missing_point <- vect(missing_point_df, geom = c("longitude","latitude"), crs = crs_info)
 
-        # Create a SpatVector for the point with the missing area_name
-        # Ensure crs_info is defined with the correct CRS (Coordinate Reference System)
-        missing_point <- vect(missing_point_df, geom = c("longitude", "latitude"), crs = crs_info)
+    # Calculate distances to non-NA points
+    distances <- terra::distance(missing_point, non_na_points)  # Calculates distance in the units of the CRS
+    
+    # Add the distance as a new attribute/column to the non_na_points object
+    non_na_points$distance <- as.vector(distances)  # Add the distance vector directly
+    
+    
+    # Now you can easily sort non_na_points by the distance column
+    sorted_points <- non_na_points[order(non_na_points$distance), ]
+    
+    # Convert the SpatVector (sorted_points) to a data frame
+    sorted_points_df <- as.data.frame(sorted_points)
+    
+    # Display the closest point with all relevant attributes
+    closest_match <- sorted_points[1, ]
+    closest_match = as.data.frame(closest_match)
+    
+    # Find the index of the minimum distance
+    min_index <- (closest_match$distance)
+    
+    # Check if the minimum distance is greater than 500 meters
+     if (min_index > 5000) {
+    cat("Note: Distance to nearest non NA neighbor is greater than 5km for placename", missing_placename, "To", closest_match$placename, "\n")
+     }
 
-        # Calculate distances to non-NA points
-        distances <- terra::distance(missing_point, non_na_points)  # Calculates distance in the units of the CRS
-
-        # Find the index of the minimum distance
-        min_index <- which.min(distances)
-
-        # Check if the minimum distance is greater than 0.5 degrees
-        if (distances[min_index] > 0.5) {
-          cat("Note: Distance to nearest neighbor is greater than 0.5 degrees for row", missing_row, "\n")
-        }
-
-        # Update the missing value with the nearest neighbor's area_name
-        dep$area_name[missing_row] <- dep$area_name[!is.na(dep$area_name)][min_index]
+    # Update the missing value with the nearest neighbor's area_name
+    dep$area_name[missing_row] <- closest_match$area_name
       }
     }
   } #Close nearest neighbour NA filling brace
