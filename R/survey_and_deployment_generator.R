@@ -13,12 +13,14 @@
 #'   \item Group detections into surveys based on the `max_dur` (maximum survey duration) and `cam_long` (maximum gap between detections).
 #'   \item Assign new deployment IDs and survey IDs, ensuring each deployment has unique identifiers based on the adjusted time periods.
 #'   \item Handle cameras that are active over long periods and split their data based on natural breaks in detections or user-defined thresholds.
+#'   \item Optionally filter out short survey periods based on the `szn_filter` parameter.
 #' }
 #'
 #' @param caps A data frame of camera trap observations that contains date/time information for each image. It must include columns named `Photo.Date`, `deploymentID`, `dataSource`, and `locationName`.
 #' @param deps A data frame of camera deployments that contains location information for each camera deployment. It must include columns named `deploymentID` and `locationName`.
 #' @param cam_long A numeric value (in days) representing the maximum gap between detections before a new survey is started. Defaults to 20 days.
 #' @param max_dur A numeric value (in days) representing the maximum duration a survey can last before starting a new one. Defaults to 100 days.
+#' @param szn_filter A logical value indicating whether to filter out short survey periods. If `TRUE`, surveys with fewer detections within a defined time frame will be combined with adjacent surveys. Defaults to `TRUE`.
 #'
 #' @return A data frame based on the `caps` input, but with additional columns:
 #' \describe{

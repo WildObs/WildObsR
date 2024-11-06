@@ -30,6 +30,7 @@
 #' verify_col_match(df1, df2, col = "Name")
 #'
 #' @author Zachary Amir & ChatGPT
+#'
 #' @export
 verify_col_match <- function(data1, data2, col) {
 
