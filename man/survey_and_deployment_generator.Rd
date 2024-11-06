@@ -4,7 +4,13 @@
 \alias{survey_and_deployment_generator}
 \title{Determine Single-Season Sampling Efforts from Camera Trap Images}
 \usage{
-survey_and_deployment_generator(caps, deps, cam_long = 20, max_dur = 100)
+survey_and_deployment_generator(
+  caps,
+  deps,
+  cam_long = 20,
+  max_dur = 100,
+  szn_filter = TRUE
+)
 }
 \arguments{
 \item{caps}{A data frame of camera trap observations that contains date/time information for each image. It must include columns named `Photo.Date`, `deploymentID`, `dataSource`, and `locationName`.}
@@ -14,6 +20,8 @@ survey_and_deployment_generator(caps, deps, cam_long = 20, max_dur = 100)
 \item{cam_long}{A numeric value (in days) representing the maximum gap between detections before a new survey is started. Defaults to 20 days.}
 
 \item{max_dur}{A numeric value (in days) representing the maximum duration a survey can last before starting a new one. Defaults to 100 days.}
+
+\item{szn_filter}{A logical value indicating whether to filter out short survey periods. If `TRUE`, surveys with fewer detections within a defined time frame will be combined with adjacent surveys. Defaults to `TRUE`.}
 }
 \value{
 A data frame based on the `caps` input, but with additional columns:
@@ -37,6 +45,7 @@ The function will:
   \item Group detections into surveys based on the `max_dur` (maximum survey duration) and `cam_long` (maximum gap between detections).
   \item Assign new deployment IDs and survey IDs, ensuring each deployment has unique identifiers based on the adjusted time periods.
   \item Handle cameras that are active over long periods and split their data based on natural breaks in detections or user-defined thresholds.
+  \item Optionally filter out short survey periods based on the `szn_filter` parameter.
 }
 }
 \author{

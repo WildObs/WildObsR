@@ -36,12 +36,13 @@
 #' table(buffered_dep$Landscape_buff)
 #'
 #' @author Tom Bruce
+#'
 #' @export
 landscape_buffer_namer <- function(dep, buffer_size) {
 
   ## require specific libraries
-  require(terra)
-  require(sf)
+  # require(terra)
+  # require(sf)
 
   # Check if UTM_zone column exists and has valid values
   if (!("UTM_zone" %in% colnames(dep))) {
@@ -130,89 +131,89 @@ landscape_buffer_namer <- function(dep, buffer_size) {
 
   # Assign unique IDs to each disaggregated polygon representing the spatial landscape
   disaggregated_polygons$Unique_ID <- paste0("Landscape_", 1:nrow(disaggregated_polygons))
-  
+
   ###Assign majority landscape ID name####
-  
+
   #User must define the path to the CAPAD file.
   path = "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/"
-  
+
   #Read in the file
   vector =  terra::vect(file.path(path, paste0("Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp")))
-  
+
   # Check the CRS of the vector
   print(crs(vector, describe=TRUE, proj=TRUE)) # CRS is EPSG 3857
   print(crs(disaggregated_polygons, describe=TRUE, proj=TRUE)) # CRS is EPSG 4326 - and the polygons
-  
+
   # Ensure the vector is converted to sf if needed
   vector_sf = st_as_sf(vector)
-  
+
   # Transform the polygons to match the vector
   disaggregated_polygons = project(disaggregated_polygons, "EPSG:3857")
-  
+
   # Initialize a vector to hold the dominant biome for each buffer, with the same length as unique IDs
   unique_land_ids = unique(disaggregated_polygons$Unique_ID)
   dominant_park = rep(NA, length(unique_land_ids))  # Initialize as NA
-  
+
   # Then for each unique landscape ID in disaggregated polygons
   for (j in seq_along(unique_land_ids)) {
-    
+
     # Extract the landscape ID
     current_id = unique_land_ids[j]
-    
+
     # Extract the landscape we are working on
-    land = disaggregated_polygons[disaggregated_polygons$Unique_ID == current_id, ] 
+    land = disaggregated_polygons[disaggregated_polygons$Unique_ID == current_id, ]
     # Make sure it's the right kind of object
     land = st_as_sf(land)
-    
+
     # Perform intersection with the areas shapefile to extract relevant areas
     intersection = st_intersection(land, vector_sf)
-    
+
     # Debugging: Check if intersection is empty
     if (nrow(intersection) == 0) {
       print(paste("No intersection for landscape", current_id))
       dominant_park[j] = NA  # No dominant park found for this ID
       next  # Skip to the next landscape
     }
-    
+
     # Reproject intersection back into a suitable CRS (assuming meters)
     intersection = st_transform(intersection, crs = "EPSG:4087")
-    
+
     # Change the names of intersection to make sense
     intersection$NAME = paste0(intersection$NAME, "_", intersection$TYPE_ABBR)
-    
+
     # Calculate areas for each protected area
     park_areas = st_area(intersection)
     park_names = intersection$NAME
-    
+
     # Convert park areas to numeric for comparison
     park_areas_numeric = as.numeric(park_areas)
-    
+
     # Check if there are any parks in the intersection; if not, skip to the next landscape
-    if (length(park_areas_numeric) == 0) { 
+    if (length(park_areas_numeric) == 0) {
       print(paste("The following landscape did not have any associated parks or reserves:", current_id))
       dominant_park[j] = NA  # No biome found
       next
     }
-    
+
     # Identify the index of the largest park area
     max_area_index = which.max(park_areas_numeric)
-    
+
     # Assign the dominant park name to the respective landscape in dominant_park
     dominant_park[j] = park_names[max_area_index]
   }
-  
+
   # Add the dominant parks back to the disaggregated polygons
   disaggregated_polygons$dominant_park = dominant_park[match(disaggregated_polygons$Unique_ID, unique_land_ids)]
   ###END majority Landscape ID####
-  
+
   ####Then for NA values try and locate a rural property equivalent?######
-  
+
   ###THIS IS GOING TO TAKE TIME -- I think we should read in rural property shapefiles
-  
-  
-  
+
+
+
   #####End rural property search#####
-  
+
   #####Extract values to points####
   # Ensure both layers have the same CRS
   dep_sp_vect <- project(dep_sp_vect, crs(disaggregated_polygons))
@@ -225,7 +226,7 @@ landscape_buffer_namer <- function(dep, buffer_size) {
 
   # Clean dep
   dep$circle_color <- NULL
-  
+
   # Return the updated dataframe
   return(dep)
 }
