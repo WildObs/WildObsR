@@ -19,7 +19,7 @@
 #' @return An updated deployments data frame with an additional `Landscape_buff` column that contains unique IDs for each buffered landscape around the camera deployments.
 #'
 #' @importFrom terra vect project aggregate disagg extract
-#' @importFrom sf st_as_sf st_transform st_buffer
+#' @importFrom sf st_as_sf st_transform st_buffer st_area
 #' @importFrom stringr str_to_title
 #'
 #' @examples
