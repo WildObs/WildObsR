@@ -187,7 +187,7 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
         ### Conditional statement to check if cam_filter is false
         ### and if there is evidence of manual start/stop records added to the captures (potentially remove this, but playing it extra safe RN)
         if(cam_filter == F &
-           any(grepl("Manual_start", deps$deploymentComments))){
+           any(grepl("Manual_start_stop", deps$deploymentComments))){
 
           # skip to the next date without checking cam_long
           next
