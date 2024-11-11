@@ -9,11 +9,12 @@ survey_and_deployment_generator(
   deps,
   cam_long = 20,
   max_dur = 100,
-  szn_filter = TRUE
+  szn_filter = TRUE,
+  cam_filter = TRUE
 )
 }
 \arguments{
-\item{caps}{A data frame of camera trap observations that contains date/time information for each image. It must include columns named `Photo.Date`, `deploymentID`, `dataSource`, and `locationName`.}
+\item{caps}{A data frame of camera trap observations that contains date/time information for each image. It must include columns named `eventStart`, `deploymentID`, `dataSource`, and `locationName`.}
 
 \item{deps}{A data frame of camera deployments that contains location information for each camera deployment. It must include columns named `deploymentID` and `locationName`.}
 
@@ -22,12 +23,14 @@ survey_and_deployment_generator(
 \item{max_dur}{A numeric value (in days) representing the maximum duration a survey can last before starting a new one. Defaults to 100 days.}
 
 \item{szn_filter}{A logical value indicating whether to filter out short survey periods. If `TRUE`, surveys with fewer detections within a defined time frame will be combined with adjacent surveys. Defaults to `TRUE`.}
+
+\item{cam_filter}{A logical value indicating whether to use the cam_long argument to look for natural breaks in detections. This is best set to `FALSE` when there are manually created start/stop records when a data provider has not provided all records. Defaults to `TRUE`.}
 }
 \value{
 A data frame based on the `caps` input, but with additional columns:
 \describe{
   \item{new_deploymentID}{A new deployment identifier that reflects updated deployment groups.}
-  \item{new_surveyID}{A new survey identifier that represents the adjusted survey groupings based on the detection intervals and survey duration.}
+  \item{new_deploymentGroups}{A new survey identifier that represents the adjusted survey groupings based on the detection intervals and survey duration.}
   \item{new_locationName}{A new location identifier combining location and deployment information.}
 }
 }
