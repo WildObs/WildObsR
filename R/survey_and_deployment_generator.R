@@ -16,16 +16,18 @@
 #'   \item Optionally filter out short survey periods based on the `szn_filter` parameter.
 #' }
 #'
-#' @param caps A data frame of camera trap observations that contains date/time information for each image. It must include columns named `Photo.Date`, `deploymentID`, `dataSource`, and `locationName`.
+#' @param caps A data frame of camera trap observations that contains date/time information for each image. It must include columns named `eventStart`, `deploymentID`, `dataSource`, and `locationName`.
 #' @param deps A data frame of camera deployments that contains location information for each camera deployment. It must include columns named `deploymentID` and `locationName`.
 #' @param cam_long A numeric value (in days) representing the maximum gap between detections before a new survey is started. Defaults to 20 days.
 #' @param max_dur A numeric value (in days) representing the maximum duration a survey can last before starting a new one. Defaults to 100 days.
 #' @param szn_filter A logical value indicating whether to filter out short survey periods. If `TRUE`, surveys with fewer detections within a defined time frame will be combined with adjacent surveys. Defaults to `TRUE`.
+#' @param cam_filter A logical value indicating whether to use the cam_long argument to look for natural breaks in detections. This is best set to `FALSE` when there are manually created start/stop records when a data provider has not provided all records. Defaults to `TRUE`.
+
 #'
 #' @return A data frame based on the `caps` input, but with additional columns:
 #' \describe{
 #'   \item{new_deploymentID}{A new deployment identifier that reflects updated deployment groups.}
-#'   \item{new_surveyID}{A new survey identifier that represents the adjusted survey groupings based on the detection intervals and survey duration.}
+#'   \item{new_deploymentGroups}{A new survey identifier that represents the adjusted survey groupings based on the detection intervals and survey duration.}
 #'   \item{new_locationName}{A new location identifier combining location and deployment information.}
 #' }
 #'
@@ -37,15 +39,11 @@
 #' @author Zachary Amir
 #'
 #' @export
-survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 100, szn_filter = TRUE){
+survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 100, szn_filter = TRUE, cam_filter = TRUE){
 
-  ###First make our changes to column names between OG format and camtrapDP
-  #deploymentID = deployment_id
-  #dataSource = source
-  #LocationID = placename.
+  ### Create flags to track if we need to rename columns back at the end
 
-  # Create flags to track if we need to rename columns back at the end
-  #Deployment_id and placename
+  #Deployment_id and placename, in caps and deps
   changed_deployment_id_caps = FALSE
   changed_deployment_id_deps = FALSE
   changed_placename_caps = FALSE
@@ -56,16 +54,21 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
 
   #And landscape
   changed_landscape_caps = FALSE
-  change_landscape_deps = FALSE
+  changed_landscape_deps = FALSE
+
+  #And date column
+  changed_photo_date_caps = FALSE
+
+  #And notes
+  changed_notes_deps = FALSE
 
 
-  # Check and rename columns if necessary
+  # Check and rename 5 columns if necessary
   if ("deployment_id" %in% colnames(caps)) {
     colnames(caps)[colnames(caps) == "deployment_id"] = "deploymentID"
     changed_deployment_id_caps = TRUE
   }
 
-  # Check and rename columns if necessary
   if ("placename" %in% colnames(caps)) {
     colnames(caps)[colnames(caps) == "placename"] = "locationID"
     changed_placename_caps = TRUE
@@ -76,13 +79,19 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
     changed_source_caps = TRUE
   }
 
-    if ("Landscape" %in% colnames(caps)) {
+  if ("Landscape" %in% colnames(caps)) {
     colnames(caps)[colnames(caps) == "Landscape"] = "locationName"
-    changed_landscap_caps = TRUE
+    changed_landscape_caps = TRUE
   }
 
-  #Same for deps
-  # Check and rename columns if necessary
+  if("Photo.Date" %in% colnames(caps)) {
+    colnames(caps)[colnames(caps) == "Photo.Date"] = "eventStart"
+    changed_photo_date_caps = TRUE
+  }
+
+
+  ## Same for deployments
+  # Check and rename 4 columns if necessary
   if ("deployment_id" %in% colnames(deps)) {
     colnames(deps)[colnames(deps) == "deployment_id"] = "deploymentID"
     changed_deployment_id_deps = TRUE
@@ -94,9 +103,14 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
     changed_placename_deps = TRUE
   }
 
-    if ("Landscape" %in% colnames(deps)) {
+  if ("Landscape" %in% colnames(deps)) {
     colnames(deps)[colnames(deps) == "Landscape"] = "locationName"
     changed_landscape_deps = TRUE
+  }
+
+  if ("notes" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "notes"] = "deploymentComments"
+    changed_notes_deps = TRUE
   }
 
   #### ensure data checks are valid to implement function
@@ -106,8 +120,8 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
     stop("Input captures and deployments must have 'deploymentID' column, even if its just a copy of locationID.")
   }
   # Make sure Photo.Date is present in caps
-  if (!("Photo.Date" %in% colnames(caps))) {
-    stop("Input captures must have 'Photo.Date' column.")
+  if (!("eventStart" %in% colnames(caps))) {
+    stop("Input captures must have 'eventStart' column, even if its just a copy of eventEnd and/or Photo.Date.")
   }
   # Make sure data source is present in caps
   if (!("dataSource" %in% colnames(caps))) {
@@ -135,22 +149,22 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
     # and thin data
     dl = caps[caps$locationName == land,]
 
-    #Make sure our dates are in the correct format
-    dl$Photo.Date = as.Date(dl$Photo.Date)
+    ## Extract the date value from dateTime object
+    dl$date = as.Date(dl$eventStart)
 
     # select first and last date of the survey
-    surv_start = min(dl$Photo.Date)
-    surv_end = max(dl$Photo.Date)
+    surv_start = min(dl$date)
+    surv_end = max(dl$date)
 
     #create df with a row per day between the first and last record
-    dates <- data.frame("Photo.Date" =  rep(seq(surv_start, surv_end, by = 'days'),
+    dates <- data.frame("date" =  rep(seq(surv_start, surv_end, by = 'days'),
                                             times = 1))
 
     # # thin dates to only include the dates where we have captures in this long survey
-    dates = data.frame("Photo.Date" = dates[dates$Photo.Date %in% unique(dl$Photo.Date),])
+    dates = data.frame("date" = dates[dates$date %in% unique(dl$date),])
 
     # reorder data by chronological dates
-    dates = data.frame("Photo.Date" = dates[order(dates$Photo.Date),])
+    dates = data.frame("date" = dates[order(dates$date),])
 
     # add column to sep 90-day checks
     dates$check = "pt1"
@@ -161,23 +175,33 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
       #### instead of making 90-day breaks,
       ### check cams for natural breaks (determined above in cam_long object),
       ## and then cut by 90 days
-      for(p in 1:length(unique(dates$Photo.Date))){
+      for(p in 1:length(unique(dates$date))){
 
         # select an individual date and the next unique one
-        date1 = unique(dates$Photo.Date)[p]
-        date2 = unique(dates$Photo.Date)[p+1]
+        date1 = unique(dates$date)[p]
+        date2 = unique(dates$date)[p+1]
 
         # add conditional to bypass last unique date value and assign it the last value
         if(is.na(date2)){date2 = date1} # end max variable (p) value conditional
 
+        ### Conditional statement to check if cam_filter is false
+        ### and if there is evidence of manual start/stop records added to the captures (potentially remove this, but playing it extra safe RN)
+        if(cam_filter == F &
+           any(grepl("Manual_start", deps$deploymentComments))){
+
+          # skip to the next date without checking cam_long
+          next
+
+        } # end cam_filter condition
+
         # if dates are longer than pre-determined duration, assess 90 period seperately
         if(as.numeric(abs(difftime(date1, date2))) > cam_long){
 
-          dates$check[dates$Photo.Date >= date2] = paste("pt", p, sep = "")
+          dates$check[dates$date >= date2] = paste("pt", p, sep = "")
 
-        } # end conditional for looong dates
+        } # end conditional for long dates
 
-      } # end loop per photo.date
+      } # end loop per date
 
       ## assess max duration intervals based on our previous checks
       temp = list() # store results here
@@ -188,8 +212,8 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
 
         #split dates into groups based on max duration
         da<-da %>%
-          dplyr::mutate(season = (cut.Date(Photo.Date, breaks = paste(max_dur, "days"), labels = FALSE))) %>%
-          dplyr::arrange(Photo.Date)
+          dplyr::mutate(season = (cut.Date(date, breaks = paste(max_dur, "days"), labels = FALSE))) %>%
+          dplyr::arrange(date)
 
         ### Make sure seasons are distinct between chunks by making a character var
         da$season = paste("pt",p,"_", da$season, sep = "")
@@ -202,69 +226,70 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
       # combine back into a df
       dates = do.call(rbind, temp)
 
-      ## quick loop to avoid survey's w/ too few detections
-      if(szn_filter == TRUE){ #Start szn_filter conditional
-      for(u in 1:length(unique(dates$season))){
+      #Start szn_filter conditional
+      if(szn_filter == TRUE){
+        ## quick loop to avoid survey's w/ too few detections
+        for(u in 1:length(unique(dates$season))){
 
-        ## if the below code is true and we reduced the number of seasons less than var value,
-        if(u <= length(unique(dates$season))){
+          ## if the below code is true and we reduced the number of seasons less than var value,
+          if(u <= length(unique(dates$season))){
 
-          # if the first season has the same  min and max dates (i.e. only one date),
-          if(u == 1 &
-             as.numeric(difftime(max(dates$Photo.Date[dates$season == unique(dates$season)[u]]),
-                                 min(dates$Photo.Date[dates$season == unique(dates$season)[u]]))) == 0){
+            # if the first season has the same min and max dates (i.e. only one date),
+            if(u == 1 &
+               as.numeric(difftime(max(dates$date[dates$season == unique(dates$season)[u]]),
+                                   min(dates$date[dates$season == unique(dates$season)[u]]))) == 0){
 
-            # and if the difference between the next survey is less than a calendar week
-            if(as.numeric(difftime(min(dates$Photo.Date[dates$season == unique(dates$season)[u+1]]),
-                                   (dates$Photo.Date[dates$season == unique(dates$season)[u]]))) <= 8){
+              # and if the difference between the next survey is less than a calendar week
+              if(as.numeric(difftime(min(dates$date[dates$season == unique(dates$season)[u+1]]),
+                                     (dates$date[dates$season == unique(dates$season)[u]]))) <= 8){
 
-              # change that season to the NEXT one
-              dates$season[dates$season == unique(dates$season)[u]] =
-                unique(dates$season)[u+1]
+                # change that season to the NEXT one
+                dates$season[dates$season == unique(dates$season)[u]] =
+                  unique(dates$season)[u+1]
 
-            }# end secondary conditional
+              }# end secondary conditional
 
-          } # end first season conditional
+            } # end first season conditional
 
-          # if the last season has the same  min and max dates (i.e. only one date),
-          if(u == length(unique(dates$season)) &
-             as.numeric(difftime(max(dates$Photo.Date[dates$season == unique(dates$season)[u]]),
-                                 min(dates$Photo.Date[dates$season == unique(dates$season)[u]]))) == 0){
+            # if the last season has the same  min and max dates (i.e. only one date),
+            if(u == length(unique(dates$season)) &
+               as.numeric(difftime(max(dates$date[dates$season == unique(dates$season)[u]]),
+                                   min(dates$date[dates$season == unique(dates$season)[u]]))) == 0){
 
 
-            # and if the difference between the previous survey is less than a calendar week
-            if(as.numeric(difftime(max(dates$Photo.Date[dates$season == unique(dates$season)[u-1]]),
-                                   (dates$Photo.Date[dates$season == unique(dates$season)[u]]))) <= 8){
+              # and if the difference between the previous survey is less than a calendar week
+              if(as.numeric(difftime(max(dates$date[dates$season == unique(dates$season)[u-1]]),
+                                     (dates$date[dates$season == unique(dates$season)[u]]))) <= 8){
+
+                # change that season to the PREVIOUS one
+                dates$season[dates$season == unique(dates$season)[u]] =
+                  unique(dates$season)[u-1]
+
+
+              } # end secondary conditional
+
+            } # end last season conditional
+
+            # if there is a season w/ less than a calendar week of detections,
+            if(u < length(unique(dates$season)) & u != 1 &
+               as.numeric(difftime(max(dates$date[dates$season == unique(dates$season)[u]]),
+                                   min(dates$date[dates$season == unique(dates$season)[u]]))) <= 8){
 
               # change that season to the PREVIOUS one
               dates$season[dates$season == unique(dates$season)[u]] =
                 unique(dates$season)[u-1]
 
+            }# end conditional for changing season to previous one
 
-            } # end secondary conditional
+          }# end loop breaking conditional
 
-          } # end last season conditional
+        } # end quick loop for short survey splits
 
-          # if there is a season w/ less than a calendar week of detections,
-          if(u < length(unique(dates$season)) & u != 1 &
-             as.numeric(difftime(max(dates$Photo.Date[dates$season == unique(dates$season)[u]]),
-                                 min(dates$Photo.Date[dates$season == unique(dates$season)[u]]))) <= 8){
-
-            # change that season to the PREVIOUS one
-            dates$season[dates$season == unique(dates$season)[u]] =
-              unique(dates$season)[u-1]
-
-          }# end conditional for changing season to previous one
-
-        }# end loop breaking conditional
-
-      } # end quick loop for short survey splits
-
-    } #End szn_filter conditional
+      } #End szn_filter conditional
 
       # summarize season's starting year via ddply
       szn = ddply(dates, .(season), summarize,
-                  start_year = chron::years(min(Photo.Date)))
+                  start_year = chron::years(min(date)))
 
       #rank each season from first to last
       szn$rank <- with(szn, ave(seq_along(szn$start_year),
@@ -293,7 +318,6 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
         szn$ID = paste(szn$start_year, szn$rank, sep = "_")
       }
 
-
       # merge back w/ all dates
       dates = merge(dates, szn, by = 'season')
 
@@ -306,7 +330,7 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
 
         # and the same for the loop dataset for close inspection
         dl$add_to_survey_id[dl$locationName == land &
-                              dl$Photo.Date %in% ra$Photo.Date] = r
+                              dl$date %in% ra$date] = r
 
       } # end loop per rank ID
 
@@ -316,26 +340,27 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
     ## add something simple to ensure ALL add_to_survey_id rows have a temporal value
     if(as.numeric(difftime(surv_end, surv_start)) < max_dur){
 
-      # simply take the start date of the survey and attach that to surveyID
+      # simply take the start date of the survey and attach that to deploymentGroups
       dl$add_to_survey_id[dl$locationName == land &
-                            dl$Photo.Date >= surv_start &
-                            dl$Photo.Date <= surv_end] = as.character(chron::years(surv_start))
+                            dl$date >= surv_start &
+                            dl$date <= surv_end] = as.character(chron::years(surv_start))
 
     } # end regular season conditional
 
-    #### Create new surveyID and locationName tags
-
-    # Combine state and locationName to create a new surveyID code
-    code = unique(paste0(dl$state, "_", dl$locationName))
+    #### Create new deploymentGroups tags
 
     # create a new survey ID to each bin
-    dl$new_surveyID <- paste(dl$locationName,
-                             dl$add_to_survey_id,
-                             sub("^.*_", "", unique(dl$dataSource)), # extract only last name from dataSource
-                             sep = "_")
+    dl$new_deploymentGroups <- paste(dl$locationName,
+                                     dl$add_to_survey_id,
+                                     sub("^.*_", "", unique(dl$dataSource)), # extract only last name from dataSource
+                                     sep = "_")
 
-    # add the new locationName tag w/ state
-    dl$new_locationName = paste(unique(code))
+    # # Combine state and locationName to create a new deploymentGroups code
+    # code = unique(paste0(dl$state, "_", dl$locationName))
+    #
+    # # add the new locationName tag w/ state
+    # dl$new_locationName = paste(unique(code))
+    ### Leave locationName alone for another function, too much is already happening here.
 
     ## Need to make sure camera names are split appropriately and appended w/ proper time tag as well
     ## and include relevant information from the metadata
@@ -347,8 +372,8 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
       ## and subset caps for that place
       dlc = dl[dl$locationID == cam, ]
 
-      ## extract distinct places, deployments, and surveys for subsetted captures
-      m = distinct(select(dlc, locationID, deploymentID, new_surveyID, add_to_survey_id))
+      ## extract distinct places, deployments, and surveys for sub-setted captures
+      m = distinct(select(dlc, locationID, deploymentID, new_deploymentGroups, add_to_survey_id))
 
       #### First, make sure there is no year/letter info in the cam names
       ## extract year and letter separately
@@ -365,41 +390,42 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
       } # end letter conditional
 
 
-      ## remove this value from the cam name if it is present
-      if(endsWith(cam, combo) &
-         !is.na(combo)){
-
-        cam = str_remove(cam, combo)
-
-      } # end removal conditional
-
       ### Verify data from the deployments should or should not be included here.
       # if this place name has multiple deployments, and they arent a yearly/time thing
       if(nrow(m) > 1 &
          nrow(m) != length(unique(dlc$add_to_survey_id))){
 
-        ## for each unique new_surveyID value
-        for(v in 1:length(unique(dlc$new_surveyID))){
+        ## for each unique new_deploymentGroups value
+        for(v in 1:length(unique(dlc$new_deploymentGroups))){
 
-          ## for each row of metadata with the same locationID
-          for(n in 1:nrow(m[m$new_surveyID == unique(dlc$new_surveyID)[v], ])){
+          ## for each row of deployments with the same locationID
+          for(n in 1:nrow(m[m$new_deploymentGroups == unique(dlc$new_deploymentGroups)[v], ])){
 
-            ## Make new cam name w/ code + individual cam
-            new_cam = paste(cam,
-                            dl$add_to_survey_id[dl$locationID == cam #],
-                                                & dl$deploymentID == m$deploymentID[m$new_surveyID == unique(dlc$new_surveyID)[v]][n]
-                                                & dl$new_surveyID == unique(dlc$new_surveyID)[v]],
-                            paste("Cam", n, sep = ""), sep = "_")
+            ## Grab the appropriate info
+            info = dl$add_to_survey_id[dl$locationID == cam
+                                       & dl$deploymentID == m$deploymentID[m$new_deploymentGroups == unique(dlc$new_deploymentGroups)[v]][n]
+                                       & dl$new_deploymentGroups == unique(dlc$new_deploymentGroups)[v]]
 
-            ## and save it in the data
+            ## Make new cam name w/ cam, info, and individual cam number
+            new_cam = paste(cam, info, paste("Cam", n, sep = ""), sep = "_")
+
+            ### Verify the new cam name has not repeated the the combo created above
+            check = gsub("_", "", combo) # remove underscore for easier checking
+            if(!is.na(check) &
+               grepl(paste(unique(info), check, sep = "_"), unique(new_cam))){
+
+              ## reduce the new cam name to not include the dublicate
+              new_cam = gsub(paste(unique(info), check, sep = "_"), unique(info), new_cam)
+
+            } # end duplicate text conditional
+
+
+            ## Finally, save new name in the data
             dl$new_deploymentID[dl$locationID == cam & #] = new_cam
-                                  dl$deploymentID == m$deploymentID[m$new_surveyID == unique(dlc$new_surveyID)[v]][n] &
-                                  dl$new_surveyID == unique(dlc$new_surveyID)[v]] = (new_cam)
+                                  dl$deploymentID == m$deploymentID[m$new_deploymentGroups == unique(dlc$new_deploymentGroups)[v]][n] &
+                                  dl$new_deploymentGroups == unique(dlc$new_deploymentGroups)[v]] = (new_cam)
 
-            #### COME HERE!
-            ### repeated deployments are only saving with even numbers, not sure if overwriting or not.
-
-          } # end per new_surveyID
+          } # end per new_deploymentGroups
 
         } # end per row of m
 
@@ -444,12 +470,20 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
     colnames(results)[colnames(results) == "locationName"] <- "Landscape"
   }
 
+  if (changed_photo_date_caps) {
+    colnames(results)[colnames(results) == "eventStart"] <- "Photo.Date"
+  }
+
   #Return the results as the output
   return(results)
 
 } # end function
 
 # # for testing
-# rm(l,p,c,u,r,cam, dl, yr, land, code, let,combo,
+# rm(l,p,c,u,r,cam, dl, yr, land, let, combo,
 #    new_cam,v, m, dlc, surv_end, surv_start, da,
-#    dates,ra,temp,szn,date1,date2,id, n, res)
+#    dates,ra,temp,szn,date1,date2,id, n, res,
+#    changed_deployment_id_caps, changed_landscape_caps,
+#    changed_deployment_id_deps, changed_landscape_deps,
+#    changed_photo_date_caps, changed_placename_caps,
+#    changed_placename_deps, changed_source_caps, check, info)
