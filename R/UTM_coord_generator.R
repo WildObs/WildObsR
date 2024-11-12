@@ -19,8 +19,11 @@
 #'   \item{X}{The `X` coordinate for the defined UTM zone.}
 #'   \item{Y}{The `Y` coordinate for the defined UTM zone.}
 #' }
-
+#'
 #' @importFrom sf st_crs st_as_sf st_transform
+#' @importFrom WildObsR long_to_UTM_zone
+#' @importFrom dplyr filter bind_rows
+#'
 #' @examples
 #' # Example usage:
 #' dep <- data.frame(
@@ -68,7 +71,7 @@ ECL_latlong = st_crs("+epsg=4087 +proj=longlat +datum=WGS84")
 ## Convert lat/long into sf object
 data_sf = st_as_sf(data, coords = c(lon_col, lat_col),
                   crs = ECL_latlong)
-head(data_sf)
+#head(data_sf)
 
 # Split the dataframe based on UTM_Zone to obtain the values we need to work with
 utm_zones <- unique(data$UTM_zone)
