@@ -21,7 +21,6 @@
 #' }
 #'
 #' @importFrom sf st_crs st_as_sf st_transform
-#' @importFrom WildObsR long_to_UTM_zone
 #' @importFrom dplyr filter bind_rows
 #'
 #' @examples
@@ -58,7 +57,7 @@ if (!("UTM_zone" %in% colnames(data))){ #Check dep has the UTM zones defines
 print("Provided dataframe does not have UTM zone which this functions required, generating it now.")
 
 ### Generate UTM from coordinates
-data$UTM_zone = long_to_UTM_zone(data[,lon_col])
+data$UTM_zone = (floor((data[,lon_col] + 180)/6) %% 60) + 1 # cant have circular dependency! Cant call in wildobsr function here.
 
 }#close check for utm_zone in data
 
