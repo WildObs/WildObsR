@@ -7,5 +7,5 @@ Maintainer: Zachary Amir <z.amir@uq.edu.au>
 Description: A collection of tools for analyzing wildlife observation data, including functions for data cleaning, visualization, and statistical analysis.
 License: MIT LICENSE
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 RoxygenNote: 7.2.1
