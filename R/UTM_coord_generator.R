@@ -54,16 +54,16 @@ lon_col <- if ("Longitude" %in% names(data)) "Longitude" else "longitude"
 
 if (!("UTM_zone" %in% colnames(data))){ #Check dep has the UTM zones defines
 
-print("Provided dataframe does not have UTM zone which this functions required, generating it now.")
+# print("Provided dataframe does not have UTM zone which this functions required, generating it now.")
 
 ### Generate UTM from coordinates
-data$UTM_zone = (floor((data[,lon_col] + 180)/6) %% 60) + 1 # cant have circular dependency! Cant call in wildobsr function here.
+data$UTM_zone = floor((data[[lon_col]] + 180) / 6) %% 60 + 1 # cant have circular dependency! Cant call in wildobsr function here.
 
 }#close check for utm_zone in data
 
 #print a message to show the UTM zone
-cat("The cameras come from the following UTM zones\n")
-print(unique(data$UTM_zone)) #
+# cat("The cameras come from the following UTM zones\n")
+# print(unique(data$UTM_zone)) #
 
 
 #ECL_latlong needs to be defined to be used.
