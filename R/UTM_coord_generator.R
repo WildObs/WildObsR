@@ -15,25 +15,25 @@
 #'
 #' @return A data frame with the following columns:
 #' \describe{
-#'   \item{locationID}{The unique identifier for each camera trap location.}
+#'   \item{deploymentID}{The unique identifier for each camera trap deployment}
 #'   \item{X}{The `X` coordinate for the defined UTM zone.}
 #'   \item{Y}{The `Y` coordinate for the defined UTM zone.}
 #' }
 #'
-#' @importFrom sf st_crs st_as_sf st_transform
+#' @importFrom sf st_crs st_as_sf st_transform st_coordinates
 #' @importFrom dplyr filter bind_rows
 #'
 #' @examples
 #' # Example usage:
 #' dep <- data.frame(
-#'   locationID = c("location1", "location2"),
+#'   deploymentID = c("location1", "location2"),
 #'   Latitude = c(-33.8688, -27.4698),
 #'   Longitude = c(151.2093, 153.0251)
 #' )
 #' utm_dep <- UTM_coord_generator(data = dep)
 #' head(utm_dep)
 #'
-#' @author Tom Bruce
+#' @author Tom Bruce & Zachary Amir
 #'
 #' @export
 UTM_coord_generator <- function(data) {
@@ -42,8 +42,8 @@ UTM_coord_generator <- function(data) {
 changed_placename_data = FALSE
 
 # Check and rename columns if necessary
-  if ("placename" %in% colnames(data)) {
-    colnames(data)[colnames(data) == "placename"] = "locationID"
+  if ("deployment_id" %in% colnames(data)) {
+    colnames(data)[colnames(data) == "deployment_id"] = "deploymentID"
     changed_placename_data = TRUE
   }
 
@@ -93,7 +93,7 @@ for (zone in utm_zones) {
                           crs = utm_crs)
 
   # Convert to regular numbers
-  data_utm = data.frame("locationID" = data_utm$locationID,
+  data_utm = data.frame("deploymentID" = data_utm$deploymentID,
                         "UTMzone" = zone,
                         "X" = st_coordinates(data_utm)[,1],
                         "Y" = st_coordinates(data_utm)[,2])
@@ -106,7 +106,7 @@ data_utm = bind_rows(utm_dfs)
 
 #Rename our columns if needed
 if (changed_placename_data) {
-  colnames(data_utm)[colnames(data_utm) == "locationID"] <- "placename"
+  colnames(data_utm)[colnames(data_utm) == "deploymentID"] <- "deployment_ID"
 }
 
 return(data_utm)
