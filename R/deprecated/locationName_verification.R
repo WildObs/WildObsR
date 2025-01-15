@@ -4,6 +4,8 @@
 #' It works at multiple levels, starting by checking National Parks and State Forests based on the state provided, and then fills in any missing values based on proximity to known landscapes.
 #' Optionally, the function can also visualize results using a Leaflet map.
 #'
+#'@deprecated
+#'
 #' @details
 #' The function operates in a stepwise fashion:
 #' \enumerate{
@@ -36,6 +38,10 @@
 #' @author Tom Bruce
 #' @export
 locationName_verification <- function(dep, Landscapes_path, dist, state = NULL) {
+
+  ## Let users know this is depreciated!
+  warning("This function is depreciated and likely will be removed in future versions. Please use the updated function locationName_verification_national().")
+
   # Step 1: Check if 'state' variable exists in dep
   if (is.null(state)) {
     cat("State not provided. Please provide the state (QLD, NSW, VIC, SA, WA, NT,TAS).\n")
@@ -385,10 +391,10 @@ locationName_verification <- function(dep, Landscapes_path, dist, state = NULL) 
     if (any(is.na(dep$area_name))) {
 
     crs_info = terra::crs("EPSG:4326") #Lat long as terra distances automatically outputs meters
-  
+
     # Identify the rows with missing values
      missing_rows <- which(is.na(dep$area_name))
-  
+
     # Create a SpatVector for points with non-NA area_name
     non_na_points <- vect(dep[!is.na(dep$area_name), ], geom = c(lon_col, lat_col), crs = crs_info)
 
@@ -408,24 +414,24 @@ locationName_verification <- function(dep, Landscapes_path, dist, state = NULL) 
 
     # Calculate distances to non-NA points
     distances <- terra::distance(missing_point, non_na_points)  # Calculates distance in the units of the CRS
-    
+
     # Add the distance as a new attribute/column to the non_na_points object
     non_na_points$distance <- as.vector(distances)  # Add the distance vector directly
-    
-    
+
+
     # Now you can easily sort non_na_points by the distance column
     sorted_points <- non_na_points[order(non_na_points$distance), ]
-    
+
     # Convert the SpatVector (sorted_points) to a data frame
     sorted_points_df <- as.data.frame(sorted_points)
-    
+
     # Display the closest point with all relevant attributes
     closest_match <- sorted_points[1, ]
     closest_match = as.data.frame(closest_match)
-    
+
     # Find the index of the minimum distance
     min_index <- (closest_match$distance)
-    
+
     # Check if the minimum distance is greater than 500 meters
      if (min_index > 5000) {
     cat("Note: Distance to nearest non NA neighbor is greater than 5km for placename", missing_placename, "To", closest_match$placename, "\n")

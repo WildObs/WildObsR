@@ -32,10 +32,6 @@
 #' @export
 AUS_state_locator = function (deps){
 
-  ###First make our changes to column names between OG format and camtrapDP
-  #deploymentID = deployment_id
-  #dataSource = source
-
   # Store the original column names
   original_colnames = colnames(deps)
 
@@ -60,15 +56,12 @@ AUS_state_locator = function (deps){
     changed_lon = TRUE
   }
 
-  ## Add a blank empty col to group evertthing togeth
-  # deps$var = "blank"
-
   ## calculate average coordinates per landscape
   avg_land = ddply(deps, .(deploymentID), summarize,
                    avg_long = mean(longitude),
                    avg_lat = mean(latitude))
   # then import a map of the states
-  aus = ozmaps::ozmap("states")
+  aus = ozmaps::ozmap_states
   # then make average coordinates a spatial object, matching the CRS of the states
   avg_land = st_as_sf(avg_land, coords = c("avg_long", "avg_lat"), crs = st_crs(aus))
   # then intersect avg coords and states
@@ -117,4 +110,4 @@ AUS_state_locator = function (deps){
 }
 
 # for testing
-#rm(states, aus, avg_land)
+# rm(states, aus, avg_land, changed_deployment_id, changed_lat, changed_lon, original_colnames)
