@@ -12,7 +12,7 @@ UTM_coord_generator(data)
 \value{
 A data frame with the following columns:
 \describe{
-  \item{locationID}{The unique identifier for each camera trap location.}
+  \item{deploymentID}{The unique identifier for each camera trap deployment}
   \item{X}{The `X` coordinate for the defined UTM zone.}
   \item{Y}{The `Y` coordinate for the defined UTM zone.}
 }
@@ -32,7 +32,7 @@ The function works in the following steps:
 \examples{
 # Example usage:
 dep <- data.frame(
-  locationID = c("location1", "location2"),
+  deploymentID = c("location1", "location2"),
   Latitude = c(-33.8688, -27.4698),
   Longitude = c(151.2093, 153.0251)
 )
@@ -41,5 +41,5 @@ head(utm_dep)
 
 }
 \author{
-Tom Bruce
+Tom Bruce & Zachary Amir
 }

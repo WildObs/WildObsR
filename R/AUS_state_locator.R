@@ -32,10 +32,6 @@
 #' @export
 AUS_state_locator = function (deps){
 
-  ###First make our changes to column names between OG format and camtrapDP
-  #deploymentID = deployment_id
-  #dataSource = source
-
   # Store the original column names
   original_colnames = colnames(deps)
 
@@ -50,25 +46,49 @@ AUS_state_locator = function (deps){
     changed_deployment_id = TRUE
   }
 
+  ## Add code-checks for lat/long col names
+  # TBH, might be easier in future iterations to specify lat/long in function
+  # or tolower() all colnames and search for the lat/long cols
+
+  ## Lats
   if ("Latitude" %in% colnames(deps)) {
     colnames(deps)[colnames(deps) == "Latitude"] = "latitude"
-    changed_lat = TRUE
+    changed_lat1 = TRUE
+  }
+  if ("Lat" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "Lat"] = "latitude"
+    changed_lat2 = TRUE
+  }
+  if ("lat" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "lat"] = "latitude"
+    changed_lat3 = TRUE
   }
 
+  ## Longs
   if ("Longitude" %in% colnames(deps)) {
     colnames(deps)[colnames(deps) == "Longitude"] = "longitude"
-    changed_lon = TRUE
+    changed_lon1 = TRUE
+  }
+  if ("Long" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "Long"] = "longitude"
+    changed_lon2 = TRUE
+  }
+  if ("long" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "long"] = "longitude"
+    changed_lon3 = TRUE
   }
 
-  ## Add a blank empty col to group evertthing togeth
-  # deps$var = "blank"
+  ## print a warning if we cant get lat/longs
+  if(!any(grepl("longitude|latitude", colnames(deps)))){
+    stop("Latitude and/or longitude could not be found in your dataframe. Please make sure to provide latitdue as 'lat', 'Lat', 'Latitude', or 'latitdue', and please make sure to provide longitude as 'long', 'Long', 'Longitude', or 'longitude'.")
+  }
 
   ## calculate average coordinates per landscape
   avg_land = ddply(deps, .(deploymentID), summarize,
                    avg_long = mean(longitude),
                    avg_lat = mean(latitude))
   # then import a map of the states
-  aus = ozmaps::ozmap("states")
+  aus = ozmaps::ozmap_states
   # then make average coordinates a spatial object, matching the CRS of the states
   avg_land = st_as_sf(avg_land, coords = c("avg_long", "avg_lat"), crs = st_crs(aus))
   # then intersect avg coords and states
@@ -103,12 +123,24 @@ AUS_state_locator = function (deps){
     colnames(deps)[colnames(deps) == "deploymentID"] <- "deployment_id"
   }
 
-  if (changed_lat) {
+  if (changed_lat1) {
     colnames(deps)[colnames(deps) == "latitude"] <- "Latitude"
   }
+  if (changed_lat2) {
+    colnames(deps)[colnames(deps) == "latitude"] <- "Lat"
+  }
+  if (changed_lat3) {
+    colnames(deps)[colnames(deps) == "latitude"] <- "lat"
+  }
 
-  if (changed_lon) {
+  if (changed_lon1) {
     colnames(deps)[colnames(deps) == "longitude"] <- "Longitude"
+  }
+  if (changed_lon2) {
+    colnames(deps)[colnames(deps) == "longitude"] <- "Long"
+  }
+  if (changed_lon3) {
+    colnames(deps)[colnames(deps) == "longitude"] <- "long"
   }
 
   # return(unique(states$state))
@@ -117,4 +149,4 @@ AUS_state_locator = function (deps){
 }
 
 # for testing
-#rm(states, aus, avg_land)
+# rm(states, aus, avg_land, changed_deployment_id, changed_lat, changed_lon, original_colnames)
