@@ -39,8 +39,8 @@
 #' @export
 locationName_verification <- function(dep, Landscapes_path, dist, state = NULL) {
 
-  ## Let users know this is depreciated!
-  warning("This function is depreciated and likely will be removed in future versions. Please use the updated function locationName_verification_national().")
+  ## Let users know this is deprecated!
+  warning("This function is deprecated and likely will be removed in future versions. Please use the updated function locationName_verification_CAPAD().")
 
   # Step 1: Check if 'state' variable exists in dep
   if (is.null(state)) {

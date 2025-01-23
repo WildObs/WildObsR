@@ -8,9 +8,9 @@
 #' @param ibra_file_path A character string specifying the file path to the IBRA7 subregions shapefile. Defaults to "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/IBRA7_bioregions/ibra7_subregions.shp".
 #'
 #'#' @details
-#' The function begins by verifying the presence of the specified latitude and longitude columns in the input dataframe. It then creates a spatial vector from the input coordinates and clips the IBRA shapefile to the extent of the data points for improved performance. The function performs a spatial join to associate each location with its corresponding IBRA bio-region and sub-region.
+#' The function begins by verifying the presence of the specified latitude and longitude columns in the input dataframe. It then creates a spatial vector from the input coordinates and clips the IBRA shapefile to the extent of the data points for improved performance. Next, the function performs a spatial join to associate each location with its corresponding IBRA bio-region and sub-region.
 #'
-#' If any locations are not assigned a bio-region (i.e., have missing values), the nearest neighbor approach is used to impute these values. Finally, the function prints a summary table of the number of deployments per IBRA bio-region and sub-region and returns an updated dataframe with additional columns for IBRA information.
+#' If any locations are not assigned a bio-region (i.e., have missing values), the nearest neighbor approach is used to calculate these values. Finally, the function prints a summary table of the number of deployments per IBRA bio-region and sub-region and returns an updated dataframe with additional columns containing IBRA information.
 #'
 #' Note that you must have access to the IBRA7 shapefile for this function to work. Either ensure the default pathway is accurrate and downloaded on your computer, or edit the pathway to work for your local computer.
 #'
@@ -50,6 +50,9 @@ ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Drop
                "Please ensure you have specified the correct column name for longitude before using this function."))
   } # end long conditional
 
+  ## Make sure data is a data frame and not a tibble to work w/ terra functions
+  data = as.data.frame(data)
+
   #Create an ID row to help with surveys that have duplicate values of placename
   ## e.g. TB and ZDA work will have a duplicate placenames for road and bush cameras
   data$ID = seq_len(nrow(data))
@@ -70,16 +73,16 @@ ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Drop
   ## re-project our data so it matches the shape file
   data_sp = terra::project(data_sp, terra::crs(ibra))
 
-  ## preform the intersection to verify they are overlapping
-  intersection <- terra::intersect(data_sp, ibra)
-
-  # Check if the intersection result has any features
-  if (nrow(intersection) > 0) {
-    print("Provided locations and IBRA7 BioRegions shapefile intersect.")
-  } else {
-    print("Provided locations and IBRA7 BioRegions shapefile do not intersect.")
-  } # end intersection statement
-  # rm(intersection)
+  # ## preform the intersection to verify they are overlapping
+  # intersection <- terra::intersect(data_sp, ibra)
+  #
+  # # Check if the intersection result has any features
+  # if (nrow(intersection) > 0) {
+  #   print("Provided locations and IBRA7 BioRegions shapefile intersect.")
+  # } else {
+  #   print("Provided locations and IBRA7 BioRegions shapefile do not intersect.")
+  # } # end intersection statement
+  # # rm(intersection)
 
   # Determine the extent of your data points
   data_extent <- terra::ext(data_sp)
@@ -93,7 +96,7 @@ ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Drop
   ## now that we match, bring back the ID column from data_sp
   result$ID = data_sp$ID[result$id.y]
 
-  ## select the relevant info
+  ## select the relevant info from the IBRA dataset
   result2 = select(result, ID, SUB_NAME_7,SUB_CODE_7, REG_NAME_7, REG_CODE_7, HECTARES)
 
   ## and merge w/ data_sp

@@ -6,7 +6,7 @@
 #'
 #' @param dep A dataframe containing deployment data, including columns for `latitude`, `longitude`, and `deploymentID`.
 #' It may also include `UTMzone`, `X`, and `Y` coordinates. If these are missing, they will be generated using the `WildObsR::UTM_coord_generator` function.
-#' @param buffer_size Numeric value representing the size of the buffer (in meters) around each deployment location.
+#' @param buffer_size Numeric value representing the size of the buffer (in meters) around each deployment location. Defaults to 5,000 m (5 km).
 #' @param capad_file_path File path to the CAPAD shapefile containing protected area boundaries. Defaults to ~/Dropbox/ECL spatial layers repository/, so please ensure you have access or modify the pathway to your local computer to the shapefile location.
 #'
 #'@details
@@ -47,10 +47,10 @@
 #'
 #' @author Tom Bruce & Zachary Amir
 #' @export
-locationName_buffer_CAPAD <- function(dep, buffer_size, capad_file_path = "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp") {
+locationName_buffer_CAPAD <- function(dep, buffer_size = 5000, capad_file_path = "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp") {
 
   ## first check if UTMs are present in the DF
-  if(! any(grepl("X|Y|UTM", names(dep)))){
+  if(! any(grepl("X|x|Y|y|UTM", names(dep)))){
 
     ## If missing, we need UTM for buffers, so use WildObsR function to generate them
     dep_utm = UTM_coord_generator(dep)
@@ -69,6 +69,9 @@ locationName_buffer_CAPAD <- function(dep, buffer_size, capad_file_path = "~/Dro
   # Check for capitalization of Latitude and Longitude
   lat_col <- if ("Latitude" %in% names(dep)) "Latitude" else "latitude"
   lon_col <- if ("Longitude" %in% names(dep)) "Longitude" else "longitude"
+
+  ## Make sure dep is a data frame and not a tibble to work w/ terra functions
+  dep = as.data.frame(dep)
 
   ## create copies of lat/longs to be used to make spatial vector
   dep$long2 = dep[, lon_col]
