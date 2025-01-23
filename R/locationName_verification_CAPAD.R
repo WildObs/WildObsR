@@ -2,7 +2,7 @@
 #'
 #' This function verifies whether a set of coordinates intersects with the Collaborative Australian Protected Areas Database (CAPAD) 2022 shapefile and assigns the corresponding protected area's name. For coordinates that do not match any protected area, the nearest protected area name is determined using Euclidean distance.
 #'
-#' @param dep A dataframe containing coordinates and a unique identifier for each sampling location.
+#' @param dep A dataframe containing coordinates (in latitude and longitude), and a unique identifier for each sampling location.
 #' @param capad_file_path A character string specifying the file path to the CAPAD shapefile.
 #' Defaults to `~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp`.
 #'
@@ -15,7 +15,7 @@
 #' 5. For coordinates with no match, finds the nearest protected area using Euclidean distance and prints out warning messages if the updated location name is far from the original coordinate (1-5 km, 5-10 km, >10 km).
 #' 6. Returns the modified dataframe with a new column `CAPADlocationName` containing the matched or nearest protected area's name.
 #'
-#' #' @return A dataframe with the original columns and an additional column:
+#' #' @return A dataframe with the original columns and two additional columns:
 #' - `CAPADlocationName`: The name of the protected area assigned to each coordinate. Names are formatted to replace spaces with underscores.
 #' - `CAPADminDistance`: The minimum distance (in meters) to the nearest feature in the CAPAD shapefile. Defaults to zero is a value is produced and is useful for inspecting values that generated NA.
 #'
@@ -51,6 +51,9 @@ locationName_verification_CAPAD <- function(dep, capad_file_path = "~/Dropbox/EC
   layer_data$name_extract <- paste(layer_data$name_extract, layer_data$TYPE_ABBR, sep = "_")
   layer_data$name_extract <- gsub(" ","_",layer_data$name_extract)
 
+  ## Make sure dep is a data frame and not a tibble to work w/ terra functions
+  dep = as.data.frame(dep)
+
   #Create an ID row for our dep_file to help with sites that have duplicate values of placename
   #e.g. TB's work will have a duplicate placename, but a road and bush camera.
   dep$ID = seq_len(nrow(dep))
@@ -72,18 +75,19 @@ locationName_verification_CAPAD <- function(dep, capad_file_path = "~/Dropbox/EC
   # reproject to the proper CRS
   dep_sp <- terra::project(dep_sp,crs_info)
 
-  # Now check for intersection
-  intersection_result <- terra::intersect(dep_sp, layer_data)
-
-  # Check if the intersection result has any features
-  if (nrow(intersection_result) > 0) {
-    print("Provided locations and CAPAD shape file intersect.")
-  } else {
-    print("Provided locations and CAPAD shape file do not intersect.")
-    dep[1:nrow(dep),"CAPADlocationName"] = as.character(NA)
-    return(dep)
-    stop("Returning NA values for CAPAD locationName")
-  }
+  # # Now check for intersection
+  # intersection_result <- terra::intersect(dep_sp, layer_data)
+  #
+  # # Check if the intersection result has any features
+  # if (nrow(intersection_result) > 0) {
+  #   print("Provided locations and CAPAD shape file intersect.")
+  # } else {
+  #   print("Provided locations and CAPAD shape file do not intersect.")
+  #   dep[1:nrow(dep),"CAPADlocationName"] = as.character(NA)
+  #   return(dep)
+  #   stop("Returning NA values for CAPAD locationName")
+  # }
+  ### Not useful b/c there are more rigorous NA checks below.
 
   # Clean layer_data geometries using terra's makeValid function
   layer_data <- terra::makeValid(layer_data)
@@ -154,7 +158,7 @@ locationName_verification_CAPAD <- function(dep, capad_file_path = "~/Dropbox/EC
 
       # Extract coordinates of the point with missing area_name
       missing_coords <- c(dep[missing_row, lon_col], dep[missing_row, lat_col])
-      missing_placename <- dep[missing_row, "locaitonID"]
+      missing_placename <- dep[missing_row, "deploymentID"]
 
       # Create a SpatVector for the point with the missing area_name
       missing_point <- terra::vect(data.frame(longitude = missing_coords[1], latitude = missing_coords[2]),

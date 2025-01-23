@@ -41,8 +41,8 @@
 #' @export
 landscape_buffer <- function(dep, buffer_size) {
 
-  ## Let users know this is depreciated!
-  warning("This function is depreciated and likely will be removed in future versions. Please use the updated function landscape_buffer_and_naming().")
+  ## Let users know this is deprecated!
+  warning("This function is deprecated and likely will be removed in future versions. Please use the updated function locationName_buffer_CAPAD().")
 
   ## require specific libraries
   require(terra)

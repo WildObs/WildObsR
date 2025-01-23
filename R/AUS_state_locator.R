@@ -46,14 +46,41 @@ AUS_state_locator = function (deps){
     changed_deployment_id = TRUE
   }
 
+  ## Add code-checks for lat/long col names
+  # TBH, might be easier in future iterations to specify lat/long in function
+  # or tolower() all colnames and search for the lat/long cols
+
+  ## Lats
   if ("Latitude" %in% colnames(deps)) {
     colnames(deps)[colnames(deps) == "Latitude"] = "latitude"
-    changed_lat = TRUE
+    changed_lat1 = TRUE
+  }
+  if ("Lat" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "Lat"] = "latitude"
+    changed_lat2 = TRUE
+  }
+  if ("lat" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "lat"] = "latitude"
+    changed_lat3 = TRUE
   }
 
+  ## Longs
   if ("Longitude" %in% colnames(deps)) {
     colnames(deps)[colnames(deps) == "Longitude"] = "longitude"
-    changed_lon = TRUE
+    changed_lon1 = TRUE
+  }
+  if ("Long" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "Long"] = "longitude"
+    changed_lon2 = TRUE
+  }
+  if ("long" %in% colnames(deps)) {
+    colnames(deps)[colnames(deps) == "long"] = "longitude"
+    changed_lon3 = TRUE
+  }
+
+  ## print a warning if we cant get lat/longs
+  if(!any(grepl("longitude|latitude", colnames(deps)))){
+    stop("Latitude and/or longitude could not be found in your dataframe. Please make sure to provide latitdue as 'lat', 'Lat', 'Latitude', or 'latitdue', and please make sure to provide longitude as 'long', 'Long', 'Longitude', or 'longitude'.")
   }
 
   ## calculate average coordinates per landscape
@@ -96,12 +123,24 @@ AUS_state_locator = function (deps){
     colnames(deps)[colnames(deps) == "deploymentID"] <- "deployment_id"
   }
 
-  if (changed_lat) {
+  if (changed_lat1) {
     colnames(deps)[colnames(deps) == "latitude"] <- "Latitude"
   }
+  if (changed_lat2) {
+    colnames(deps)[colnames(deps) == "latitude"] <- "Lat"
+  }
+  if (changed_lat3) {
+    colnames(deps)[colnames(deps) == "latitude"] <- "lat"
+  }
 
-  if (changed_lon) {
+  if (changed_lon1) {
     colnames(deps)[colnames(deps) == "longitude"] <- "Longitude"
+  }
+  if (changed_lon2) {
+    colnames(deps)[colnames(deps) == "longitude"] <- "Long"
+  }
+  if (changed_lon3) {
+    colnames(deps)[colnames(deps) == "longitude"] <- "long"
   }
 
   # return(unique(states$state))
