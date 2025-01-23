@@ -22,9 +22,9 @@ ibra_classification(
 \item{ibra_file_path}{A character string specifying the file path to the IBRA7 subregions shapefile. Defaults to "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/IBRA7_bioregions/ibra7_subregions.shp".
 
 #' @details
-The function begins by verifying the presence of the specified latitude and longitude columns in the input dataframe. It then creates a spatial vector from the input coordinates and clips the IBRA shapefile to the extent of the data points for improved performance. The function performs a spatial join to associate each location with its corresponding IBRA bio-region and sub-region.
+The function begins by verifying the presence of the specified latitude and longitude columns in the input dataframe. It then creates a spatial vector from the input coordinates and clips the IBRA shapefile to the extent of the data points for improved performance. Next, the function performs a spatial join to associate each location with its corresponding IBRA bio-region and sub-region.
 
-If any locations are not assigned a bio-region (i.e., have missing values), the nearest neighbor approach is used to impute these values. Finally, the function prints a summary table of the number of deployments per IBRA bio-region and sub-region and returns an updated dataframe with additional columns for IBRA information.
+If any locations are not assigned a bio-region (i.e., have missing values), the nearest neighbor approach is used to calculate these values. Finally, the function prints a summary table of the number of deployments per IBRA bio-region and sub-region and returns an updated dataframe with additional columns containing IBRA information.
 
 Note that you must have access to the IBRA7 shapefile for this function to work. Either ensure the default pathway is accurrate and downloaded on your computer, or edit the pathway to work for your local computer.}
 }

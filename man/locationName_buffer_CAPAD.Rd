@@ -6,7 +6,7 @@
 \usage{
 locationName_buffer_CAPAD(
   dep,
-  buffer_size,
+  buffer_size = 5000,
   capad_file_path =
     "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp"
 )
@@ -15,7 +15,7 @@ locationName_buffer_CAPAD(
 \item{dep}{A dataframe containing deployment data, including columns for `latitude`, `longitude`, and `deploymentID`.
 It may also include `UTMzone`, `X`, and `Y` coordinates. If these are missing, they will be generated using the `WildObsR::UTM_coord_generator` function.}
 
-\item{buffer_size}{Numeric value representing the size of the buffer (in meters) around each deployment location.}
+\item{buffer_size}{Numeric value representing the size of the buffer (in meters) around each deployment location. Defaults to 5,000 m (5 km).}
 
 \item{capad_file_path}{File path to the CAPAD shapefile containing protected area boundaries. Defaults to ~/Dropbox/ECL spatial layers repository/, so please ensure you have access or modify the pathway to your local computer to the shapefile location.}
 }
