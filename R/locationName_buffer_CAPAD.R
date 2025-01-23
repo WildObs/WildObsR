@@ -24,7 +24,6 @@
 #' `CAPADlocationNameBuffer`, which specifies the buffer ID and the corresponding protected area name.
 #'
 #' @importFrom terra vect project aggregate disagg expanse centroids intersect extract ext crop buffer
-#' @importFrom WildObsR UTM_coord_generator
 #' @importFrom dplyr distinct
 #'
 #' @examples

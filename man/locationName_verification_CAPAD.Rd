@@ -11,7 +11,7 @@ locationName_verification_CAPAD(
 )
 }
 \arguments{
-\item{dep}{A dataframe containing coordinates and a unique identifier for each sampling location.}
+\item{dep}{A dataframe containing coordinates (in latitude and longitude), and a unique identifier for each sampling location.}
 
 \item{capad_file_path}{A character string specifying the file path to the CAPAD shapefile.
 Defaults to `~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp`.}
@@ -28,7 +28,7 @@ The function performs the following steps:
 5. For coordinates with no match, finds the nearest protected area using Euclidean distance and prints out warning messages if the updated location name is far from the original coordinate (1-5 km, 5-10 km, >10 km).
 6. Returns the modified dataframe with a new column `CAPADlocationName` containing the matched or nearest protected area's name.
 
-#' @return A dataframe with the original columns and an additional column:
+#' @return A dataframe with the original columns and two additional columns:
 - `CAPADlocationName`: The name of the protected area assigned to each coordinate. Names are formatted to replace spaces with underscores.
 - `CAPADminDistance`: The minimum distance (in meters) to the nearest feature in the CAPAD shapefile. Defaults to zero is a value is produced and is useful for inspecting values that generated NA.
 }
