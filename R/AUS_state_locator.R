@@ -37,8 +37,13 @@ AUS_state_locator = function (deps){
 
   # Create flags to track if we need to rename columns back at the end
   changed_deployment_id = FALSE
-  changed_lat = FALSE
-  changed_lon = FALSE
+  changed_lat1 = FALSE
+  changed_lat2 = FALSE
+  changed_lat3 = FALSE
+  changed_lon1 = FALSE
+  changed_lon2 = FALSE
+  changed_lon3 = FALSE
+
 
   # Check and rename columns if necessary
   if ("deployment_id" %in% colnames(deps)) {
