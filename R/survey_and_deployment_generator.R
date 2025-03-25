@@ -36,7 +36,7 @@
 #' @importFrom chron years
 #' @importFrom plyr ddply
 #'
-#' @author Zachary Amir
+#' @author Zachary Amir 
 #'
 #' @export
 survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 100, szn_filter = TRUE, cam_filter = TRUE){
@@ -125,7 +125,7 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
   }
   # Make sure data source is present in caps
   if (!("dataSource" %in% colnames(caps))) {
-    stop("Input captures must have 'source' column for the relevant data source.")
+    stop("Input captures must have 'dataSource' column for the relevant data source.")
   }
   # Make sure locationName is present in tboth the captures and deployments files
   if (!("locationName" %in% colnames(caps)) || !("locationName" %in% colnames(deps))) {
