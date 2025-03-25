@@ -136,6 +136,10 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
      length(setdiff(deps$deploymentID, caps$deploymentID)) != 0){
     stop("The deployment_ids do not perfectly match between the captures and deployment files. Ensure a clean match before using this function")
   }
+  # Make sure there are no NA values in eventStart
+  if(any(is.na(caps$eventStart))){
+    stop("The captures contains NA date-time values in the eventStart column which will cause the funciton to fail. Please correct or remove the NA values before proceeding.")
+  }
 
   ## to store results here
   res = list()
