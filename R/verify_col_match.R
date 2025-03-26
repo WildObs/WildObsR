@@ -40,6 +40,10 @@ verify_col_match <- function(data1, data2, col) {
                "Please ensure matching column names before using this function"))
   }
 
+  ## Ensure we are working with data.frames, not tibbles
+  data1 = as.data.frame(data1)
+  data2 = as.data.frame(data2)
+
   ## check differences in data1
   vec1 = setdiff(data1[, col], data2[, col])
 

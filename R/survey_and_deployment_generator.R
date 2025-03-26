@@ -36,7 +36,7 @@
 #' @importFrom chron years
 #' @importFrom plyr ddply
 #'
-#' @author Zachary Amir
+#' @author Zachary Amir 
 #'
 #' @export
 survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 100, szn_filter = TRUE, cam_filter = TRUE){
@@ -125,7 +125,7 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
   }
   # Make sure data source is present in caps
   if (!("dataSource" %in% colnames(caps))) {
-    stop("Input captures must have 'source' column for the relevant data source.")
+    stop("Input captures must have 'dataSource' column for the relevant data source.")
   }
   # Make sure locationName is present in tboth the captures and deployments files
   if (!("locationName" %in% colnames(caps)) || !("locationName" %in% colnames(deps))) {
@@ -135,6 +135,10 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
   if(length(setdiff(caps$deploymentID, deps$deploymentID)) +
      length(setdiff(deps$deploymentID, caps$deploymentID)) != 0){
     stop("The deployment_ids do not perfectly match between the captures and deployment files. Ensure a clean match before using this function")
+  }
+  # Make sure there are no NA values in eventStart
+  if(any(is.na(caps$eventStart))){
+    stop("The captures contains NA date-time values in the eventStart column which will cause the funciton to fail. Please correct or remove the NA values before proceeding.")
   }
 
   ## to store results here
