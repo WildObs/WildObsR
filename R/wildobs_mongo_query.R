@@ -38,7 +38,7 @@
 #' @importFrom magrittr %>%
 #' @export
 wildobs_mongo_query = function(spatial = NULL, temporal = NULL,
-                               #taxonomic, samplingDesign, contributors, # Fill in later!
+                               #taxonomic, samplingDesign, contributors, # TODO:  Fill in later!
                                tabularSharingPreference = c("open", "partial")){
   # create an empty vector to store project IDs
   proj_ids = c()
