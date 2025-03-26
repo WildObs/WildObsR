@@ -3,6 +3,8 @@
 .Rhistory
 .RData
 .Ruserdata
+# R Environment Variables
+.Renviron*
 #DS_Store must be ignored
 .DS_Store
 .DS_Store?
