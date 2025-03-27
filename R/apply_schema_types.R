@@ -49,7 +49,7 @@ apply_schema_types <- function(data, schema) {
           }
         }
         if (any(is.na(parsed))) {
-          warning(paste("Failed to parse datetime for column:", col_name, "Please convert to common format (e.g., %Y-%m-%d %H:%M:%S")))
+          warning(paste("Failed to parse datetime for column:", col_name, "Please convert to common format (e.g., %Y-%m-%d %H:%M:%S)"))
         } else {
           # Format the datetime as ISO 8601 with T separator
           data[[col_name]] <- format(parsed, "%Y-%m-%dT%H:%M:%S%z")
