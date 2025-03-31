@@ -23,20 +23,20 @@
 #' @importFrom purrr reduce
 #' @importFrom stringr str_match
 #'
-#' @example
+#' @examples
 #' # load data
 #' dp = frictionless::read_package("/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/ZAmir_QLD_Wet_Tropics_2022/datapackage.json")
 #' # extract covariates resource
-#' covs = frictionless::read_resource(dp, "covariates")
+#' data = frictionless::read_resource(dp, "covariates")
 #' ## assign spatial scales
-#' dists = c("1km" = 1074.6, "3km" = 1861.2, "5km" = 2403, "10km" = 3398) # number refer to the apothem of the hexagonal cell, name refers to the area covered by the cell
+#' scales = c("1km" = 1074.6, "3km" = 1861.2, "5km" = 2403, "10km" = 3398) # number refer to the apothem of the hexagonal cell, name refers to the area covered by the cell
 #' ## add dataSource to the covarites
-#' covs$source = dp$contributors[[1]]$tag
+#' data$source = dp$contributors[[1]]$tag
 #'
 #' @author Zachary Amir
 #'
 #' @export
-spatial_hexagon_generator = funciton(data = covs, scales = dists){
+spatial_hexagon_generator = function(data, scales) {
 
   ### Implement some data checks to make sure the provided data is appropriate
   ## is locationName present?
@@ -55,10 +55,12 @@ spatial_hexagon_generator = funciton(data = covs, scales = dists){
   if(!any(
     any(grepl("latitude", names(data))) &
     any(grepl("longitude", names(data))))){
-    stop("the data provided does not contain columns for 'latitude' and/or 'longitude', but these must be provided to ensure hexagonal cells are spatially distinct.\n Please add 'latitude' and 'longitude' to your data before proceeding with this function.")
+    stop("The data provided does not contain columns for 'latitude' and/or 'longitude', but these must be provided to ensure hexagonal cells are spatially distinct.\n Please add 'latitude' and 'longitude' to your data before proceeding with this function.")
   }
   ## ensure date/time are in as.posixct format
-  if(! is.po)
+  if(!any(inherits(data[["deploymentStart"]], "POSIXct") & inherits(data[["deploymentEnd"]], "POSIXct"))){
+    stop("The data provided contains deploymentStart and/or deploymentEnd columns that are not formatted as a proper datetime class POSIXct.\n Please use the as.posixct() function to format your deploymentStart and deploymentEnd columns before using this function.")
+  }
 
   #
   ##
