@@ -237,3 +237,15 @@ reformat_schema <- function(schema) {
     foreignKeys = schema$foreignKeys
   )
 } # end function
+
+
+
+# Quick function for mode, since R doesnt have a built in one
+Mode <- function(x) {
+  x <- x[!is.na(x)]  # Remove NA values
+  if (length(x) == 0) {
+    return(NA)  # Return NA if all values were NA
+  }
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
