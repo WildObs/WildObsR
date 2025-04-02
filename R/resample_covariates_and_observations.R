@@ -1,49 +1,158 @@
 #' Spatially resample the covariates and observations resources
+#' Spatially Resample Covariates and Observations Across Spatial Scales
 #'
+#' @description
+#' This function resamples covariate and observation data across spatial scales generated from the \code{WildObsR::spatial_hexagon_generator()} function. It validates the input data by ensuring that all necessary spatial, temporal, and deployment identifiers are present and correctly formatted. Numeric covariates are aggregated using means, while categorical covariates are combined by concatenating unique values.
 #'
+#' In addition, the function computes several key metrics:
+#' \itemize{
+#'   \item Sampling effort per spatial unit (trap-nights),
+#'   \item Resampled start and end dates for each sampling unit.
+#' }
+#' Users can optionally specify which covariate columns should be aggregated using the mode (i.e., the most frequent value) instead of concatenation, and which covariate variables that vary in space and time (i.e., observation covariates) should be incorporated into the resampled observations. Example values provided in the documentation
+#' (\code{c("habitat")} for mode aggregation and \code{c("baitUse", "featureType")} for observation covariates) serve as examples that work with any camtrap DP formatted data.
 #'
+#' The function generates new columns in the output data as follows:
 #'
+#' \strong{Resampled Covariates} include:
+#' \describe{
+#'   \item{\code{deploymentsIncluded}}{A concatenated string of \code{deploymentID} values representing all deployments included within each spatial cell.}
+#'   \item{\code{cellEffort}}{The total sampling effort per cell, calculated as trap-nights (i.e., the number of active deployments times the duration they were active, in days).}
+#'   \item{\code{samplingBegin}}{The earliest \code{deploymentStart} date-time among the deployments in a cell, marking the beginning of the sampling period per cellID.}
+#'   \item{\code{samplingEnd}}{The latest \code{deploymentEnd} date-time among the deployments in a cell, marking the end of the sampling period per cellID.}
+#' }
 #'
-#
-# #### EXAMPLE DATA GENERATION
-# dp = frictionless::read_package("/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/ZAmir_QLD_Wet_Tropics_2022/datapackage.json")
-# # extract covariates resource
-# covs = frictionless::read_resource(dp, "covariates")
-# obs = frictionless::read_resource(dp, "observations")
-# deps = frictionless::read_resource(dp, "deployments")
-#
-# ## assign spatial scales
-# scales = c("1km" = 1074.6, "10km" = 3398) # number refer to the apothem of the hexagonal cell, name refers to the area covered by the cell
-# ## add dataSource to the covarites
-# covs$source = dp$contributors[[1]]$tag
-#
-# ## Generate spatial hexagons
-# covs = WildObsR::spatial_hexagon_generator(covs, scales)
-# rm(scales)
-# ## make sure were good.
-# length(unique(covs$cellID_1km))
-# length(unique(covs$cellID_10km))
-# ## make sure were good.
-# verify_col_match(covs, obs, "deploymentID")
-#
-# ## Merge deployments to the covaraites as well
-# verify_col_match(covs, deps, "deploymentID") # safe to merge
-# # grab matching cols
-# cols = names(deps)[names(deps) %in% names(covs)]
-# covs = merge(deps, covs, by = cols) ## Possibly problematic for overwriting og covs... but we will see.
-#
-# ## extract columns we want for the mode
-# mode_cols_covs = names(covs)[grepl("source|habitat", names(covs))] # example
-# #
-# # ## how will we create the total number of individuals detected?
-# individuals = "sum" # or "max"
-# #
-# # # What are the variables that would be moved from deployments to observations to inform observation covarites.
-# obs_covs = c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay",
-#              "cameraHeight", "cameraDepth", "cameraTilt", "cameraHeading",
-#              "detectionDistance", "deploymentTags") ## this is exhaustive, but could probably think of more??
-
-resample_covariates_and_observations <- function(covs, obs, mode_cols_covs, obs_covs, individuals){
+#' \strong{Resampled Observations} include:
+#' \describe{
+#'   \item{\code{deploymentsActiveAtDate}}{A concatenated string of \code{deploymentID} values that were active in a given resampled cellID on each day.}
+#'   \item{\code{numberDeploymentsActiveAtDate}}{The number of deployments active in a given resampled cell on each day.}
+#'   \item{\code{independentEvents}}{The total count of unique \code{eventID} values per cell per day per species, representing independent events.}
+#'   \item{\code{independentObservations}}{The total count of unique \code{observationID} values per cell per day per species.}
+#'   \item{\code{totalIndividuals}}{The aggregated count of individuals per cell per day per species, computed based on the \code{individuals} parameter (either by summing counts or taking the maximum value).}
+#' }
+#'
+#' @param covs A data frame or tibble of covariate data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include columns defining spatial cells (with names starting with "cellID"), and date-time columns (e.g., \code{deploymentStart} and \code{deploymentEnd}) formatted as POSIXct.
+#' @param obs A data frame or tibble of observation data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include a \code{deploymentID} column and several date-time columns (e.g., \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp}, \code{observationStart}, \code{observationEnd}) formatted as POSIXct.
+#' @param individuals A character string specifying how to aggregate the number of individuals counted per spatially re sampled cell per day. Options are \code{"sum"} to take the sum total number of counts or  \code{"max"} to use the maximum count.
+#' @param mode_cols_covs (Optional) A character vector specifying the names of covariate columns for which the mode should be computed rather than concatenating all unique values. (Example: \code{c("habitat")}).
+#' @param obs_covs (Optional) A character vector specifying observation-level covariate column names that may vary in space and time and will be combined with the resampled observations. (Example: \code{c("baitUse", "featureType")}).
+#'
+#' @return A nested list with two elements:
+#' \describe{
+#'   \item{`spatially_resampled_observations`}{A list of data frames corresponding to different spatial scales (e.g., "cellID_1km", "cellID_10km") containing all resampled observation data.}
+#'   \item{`spatially_resampled_covariates`}{A list of data frames corresponding to different spatial scales containing all resampled covariate data.}
+#' }
+#'
+#'@details
+#' The function performs the following steps to resample the covariate and observation data:
+#'
+#' 1. **Data Validation:**
+#'    - Verifies that the covariates data frame contains at least one spatial cellID column generated from the \code{WildObsR::spatial_hexagon_generator()} function (i.e., a column whose name starts with "cellID"). If not, the function stops with an error.
+#'    - Checks that the \code{deploymentID} values match between the covariates and observation data. If there is a mismatch, the function stops with an error.
+#'    - Ensures that the specified observation-level covariate columns (provided in \code{obs_covs}) exist in the covariates data. If some are missing, they are omitted from further processing with a warning.
+#'    - Confirms that all required date-time columns in both datasets are formatted as \code{POSIXct}. This includes columns such as \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp}, \code{observationStart}, and \code{observationEnd} in the observations, and \code{deploymentStart} and \code{deploymentEnd} in the covariates.
+#'
+#' 2. **Data Preparation:**
+#'    - Removes any columns that contain only \code{NA} values from both datasets.
+#'    - For the covariates:
+#'         - Extracts character columns (excluding those that will be processed by mode aggregation) and numeric columns that will be averaged.
+#'         - Adds sequential Julian date values derived from \code{deploymentStart} and \code{deploymentEnd} to standardize the temporal resolution. These columns are removed before returning the final datasets.
+#'    - For the observations:
+#'         - Extracts date-time columns (identified by the \code{POSIXct} class), character/factor columns, and numeric columns (excluding those with names like "deltaTime" or "count").
+#'         - Computes a sequential Julian date from \code{eventStart} to serve as the daily resolution for resampling. This column is removed before returning the final datasets.
+#'
+#' 3. **Resampling by Deployment Group and Spatial Scale:**
+#'    - The function loops over each unique deployment group present in the covariates data. This speeds up the process.
+#'    - For each deployment group:
+#'         - Subsets the covariates and observations to include only the relevant deployments.
+#'         - Merges spatial cell information (i.e., the \code{cellID} columns) from the covariates into the observations based on the \code{deploymentID}.
+#'
+#' 4. **Resampling of Covariates:**
+#'    - Within each deployment group, the function iterates over each spatial scale (columns containing "cellID_").
+#'    - For each spatial scale, it loops through each unique sampling unit (i.e., each unique cell value):
+#'         - A new row is created for each sampling unit, starting as an empty data frame with the same structure as the covariates data.
+#'         - Numeric covariate values are aggregated by computing the mean (or left as \code{NA} if all values are missing). The column names are updated to indicate that these are averaged values (e.g., \code{"Avg_<column>"}).
+#'         - Sampling effort is calculated as the total active duration (in days) summed over all unique deployments in the cell.
+#'         - The sampling period is defined by the minimum \code{deploymentStart} (as \code{samplingBegin}) and maximum \code{deploymentEnd} (as \code{samplingEnd}) for the cell.
+#'         - Character variables are processed by pasting together sorted unique values.
+#'         - For any covariate specified in \code{mode_cols_covs}, the function calculates the mode (i.e., the most frequent value) instead of concatenating all values.
+#'         - Spatial information is preserved by keeping the cell identifier and any associated polygon geometry.
+#'
+#' 5. **Resampling of Observations:**
+#'    - For each spatial scale, the function further processes the observations by iterating over each sampling unit, each day (based on the sequential Julian date), and each species (\code{scientificName}).
+#'    - For each combination:
+#'         - The function merges relevant observation-level covariate information from the covariates dataset.
+#'         - Date-time columns are aggregated: start times are set to the minimum value and end times to the maximum.
+#'         - Active deployment information is compiled, including a concatenated list of active deployments and the count of these deployments.
+#'         - Event-level metrics are computed, such as the number of unique events and observations.
+#'         - Individual counts are aggregated according to the user-specified method (either \code{"sum"} or \code{"max"}).
+#'         - Species-level variables are aggregated by concatenating sorted unique values.
+#'         - Numeric observation columns are averaged.
+#'
+#' 6. **Compilation of Resampled Data:**
+#'    - After processing all deployment groups and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
+#'    - Finally, the function assembles the resampled data into two nested lists:
+#'         - One list contains the resampled covariates, organized by spatial scale.
+#'         - The other list contains the resampled observations, also organized by spatial scale.
+#'
+#' 7. **Output:**
+#'    - The function returns a single list with two elements:
+#'         - \code{"spatially resampled observations"}: a nested list of data frames for each spatial scale.
+#'         - \code{"spatially resampled covariates"}: a nested list of data frames for each spatial scale.
+#'
+#'#' @examples
+#' \dontrun{
+#' # Download the data package
+#' dp <- WildObsR::wildobs_dp_download("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
+#'
+#' # Extract resources from the data package
+#' covs <- frictionless::read_resource(dp, "covariates")
+#' obs  <- frictionless::read_resource(dp, "observations")
+#' deps <- frictionless::read_resource(dp, "deployments")
+#'
+#' ## Assign spatial scales
+#' # 'scales' defines the apothem (in meters) of the hexagonal cell.
+#' # The names (e.g., "1km", "10km") refer to the area covered by the cell.
+#' scales <- c("1km" = 1074.6, "10km" = 3398)
+#'
+#' ## Add data source to the covariates
+#' covs$source <- dp$contributors[[1]]$tag
+#'
+#' ## Generate spatial hexagons based on the provided scales
+#' covs <- WildObsR::spatial_hexagon_generator(covs, scales)
+#' rm(scales)
+#'
+#' ## Check that deploymentID values match between covariates and observations and deployments
+#' verify_col_match(covs, obs, "deploymentID")
+#' verify_col_match(covs, deps, "deploymentID")
+#'
+#' # Identify matching columns between deployments and covariates
+#' cols <- names(deps)[names(deps) %in% names(covs)]
+#' covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
+#'
+#' ## Define columns for mode aggregation (example: 'source' and 'habitat')
+#' mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
+#'
+#' ## Set the method for aggregating the total number of individuals detected:
+#' individuals <- "sum"  # Alternative: "max"
+#'
+#' ## Specify observation-level covariate variables derived from deployments.
+#' # These variables capture information that varies in space and time.
+#' obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay",
+#'               "cameraHeight", "cameraDepth", "cameraTilt", "cameraHeading",
+#'               "detectionDistance", "deploymentTags")
+#' }
+#' ## Run the function
+#' resampled_data <- resample_covariates_and_observations(covs, obs, individuals, mode_cols_covs, obs_covs)
+#'
+#' @importFrom dplyr select bind_rows
+#' @importFrom purrr map
+#' @importFrom stringr str_split
+#'
+#' @author Zachary Amir
+#'
+#' @export
+resample_covariates_and_observations <- function(covs, obs, individuals, mode_cols_covs, obs_covs){
 
   #
   ##
@@ -51,10 +160,41 @@ resample_covariates_and_observations <- function(covs, obs, mode_cols_covs, obs_
   #### Data validation ----
 
   ## Make sure the covariates has cellID values
-  ## Make sure the legit cols are legit (i.e. classes)
-  ## Make sure deploymentID and deploymentGroups match between obs and covs
+  if(!any(grepl("cellID", names(covs)))){
+    stop("The covariates you have provided in this function do not contain any spatially delimited cells defined in a column starting with 'cellID'. Please run the function WildObsR::spatial_hexagon_generator to generate cells based off your spatial scales of interest.\n")
+  }
+  ## Make sure deploymentID match between obs and covs
+  if(length(setdiff(obs$deploymentID, covs$deploymentID)) +
+     length(setdiff(obs$deploymentID, covs$deploymentID)) != 0){
+    stop("The covariates and observations tables you have provided in this function contain mis-matched deploymentID values! Please inspect your deploymentID values or reduce each table to only the matching values.\n")
+  }
+  # Check if mode_cols_covs was provided. If not, leave it as missing (or assign an empty vector if that makes sense).
+  if (missing(mode_cols_covs)) {
+    # assign it as a char vector with length 0
+    mode_cols_covs <- character(0)
+  }
+  # same for obs_covs
+  if (missing(obs_covs)) {
+    obs_covs <- character(0)
+  }
   ## Make sure obs_covs are actually present in the deployments, thin if not.
-  ## Make sure the vectors provided contain enumerated values, particularly individuals.
+  if(length(obs_covs) > 0 & !any(obs_covs %in% names(covs))){
+    # thin to match
+    obs_covs = obs_covs[obs_covs %in% names(covs)]
+    warning("You have provided observation-level covariates that are not present in the covariates resource. The observation-level covariates have been reduced to include only values present in the covariates resource.\n")
+  }
+  ## Make sure date columns are formatted as posixct
+  if(!any(sapply(obs[, c("eventStart","eventEnd","classificationTimestamp",
+                         "observationStart","observationEnd")],
+                 function(x) inherits(x, "POSIXct")))){
+    stop("The observations table you provided in this function does not have date-time columns (i.e.,eventStart, eventEnd, classificationTimestamp, observationStart, & observationEnd) formatted in POSIXct class. Please format these date-time columns to a standard format (%Y-%m-%d %H:%M:%S) using the as.posixct() function before using this function.\n ")
+  }
+  # same for covs
+  if(!any(sapply(covs[, c("deploymentStart", "deploymentEnd")],
+                 function(x) inherits(x, "POSIXct")))){
+    stop("The covariates table you provided in this function does not have date-time columns (i.e.,deploymentStart, & deploymentEnd) formatted in POSIXct class. Please format these date-time columns to a standard format (%Y-%m-%d %H:%M:%S) using the as.posixct() function before using this function.\n ")
+  }
+
 
   #
   ##
@@ -293,10 +433,13 @@ resample_covariates_and_observations <- function(covs, obs, mode_cols_covs, obs_
             # remove them, along w/ depID
             new[, c("deploymentID", rm_cell)] = NULL
             # save all observation covariates here
-            for(o in 1:length(obs_covs)){
-              ob = obs_covs[o]
-              new[[ob]] = paste(sort(unique(dep[[ob]])), collapse = " - ")      ## Simply collapse all values into one to fill one row
-            } # end per obs col
+            ## but first verify observation covariates are even provided!
+            if(length(obs_covs) > 0){
+              for(o in 1:length(obs_covs)){
+                ob = obs_covs[o]
+                new[[ob]] = paste(sort(unique(dep[[ob]])), collapse = " - ")      ## Simply collapse all values into one to fill one row
+              } # end per obs col
+            } # end obs_cov condition
 
             #
             ##
@@ -385,6 +528,26 @@ resample_covariates_and_observations <- function(covs, obs, mode_cols_covs, obs_
 
   } # end per depGroup
 
+  ## Verify we didnt lose any cellID values through resampling
+  for(e in 1:length(resamp_covs_list)){
+    # go further in to the nested list
+    list_covs = resamp_covs_list[[e]]
+    list_obs = resamp_obs_list[[e]]
+    leng = unique(length(list_covs), length(list_obs))
+    for(f in 1:leng){
+      # grab each DF
+      dat_covs = list_covs[[f]]
+      dat_obs = list_obs[[f]]
+      # and the cellID col
+      cell = names(dat_covs)[grepl("cellID", names(dat_covs))]
+      # make sure were safe
+      if(length(setdiff(dat_covs[[cell]], dat_obs[[cell]])) +
+         length(setdiff(dat_obs[[cell]], dat_covs[[cell]])) != 0){
+        stop(paste("The", cell, "values do not perfectly match in the resampled observations and covariates for the deploymentGroup", unique(dat_covs$deploymentGroups), "\nPlease inspect this dataset carefully before running this function!"))
+      } # end condition
+    } # end per leng
+  } # end per list length
+
   ## gather all relevant scales of cellID
   scales = names(resamp_covs_list[[1]]) # doesnt matter which number, all should be the same
 
@@ -404,8 +567,7 @@ resample_covariates_and_observations <- function(covs, obs, mode_cols_covs, obs_
 
   ## return a final product containg a nested list with two elements (obs and covs)
   ## and then each element in that list contains more versions of the data at the relevant scale.
-  results = list("spatially resampled observations" = resampled_obs,
-                 "spatially resampled covariates" = resampled_covs)
-
+  results = list("spatially_resampled_observations" = resampled_obs,
+                 "spatially_resampled_covariates" = resampled_covs)
 
 }# end function
