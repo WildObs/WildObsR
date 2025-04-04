@@ -20,7 +20,7 @@ It processes fields using \code{\link{reformat_fields}} to maintain correct meta
 \code{\link{wildobs_dp_download}} for downloading and bundling data packages.
 
 \code{\link{reformat_fields}} for structuring field metadata,
-  \code{\link{wildobs_dp_download}} for downloading and bundling data packages.
+\code{\link{wildobs_dp_download}} for downloading and bundling data packages.
 }
 \author{
 Zachary Amir & ChatGPT

@@ -10,10 +10,10 @@ is_empty_temporal(x)
 \item{x}{A dataframe or atomic vector representing temporal data.}
 }
 \value{
-`TRUE` if the temporal data is entirely `NA`, otherwise `FALSE`.
+\code{TRUE} if the temporal data is entirely \code{NA}, otherwise \code{FALSE}.
 }
 \description{
-This function is used internally in the wildobs_dp_download() function to check whether a temporal dataset (e.g., a dataframe or vector) contains only `NA` values, indicating it is empty.
+This function is used internally in the wildobs_dp_download() function to check whether a temporal dataset (e.g., a dataframe or vector) contains only \code{NA} values, indicating it is empty.
 }
 \examples{
 df <- data.frame(start = NA, end = NA)

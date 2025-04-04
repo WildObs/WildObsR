@@ -17,15 +17,15 @@ verify_col_match(data1, data2, col)
 The function does not return any value, but prints messages about column matching and discrepancies to the console.
 }
 \description{
-This function checks for mismatches between a specified column in two dataframes using the `setdiff()` function.
+This function checks for mismatches between a specified column in two dataframes using the \code{setdiff()} function.
 It provides detailed feedback on whether the column values match between the two dataframes, and highlights any discrepancies.
 }
 \details{
 The function compares the values in a specified column from two dataframes:
 \enumerate{
-  \item If all values match, it prints a confirmation message that the dataframes are ready for further data wrangling.
-  \item If there are mismatches, the function checks the number of mismatched values in each dataframe and provides details on where the discrepancies lie.
-  \item If both dataframes have the same number of mismatches, it suggests the possibility of typos.
+\item If all values match, it prints a confirmation message that the dataframes are ready for further data wrangling.
+\item If there are mismatches, the function checks the number of mismatched values in each dataframe and provides details on where the discrepancies lie.
+\item If both dataframes have the same number of mismatches, it suggests the possibility of typos.
 }
 }
 \examples{

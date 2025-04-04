@@ -12,8 +12,8 @@ locationName_buffer_CAPAD(
 )
 }
 \arguments{
-\item{dep}{A dataframe containing deployment data, including columns for `latitude`, `longitude`, and `deploymentID`.
-It may also include `UTMzone`, `X`, and `Y` coordinates. If these are missing, they will be generated using the `WildObsR::UTM_coord_generator` function.}
+\item{dep}{A dataframe containing deployment data, including columns for \code{latitude}, \code{longitude}, and \code{deploymentID}.
+It may also include \code{UTMzone}, \code{X}, and \code{Y} coordinates. If these are missing, they will be generated using the \code{WildObsR::UTM_coord_generator} function.}
 
 \item{buffer_size}{Numeric value representing the size of the buffer (in meters) around each deployment location. Defaults to 5,000 m (5 km).}
 
@@ -21,7 +21,7 @@ It may also include `UTMzone`, `X`, and `Y` coordinates. If these are missing, t
 }
 \value{
 An updated dataframe containing the original deployment data and an additional column,
-`CAPADlocationNameBuffer`, which specifies the buffer ID and the corresponding protected area name.
+\code{CAPADlocationNameBuffer}, which specifies the buffer ID and the corresponding protected area name.
 }
 \description{
 This function buffers deployment locations, identifies overlapping or nearby protected areas from the Collaborative Australian Protected Areas Database (CAPAD) database,
@@ -31,17 +31,17 @@ and incorporates a nearest-neighbor approach for locations outside CAPAD boundar
 \details{
 This function performs the following steps:
 \enumerate{
-  \item Validates and generates UTM coordinates for the deployment locations, if necessary.
-  \item Buffers deployment points within their respective UTM zones, merging results across zones.
-  \item Dissolves overlapping buffers and assigns unique IDs to each disaggregated polygon.
-  \item Extracts the dominant protected area name for each buffer using the CAPAD shapefile.
-  \item For buffers that do not intersect with any protected area, determines the nearest protected area based on centroid distance.
-  \item Assigns the final protected area name and buffer ID to the original deployment dataframe.
+\item Validates and generates UTM coordinates for the deployment locations, if necessary.
+\item Buffers deployment points within their respective UTM zones, merging results across zones.
+\item Dissolves overlapping buffers and assigns unique IDs to each disaggregated polygon.
+\item Extracts the dominant protected area name for each buffer using the CAPAD shapefile.
+\item For buffers that do not intersect with any protected area, determines the nearest protected area based on centroid distance.
+\item Assigns the final protected area name and buffer ID to the original deployment dataframe.
 }
 }
 \note{
-This function assumes that the CAPAD shapefile is properly formatted and contains fields such as `NAME` and `TYPE_ABBR`.
-The function uses the `terra` package for spatial processing.
+This function assumes that the CAPAD shapefile is properly formatted and contains fields such as \code{NAME} and \code{TYPE_ABBR}.
+The function uses the \code{terra} package for spatial processing.
 }
 \examples{
 # Example usage:

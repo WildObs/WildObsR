@@ -18,7 +18,7 @@
 #' \describe{
 #'   \item{\code{deploymentsIncluded}}{A concatenated string of \code{deploymentID} values representing all deployments included within each spatial cell.}
 #'   \item{\code{cellEffort}}{The total sampling effort per cell, calculated as trap-nights (i.e., the number of active deployments times the duration they were active, in days).}
-#'   \item{\code{samplingBegin}}{The earliest \code{deploymentStart} date-time among the deployments in a cell, marking the beginning of the sampling period per cellID.}
+#'   \item{\code{samplingStart}}{The earliest \code{deploymentStart} date-time among the deployments in a cell, marking the beginning of the sampling period per cellID.}
 #'   \item{\code{samplingEnd}}{The latest \code{deploymentEnd} date-time among the deployments in a cell, marking the end of the sampling period per cellID.}
 #' }
 #'
@@ -46,13 +46,13 @@
 #'@details
 #' The function performs the following steps to resample the covariate and observation data:
 #'
-#' 1. **Data Validation:**
+#' 1. **Data Validation**:
 #'    - Verifies that the covariates data frame contains at least one spatial cellID column generated from the \code{WildObsR::spatial_hexagon_generator()} function (i.e., a column whose name starts with "cellID"). If not, the function stops with an error.
 #'    - Checks that the \code{deploymentID} values match between the covariates and observation data. If there is a mismatch, the function stops with an error.
 #'    - Ensures that the specified observation-level covariate columns (provided in \code{obs_covs}) exist in the covariates data. If some are missing, they are omitted from further processing with a warning.
 #'    - Confirms that all required date-time columns in both datasets are formatted as \code{POSIXct}. This includes columns such as \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp}, \code{observationStart}, and \code{observationEnd} in the observations, and \code{deploymentStart} and \code{deploymentEnd} in the covariates.
 #'
-#' 2. **Data Preparation:**
+#' 2. **Data Preparation**:
 #'    - Removes any columns that contain only \code{NA} values from both datasets.
 #'    - For the covariates:
 #'         - Extracts character columns (excluding those that will be processed by mode aggregation) and numeric columns that will be averaged.
@@ -61,24 +61,24 @@
 #'         - Extracts date-time columns (identified by the \code{POSIXct} class), character/factor columns, and numeric columns (excluding those with names like "deltaTime" or "count").
 #'         - Computes a sequential Julian date from \code{eventStart} to serve as the daily resolution for resampling. This column is removed before returning the final datasets.
 #'
-#' 3. **Resampling by Deployment Group and Spatial Scale:**
+#' 3. **Resampling by Deployment Group and Spatial Scale**:
 #'    - The function loops over each unique deployment group present in the covariates data. This speeds up the process.
 #'    - For each deployment group:
 #'         - Subsets the covariates and observations to include only the relevant deployments.
 #'         - Merges spatial cell information (i.e., the \code{cellID} columns) from the covariates into the observations based on the \code{deploymentID}.
 #'
-#' 4. **Resampling of Covariates:**
+#' 4. **Resampling of Covariates**:
 #'    - Within each deployment group, the function iterates over each spatial scale (columns containing "cellID_").
 #'    - For each spatial scale, it loops through each unique sampling unit (i.e., each unique cell value):
 #'         - A new row is created for each sampling unit, starting as an empty data frame with the same structure as the covariates data.
 #'         - Numeric covariate values are aggregated by computing the mean (or left as \code{NA} if all values are missing). The column names are updated to indicate that these are averaged values (e.g., \code{"Avg_<column>"}).
 #'         - Sampling effort is calculated as the total active duration (in days) summed over all unique deployments in the cell.
-#'         - The sampling period is defined by the minimum \code{deploymentStart} (as \code{samplingBegin}) and maximum \code{deploymentEnd} (as \code{samplingEnd}) for the cell.
+#'         - The sampling period is defined by the minimum \code{deploymentStart} (as \code{samplingStart}) and maximum \code{deploymentEnd} (as \code{samplingEnd}) for the cell.
 #'         - Character variables are processed by pasting together sorted unique values.
 #'         - For any covariate specified in \code{mode_cols_covs}, the function calculates the mode (i.e., the most frequent value) instead of concatenating all values.
 #'         - Spatial information is preserved by keeping the cell identifier and any associated polygon geometry.
 #'
-#' 5. **Resampling of Observations:**
+#' 5. **Resampling of Observations**:
 #'    - For each spatial scale, the function further processes the observations by iterating over each sampling unit, each day (based on the sequential Julian date), and each species (\code{scientificName}).
 #'    - For each combination:
 #'         - The function merges relevant observation-level covariate information from the covariates dataset.
@@ -89,18 +89,18 @@
 #'         - Species-level variables are aggregated by concatenating sorted unique values.
 #'         - Numeric observation columns are averaged.
 #'
-#' 6. **Compilation of Resampled Data:**
+#' 6. **Compilation of Resampled Data**:
 #'    - After processing all deployment groups and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
 #'    - Finally, the function assembles the resampled data into two nested lists:
 #'         - One list contains the resampled covariates, organized by spatial scale.
 #'         - The other list contains the resampled observations, also organized by spatial scale.
 #'
-#' 7. **Output:**
+#' 7. **Output**:
 #'    - The function returns a single list with two elements:
 #'         - \code{"spatially resampled observations"}: a nested list of data frames for each spatial scale.
 #'         - \code{"spatially resampled covariates"}: a nested list of data frames for each spatial scale.
 #'
-#'#' @examples
+#' @examples
 #' \dontrun{
 #' # Download the data package
 #' dp <- WildObsR::wildobs_dp_download("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
@@ -124,10 +124,10 @@
 #'
 #' ## Check that deploymentID values match between covariates and observations and deployments
 #' verify_col_match(covs, obs, "deploymentID")
-#' verify_col_match(covs, deps, "deploymentID")
 #'
 #' # Identify matching columns between deployments and covariates
 #' cols <- names(deps)[names(deps) %in% names(covs)]
+#' # Merge deployment information to the covariates
 #' covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
 #'
 #' ## Define columns for mode aggregation (example: 'source' and 'habitat')
@@ -320,7 +320,7 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
 
         ### Calculate new start/stop dates to accommodate extra cams in single cells
         ## Sampling begins at the minimum start date for all cams included
-        new$samplingBegin = min(su_dat$deploymentStart[su_dat$deployment_seq_date == min(su_dat$deployment_seq_date)])
+        new$samplingStart = min(su_dat$deploymentStart[su_dat$deployment_seq_date == min(su_dat$deployment_seq_date)])
 
         ## And sampling ends at the maximum end date for all cams included
         new$samplingEnd = max(su_dat$deploymentEnd[su_dat$retrival_seq_date == max(su_dat$retrival_seq_date)])
@@ -376,7 +376,7 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
                             all_of(s), all_of(p), all_of(avg),
                             all_of(mo), all_of(char),
                             ## newly calculated columns
-                            cellEffort, samplingBegin, samplingEnd) # anything else??
+                            cellEffort, samplingStart, samplingEnd) # anything else??
 
         ## save it!
         r[[t]] = new
@@ -390,11 +390,6 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
       # names(temp)[l] = names(covs_dg[grepl("cellID_", names(covs_dg))])[l]
       resamp_covs_list_scale[[l]] = df_su_scale
       names(resamp_covs_list_scale)[l] = names(covs_dg[grepl("cellID_", names(covs_dg))])[l]
-
-      ##### COME HERE!!! Need to save per spatial scale, but cant Rbind different scales together
-      ### ultimetly want a list containing the relevant scales, but also containing all sampling units.
-      # and save in the final list
-
 
       #
       ##
@@ -497,7 +492,7 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
             ## Select only the relevant info
             new = dplyr::select(new, all_of(s), all_of(sp_cols),
                                 all_of(date_cols), all_of(num_cols_obs),
-                                all_of(new_obs_cols))
+                                all_of(obs_covs), all_of(new_obs_cols))
 
             #save via rbind
             r = rbind(r, new)

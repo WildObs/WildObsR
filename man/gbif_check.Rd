@@ -16,9 +16,9 @@ gbif_check(deps, obs, tif_folder)
 \value{
 A data frame containing the following columns:
 \enumerate{
-  \item Species: The binomial nomenclature of the species name.
-  \item Overlapping: A logical value indicating whether the species overlaps with the GBIF raster.
-  \item File_Not_Found: Indicates whether the GBIF file for the species could not be found.
+\item Species: The binomial nomenclature of the species name.
+\item Overlapping: A logical value indicating whether the species overlaps with the GBIF raster.
+\item File_Not_Found: Indicates whether the GBIF file for the species could not be found.
 }
 }
 \description{

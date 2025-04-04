@@ -7,7 +7,7 @@
 check_schema(chosen_schema, data)
 }
 \arguments{
-\item{chosen_schema}{A list object representing the schema to check against (e.g., `obs_schema`, `deps_schema`, `media_schema`).}
+\item{chosen_schema}{A list object representing the schema to check against (e.g., \code{obs_schema}, \code{deps_schema}, \code{media_schema}).}
 
 \item{data}{A data frame containing the dataset to be validated.}
 }
@@ -15,18 +15,18 @@ check_schema(chosen_schema, data)
 The modified tabular data resource with updated fields and any necessary corrections applied.
 }
 \description{
-This function checks that each camtrapDP resource (i.e. `observations`, `deployments`, and `media`)
+This function checks that each camtrapDP resource (i.e. \code{observations}, \code{deployments}, and \code{media})
 conforms to the camtrapDP specified schema by validating field names, data types, and constraints (e.g., required fields, numeric ranges).
 It creates missing fields if necessary, ensures data types are aligned with the schema, and reports any discrepancies. The modified dataset is returned with updates applied.
 }
 \details{
 The function follows these steps:
 \enumerate{
-  \item Loops through each field in the provided schema.
-  \item If a field does not exist in the dataset, it is created and filled with `NA` values of the appropriate type.
-  \item Checks whether the data type of each field matches the expected type from the schema (e.g., character, numeric, datetime).
-  \item If the field is numeric, it checks whether values fall within specified constraints (e.g., minimum, maximum).
-  \item Checks that required fields are present and non-missing.
+\item Loops through each field in the provided schema.
+\item If a field does not exist in the dataset, it is created and filled with \code{NA} values of the appropriate type.
+\item Checks whether the data type of each field matches the expected type from the schema (e.g., character, numeric, datetime).
+\item If the field is numeric, it checks whether values fall within specified constraints (e.g., minimum, maximum).
+\item Checks that required fields are present and non-missing.
 }
 }
 \examples{

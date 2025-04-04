@@ -14,24 +14,24 @@ survey_and_deployment_generator(
 )
 }
 \arguments{
-\item{caps}{A data frame of camera trap observations that contains date/time information for each image. It must include columns named `eventStart`, `deploymentID`, `dataSource`, and `locationName`.}
+\item{caps}{A data frame of camera trap observations that contains date/time information for each image. It must include columns named \code{eventStart}, \code{deploymentID}, \code{dataSource}, and \code{locationName}.}
 
-\item{deps}{A data frame of camera deployments that contains location information for each camera deployment. It must include columns named `deploymentID` and `locationName`.}
+\item{deps}{A data frame of camera deployments that contains location information for each camera deployment. It must include columns named \code{deploymentID} and \code{locationName}.}
 
 \item{cam_long}{A numeric value (in days) representing the maximum gap between detections before a new survey is started. Defaults to 20 days.}
 
 \item{max_dur}{A numeric value (in days) representing the maximum duration a survey can last before starting a new one. Defaults to 100 days.}
 
-\item{szn_filter}{A logical value indicating whether to filter out short survey periods. If `TRUE`, surveys with fewer detections within a defined time frame will be combined with adjacent surveys. Defaults to `TRUE`.}
+\item{szn_filter}{A logical value indicating whether to filter out short survey periods. If \code{TRUE}, surveys with fewer detections within a defined time frame will be combined with adjacent surveys. Defaults to \code{TRUE}.}
 
-\item{cam_filter}{A logical value indicating whether to use the cam_long argument to look for natural breaks in detections. This is best set to `FALSE` when there are manually created start/stop records when a data provider has not provided all records. Defaults to `TRUE`.}
+\item{cam_filter}{A logical value indicating whether to use the cam_long argument to look for natural breaks in detections. This is best set to \code{FALSE} when there are manually created start/stop records when a data provider has not provided all records. Defaults to \code{TRUE}.}
 }
 \value{
-A data frame based on the `caps` input, but with additional columns:
+A data frame based on the \code{caps} input, but with additional columns:
 \describe{
-  \item{new_deploymentID}{A new deployment identifier that reflects updated deployment groups.}
-  \item{new_deploymentGroups}{A new survey identifier that represents the adjusted survey groupings based on the detection intervals and survey duration.}
-  \item{new_locationName}{A new location identifier combining location and deployment information.}
+\item{new_deploymentID}{A new deployment identifier that reflects updated deployment groups.}
+\item{new_deploymentGroups}{A new survey identifier that represents the adjusted survey groupings based on the detection intervals and survey duration.}
+\item{new_locationName}{A new location identifier combining location and deployment information.}
 }
 }
 \description{
@@ -42,13 +42,13 @@ This is useful for organizing images into surveys and deployments for further an
 }
 \details{
 This function assumes that camera coordinates and date/time data have been verified for accuracy and are free of errors.
-Spatially distinct groupings of cameras should be indicated in the `locationName` column in the deployments data frame.
+Spatially distinct groupings of cameras should be indicated in the \code{locationName} column in the deployments data frame.
 The function will:
 \enumerate{
-  \item Group detections into surveys based on the `max_dur` (maximum survey duration) and `cam_long` (maximum gap between detections).
-  \item Assign new deployment IDs and survey IDs, ensuring each deployment has unique identifiers based on the adjusted time periods.
-  \item Handle cameras that are active over long periods and split their data based on natural breaks in detections or user-defined thresholds.
-  \item Optionally filter out short survey periods based on the `szn_filter` parameter.
+\item Group detections into surveys based on the \code{max_dur} (maximum survey duration) and \code{cam_long} (maximum gap between detections).
+\item Assign new deployment IDs and survey IDs, ensuring each deployment has unique identifiers based on the adjusted time periods.
+\item Handle cameras that are active over long periods and split their data based on natural breaks in detections or user-defined thresholds.
+\item Optionally filter out short survey periods based on the \code{szn_filter} parameter.
 }
 }
 \author{
