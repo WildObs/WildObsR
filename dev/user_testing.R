@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: April 2nd, 2025
+## last updated: April 4th, 2025
 
 # start fresh!
 rm(list = ls())
@@ -68,23 +68,69 @@ rm(deps_cellIDs, dp_list, dp1, dp2, deps)
 #
 ##
 ###
-#### Manually import DP w/ covariates
-dp = frictionless::read_package("/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/QLD_Dwyers_Scrub_ANIM3018_2023/datapackage.json")
+#### Manually import DP w/ covariates --> still need to update Mongo!
+dp1 = frictionless::read_package("~/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/QLD_Wet_Tropics_feral_cats_Bruce_2019-20/datapackage.json")
+dp2 = frictionless::read_package("~/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/ZAmir_QLD_Wet_Tropics_2022/datapackage.json")
 
-# Extract resources from the data package
-covs <- frictionless::read_resource(dp, "covariates")
-obs  <- frictionless::read_resource(dp, "observations")
-deps <- frictionless::read_resource(dp, "deployments")
+### also bring in old data with rainfall to add to covariates
+old_data = read.csv("~/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Archive_pre_camtrapDP_data/Step 4 Pre-Sampling Metadata/Clean_Metadata_20241115.csv")
+old_data = old_data[old_data$source %in% c("Z_Amir", "T_Bruce"),]
+old_data = old_data[!grepl("Kgari", old_data$survey_id),]
+old_data = select(old_data, deployment_id, placename, precipitation_3km)
+names(old_data)[1:2] = c("deploymentID", "locationID")
 
-## Add data source to the covariates
-covs$source <- dp$contributors[[1]]$tag
+### Extract resources from the data package
+
+# covariates
+covs1 <- frictionless::read_resource(dp1, "covariates")
+covs2 <- frictionless::read_resource(dp2, "covariates")
+# add sources to keep it straight
+covs1$source = dp1$contributors[[1]]$tag
+covs2$source = dp2$contributors[[1]]$tag
+# combine
+covs = rbind(covs1,covs2)
+### and bring in precip data too
+verify_col_match(covs, old_data, "deploymentID") # one known(?) typo here?
+covs[covs$locationID == "DBNP_18",] # only one cam here, but two in old dat --> remove one
+old_data$deploymentID[old_data$deploymentID == "DBNP_18_2022_Cam1"] = "DBNP_18_2022"
+old_data = old_data[old_data$deploymentID != "DBNP_18_2022_Cam2",]
+# check again
+verify_col_match(covs, old_data, "deploymentID") # full match
+verify_col_match(covs, old_data, "locationID") # these match
+
+## do the merge
+covs = merge(covs, old_data, by = c("deploymentID", "locationID"))
+rm(old_data)
+
+#obs
+obs1  <- frictionless::read_resource(dp1, "observations")
+obs2  <- frictionless::read_resource(dp2, "observations")
+# combine
+obs = rbind(obs1,obs2)
+obs[grepl("DBNP_18",obs$deploymentID) & obs$scientificName == "Casuarius casuarius" ,] # no detections at this cam anyway
+# deps
+dep1 <- frictionless::read_resource(dp1, "deployments")
+dep2 <- frictionless::read_resource(dp2, "deployments")
+# combine
+deps = rbind(dep1,dep2)
+# clean up
+rm(covs1, covs2, obs1, obs2, dep1, dep2)
 
 ## Generate spatial hexagons based on the provided scales
+scales = c("3km" = 1861.2) # hexagon apothems
 covs <- WildObsR::spatial_hexagon_generator(covs, scales)
 rm(scales)
 # merge deps to covs
 cols <- names(deps)[names(deps) %in% names(covs)]
 covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
+
+### thin to landscapes where cassowaries were detected to speed up resampling
+locs = obs$deploymentID[obs$scientificName == "Casuarius casuarius"]
+lands = unique(covs$locationName[covs$deploymentID %in% locs])
+# thin
+covs = covs[covs$locationName %in% lands, ]
+obs = obs[obs$deploymentID %in% covs$deploymentID, ]
+
 
 ## Define columns for mode aggregation (example: 'source' and 'habitat')
 mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
@@ -99,21 +145,47 @@ obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay",
               "detectionDistance", "deploymentTags")
 
 ## run the new spatial resampling function
+start = Sys.time()
 resampled_data = resample_covariates_and_observations(covs, obs, individuals,
                                                       mode_cols_covs, obs_covs)
+end = Sys.time()
 resamp_obs = resampled_data$spatially_resampled_observations$cellID_3km
 resamp_covs = resampled_data$spatially_resampled_covariates$cellID_3km
+
+end-start # 2 min! Much faster than expected
+
+## make a combined trail-status variable in obs
+sort(table(resamp_obs$featureType))
+resamp_obs$trailStatus[grepl("road|trail", resamp_obs$featureType)] = "onTrail"
+resamp_obs$trailStatus[resamp_obs$featureType == ""] = "offTrail"
+table(resamp_obs$trailStatus)
+
 
 # make sure were good
 verify_col_match(resamp_obs, resamp_covs, "cellID_3km") # all good! Now use this to make a matrix.
 
+#### use matrix generation function to format data for occu mods
+matrix_list_occu = matrix_generator(obs = resamp_obs, covs = resamp_covs, dur = 100, w = 5, site_covs = c("Avg_FLII_3km2", "Avg_precipitation_3km", "Avg_altitude_3km2", "locationName"), obs_covs = c("numberDeploymentsActiveAtDate", "trailStatus"), all_locationNames = T, scientificNames = "Casuarius casuarius", type = "occupancy", individuals = "max")
 
+### make an occupancy UMF
+casso_occu_umf = unmarked::unmarkedFrameOccu(y = matrix_list_occu$Casuarius_casuarius$detection_matrix,
+                                             siteCovs = matrix_list_occu$Casuarius_casuarius$site_level_covariates,
+                                             obsCovs = matrix_list_occu$Casuarius_casuarius$observation_level_covariates)
+## test the thang
+occuRN_m1 = unmarked::occuRN(~numberDeploymentsActiveAtDate + trailStatus ~ Avg_precipitation_3km + locationName, casso_occu_umf)
+summary(occuRN_m1)
 
-#
-##
-### spatially resample the data using the new function
+occu_m1 = unmarked::occu(~numberDeploymentsActiveAtDate + trailStatus ~ Avg_precipitation_3km + locationName, casso_occu_umf)
+summary(occu_m1)
 
-## generate detection history matrix from resampled data using XX
+## try abundance
+matrix_list_abund = matrix_generator(obs = resamp_obs, covs = resamp_covs, dur = 100, w = 5, site_covs = c("Avg_FLII_3km2", "Avg_precipitation_3km", "Avg_altitude_3km2", "locationName"), obs_covs = c("numberDeploymentsActiveAtDate", "trailStatus"), all_locationNames = T, scientificNames = "Casuarius casuarius", type = "abundance", individuals = "sum")
 
-## combine into an unmarked frame occu/pcount and then run models!
+### make an abundance umf
+casso_abund_umf = unmarked::unmarkedFramePCount(y = matrix_list_abund$Casuarius_casuarius$detection_matrix,
+                                                siteCovs = matrix_list_abund$Casuarius_casuarius$site_level_covariates,
+                                                obsCovs = matrix_list_abund$Casuarius_casuarius$observation_level_covariates)
+## test the mod
+abund_m1 = unmarked::pcount(~numberDeploymentsActiveAtDate + trailStatus ~ Avg_precipitation_3km + locationName, casso_abund_umf)
+summary(abund_m1)
 
