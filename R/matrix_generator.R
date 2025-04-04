@@ -206,7 +206,7 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,
   }
 
   ## pull out all character site-covariates
-  m_char = covs_dat[,sapply(covs_dat, is.character)]
+  m_char = data.frame(covs_dat[,sapply(covs_dat, is.character), drop = FALSE])
   ## Verify m_char has variation
   site_sum = data.frame("site_cov" = names(m_char),
                        "num_levels" = NA )
@@ -503,7 +503,7 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,
           }
 
           ## Fill in the obs dataframe, matching per row and column
-          obs_mat[su,indx] = paste(unique(n), collapse = " - ") # adding unique to be safe
+          obs_mat[su,indx] = paste(sort(unique(n)), collapse = " - ") # adding unique to be safe
 
         } # End per sequence
       } # End per sampling unit
