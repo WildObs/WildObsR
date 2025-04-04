@@ -7,14 +7,14 @@
 UTM_coord_generator(data)
 }
 \arguments{
-\item{data}{The deployments tabular data containing information about each camera trap location. It must include the columns `locationID`, `longitude`,`latitude`, and `UTM_zone`}
+\item{data}{The deployments tabular data containing information about each camera trap location. It must include the columns \code{locationID}, \code{longitude},\code{latitude}, and \code{UTM_zone}}
 }
 \value{
 A data frame with the following columns:
 \describe{
-  \item{deploymentID}{The unique identifier for each camera trap deployment}
-  \item{X}{The `X` coordinate for the defined UTM zone.}
-  \item{Y}{The `Y` coordinate for the defined UTM zone.}
+\item{deploymentID}{The unique identifier for each camera trap deployment}
+\item{X}{The \code{X} coordinate for the defined UTM zone.}
+\item{Y}{The \code{Y} coordinate for the defined UTM zone.}
 }
 }
 \description{
@@ -23,10 +23,10 @@ This function works out the X and Y coordinates for datasets in the approiate UT
 \details{
 The function works in the following steps:
 \enumerate{
-  \item Ensure that UTM Zone is present from using the long_to_UTMzone function.
-  \item A spatial data frame is created from the longitude and latitude coordinates of each `locationID`.
-  \item The dataframe is then split between UTM zones to relaibily assign the X and Y coordiantes
-  \item The datafarmes are then remerged together with their new geographic information, and if required columns renamed
+\item Ensure that UTM Zone is present from using the long_to_UTMzone function.
+\item A spatial data frame is created from the longitude and latitude coordinates of each \code{locationID}.
+\item The dataframe is then split between UTM zones to relaibily assign the X and Y coordiantes
+\item The datafarmes are then remerged together with their new geographic information, and if required columns renamed
 }
 }
 \examples{

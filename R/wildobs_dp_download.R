@@ -41,14 +41,16 @@
 #' @export
 wildobs_dp_download = function(project_ids) {
 
-  ## first, establish roles for accessing MongoDB
-  # will only ever be read only!
-  USER = "woro"
-  PASS = "woroPa55w0rd"
-  # HOST = "203.101.228.237"
-  HOST = "localhost" # for testing
-  PORT = "29017"
-  DATABASE = "wildobs_camdb"
+  ## read in environment file with confidential DB access info
+  readRenviron(".Renviron.local.ro") # local version
+  # readRenviron(".Renviron.dev.ro") # remote version
+
+  ## load information from enviromnet
+  HOST <- Sys.getenv("HOST")
+  PORT <- Sys.getenv("PORT")
+  DATABASE <- Sys.getenv("DATABASE")
+  USER <- Sys.getenv("USER")
+  PASS <- Sys.getenv("PASS")
 
   ## combine all the information into a database-url to enable access
   db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
@@ -215,6 +217,14 @@ wildobs_dp_download = function(project_ids) {
                                                         constraits = list(required = "TRUE"),
                                                         example = "QLD_Kgari_BIOL2015_2023-24",
                                                         type = "string")
+
+      ### BUG IN THE DOWNLOADED DATA! COME HERE AND FIX
+      ## not sure where this got in, but "dataSource","UTM_zone","X","Y","state" are present in schema
+      # but they should be deleted/removed!
+      if(resources[["name"]][r] == "deployments"){
+        schema$fields = purrr::discard(schema$fields, ~ .x$name %in% c("dataSource","UTM_zone","X","Y","state"))
+      }
+
       # and save in the res_list
       res_list[[r]] =  schema # res
       names(res_list)[r] = unique(resources[r, ]$name)

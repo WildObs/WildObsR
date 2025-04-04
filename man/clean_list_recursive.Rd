@@ -10,13 +10,15 @@ clean_list_recursive(x)
 \item{x}{A nested list containing various data types.}
 }
 \value{
-A cleaned version of the list with all `NULL`, `NA`, and empty lists removed.
+A cleaned version of the list with all \code{NULL}, \code{NA}, and empty lists removed.
 }
 \description{
 This function is used internally in the wildobs_dp_download() function to recursively traverses a list and removes any elements that are:
-- `NULL`
-- `NA`
-- Empty lists (`list()`)
+\itemize{
+\item \code{NULL}
+\item \code{NA}
+\item Empty lists (\code{list()})
+}
 }
 \examples{
 example_list <- list(a = 1, b = NULL, c = list(d = NA, e = list()))

@@ -7,22 +7,22 @@
 update_temporally_overlapping_deployments(deps, obs, media)
 }
 \arguments{
-\item{deps}{A data frame of camera deployments, containing columns `deploymentID`, `locationID`,
-`deploymentStart`, `deploymentEnd`, and `deploymentGroups`. The `deploymentStart` and `deploymentEnd`
+\item{deps}{A data frame of camera deployments, containing columns \code{deploymentID}, \code{locationID},
+\code{deploymentStart}, \code{deploymentEnd}, and \code{deploymentGroups}. The \code{deploymentStart} and \code{deploymentEnd}
 columns should contain date-time information.}
 
-\item{obs}{A data frame of observations with `deploymentID` and `locationID` columns that match with
-the `deps` data frame.}
+\item{obs}{A data frame of observations with \code{deploymentID} and \code{locationID} columns that match with
+the \code{deps} data frame.}
 
-\item{media}{A data frame of media records with `deploymentID` column matching the `deps` data frame.}
+\item{media}{A data frame of media records with \code{deploymentID} column matching the \code{deps} data frame.}
 }
 \value{
 A list with three updated data frames:
 \describe{
-  \item{deployments}{The updated `deps` data frame with consolidated deploymentIDs for temporally
-  overlapping records.}
-  \item{observations}{The updated `obs` data frame with deploymentID changes to match those in `deps`.}
-  \item{media}{The updated `media` data frame with deploymentID changes to match those in `deps`.}
+\item{deployments}{The updated \code{deps} data frame with consolidated deploymentIDs for temporally
+overlapping records.}
+\item{observations}{The updated \code{obs} data frame with deploymentID changes to match those in \code{deps}.}
+\item{media}{The updated \code{media} data frame with deploymentID changes to match those in \code{deps}.}
 }
 }
 \description{
@@ -32,10 +32,10 @@ each deploymentID represents a distinct time period. This function is recommende
 deploymentID assignments and in step 3 to verify temporal and spatial distinctions between deploymentIDs.
 }
 \details{
-This function assumes that the provided `locationID` values are already spatially distinct. Deployments at the
+This function assumes that the provided \code{locationID} values are already spatially distinct. Deployments at the
 same location with overlapping or closely spaced start and end times are grouped together under a new
-deploymentID, ensuring temporal and spatial distinctness. After updating deploymentIDs in `deps`,
-the function also updates related deploymentIDs in `obs` and `media` to maintain consistency across data files.
+deploymentID, ensuring temporal and spatial distinctness. After updating deploymentIDs in \code{deps},
+the function also updates related deploymentIDs in \code{obs} and \code{media} to maintain consistency across data files.
 The function includes checks to ensure matching deploymentIDs across the provided data frames before and after
 processing, with detailed warnings if mismatches occur.
 }

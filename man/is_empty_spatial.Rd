@@ -10,10 +10,10 @@ is_empty_spatial(x)
 \item{x}{A value to check.}
 }
 \value{
-`TRUE` if the value is NULL, entirely NA, or the string `"NULL"`, otherwise `FALSE`.
+\code{TRUE} if the value is NULL, entirely NA, or the string \code{"NULL"}, otherwise \code{FALSE}.
 }
 \description{
-This function is used internally in the wildobs_dp_download() function to check whether a given value is NULL, entirely NA, or the string `"NULL"`.
+This function is used internally in the wildobs_dp_download() function to check whether a given value is NULL, entirely NA, or the string \code{"NULL"}.
 }
 \examples{
 is_empty_spatial(NULL)        # TRUE

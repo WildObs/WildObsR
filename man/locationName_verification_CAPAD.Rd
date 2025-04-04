@@ -14,27 +14,31 @@ locationName_verification_CAPAD(
 \item{dep}{A dataframe containing coordinates (in latitude and longitude), and a unique identifier for each sampling location.}
 
 \item{capad_file_path}{A character string specifying the file path to the CAPAD shapefile.
-Defaults to `~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp`.}
+Defaults to \verb{~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp}.}
 }
 \description{
 This function verifies whether a set of coordinates intersects with the Collaborative Australian Protected Areas Database (CAPAD) 2022 shapefile and assigns the corresponding protected area's name. For coordinates that do not match any protected area, the nearest protected area name is determined using Euclidean distance.
 }
 \details{
 The function performs the following steps:
-1. Imports the CAPAD shapefile and standardizes its column names.
-2. Converts the input dataframe `dep` into a spatial object using latitude and longitude.
-3. Re-projects the spatial object to match the CAPAD shapefile's CRS.
-4. Determines the intersection of the coordinates with the CAPAD shapefile.
-5. For coordinates with no match, finds the nearest protected area using Euclidean distance and prints out warning messages if the updated location name is far from the original coordinate (1-5 km, 5-10 km, >10 km).
-6. Returns the modified dataframe with a new column `CAPADlocationName` containing the matched or nearest protected area's name.
+\enumerate{
+\item Imports the CAPAD shapefile and standardizes its column names.
+\item Converts the input dataframe \code{dep} into a spatial object using latitude and longitude.
+\item Re-projects the spatial object to match the CAPAD shapefile's CRS.
+\item Determines the intersection of the coordinates with the CAPAD shapefile.
+\item For coordinates with no match, finds the nearest protected area using Euclidean distance and prints out warning messages if the updated location name is far from the original coordinate (1-5 km, 5-10 km, >10 km).
+\item Returns the modified dataframe with a new column \code{CAPADlocationName} containing the matched or nearest protected area's name.
+}
 
 #' @return A dataframe with the original columns and two additional columns:
-- `CAPADlocationName`: The name of the protected area assigned to each coordinate. Names are formatted to replace spaces with underscores.
-- `CAPADminDistance`: The minimum distance (in meters) to the nearest feature in the CAPAD shapefile. Defaults to zero is a value is produced and is useful for inspecting values that generated NA.
+\itemize{
+\item \code{CAPADlocationName}: The name of the protected area assigned to each coordinate. Names are formatted to replace spaces with underscores.
+\item \code{CAPADminDistance}: The minimum distance (in meters) to the nearest feature in the CAPAD shapefile. Defaults to zero is a value is produced and is useful for inspecting values that generated NA.
+}
 }
 \note{
-The CAPAD shapefile must be downloaded and available at the specified `capad_file_path`. If you have a CAPAD shapefile saved in a different locaiton on your computer, please edit the path accordingly.
-This function assumes the `NAME` and `TYPE_ABBR` fields exist in the CAPAD shapefile for location name extraction.
+The CAPAD shapefile must be downloaded and available at the specified \code{capad_file_path}. If you have a CAPAD shapefile saved in a different locaiton on your computer, please edit the path accordingly.
+This function assumes the \code{NAME} and \code{TYPE_ABBR} fields exist in the CAPAD shapefile for location name extraction.
 }
 \examples{
 \dontrun{

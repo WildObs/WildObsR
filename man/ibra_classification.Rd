@@ -30,10 +30,12 @@ Note that you must have access to the IBRA7 shapefile for this function to work.
 }
 \value{
 A dataframe with the original data and additional columns:
-- `IBRAsubRegionName`: Name of the IBRA sub-region.
-- `IBRAsubRegioncode`: Code of the IBRA sub-region.
-- `IBRAbioRegionName`: Name of the IBRA bio-region.
-- `IBRAbioRegionCode`: Code of the IBRA bio-region.
+\itemize{
+\item \code{IBRAsubRegionName}: Name of the IBRA sub-region.
+\item \code{IBRAsubRegioncode}: Code of the IBRA sub-region.
+\item \code{IBRAbioRegionName}: Name of the IBRA bio-region.
+\item \code{IBRAbioRegionCode}: Code of the IBRA bio-region.
+}
 }
 \description{
 #' This function identifies the IBRA bio-region and sub-region for a set of coordinates using the IBRA7 sub- and bio-regions shapefile. It validates the geometries of the shapefile, reprojects the data for compatibility, and performs a spatial join. If any coordinates fall outside valid bio-regions, the nearest neighbor's attributes are used to fill in missing values.

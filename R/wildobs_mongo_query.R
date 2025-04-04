@@ -46,14 +46,16 @@ wildobs_mongo_query = function(spatial = NULL, temporal = NULL,
   # load rel library
   # library(magrittr) # for the %>%
 
-  ## first, establish access for MongoDB
-  # will only ever be read only!
-  USER = "woro"
-  PASS = "woroPa55w0rd"
-  # HOST = "203.101.228.237"
-  HOST = "localhost" # for testing
-  PORT = "29017"
-  DATABASE = "wildobs_camdb"
+  ## read in environment file with confidential DB access info
+  readRenviron(".Renviron.local.ro") # local version
+  # readRenviron(".Renviron.dev.ro") # remote version
+
+  ## load information from enviromnet
+  HOST <- Sys.getenv("HOST")
+  PORT <- Sys.getenv("PORT")
+  DATABASE <- Sys.getenv("DATABASE")
+  USER <- Sys.getenv("USER")
+  PASS <- Sys.getenv("PASS")
 
   ## combine all the information into a database-url to enable access
   db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)

@@ -13,20 +13,20 @@ wildobs_mongo_query(
 \arguments{
 \item{spatial}{A named list specifying spatial query parameters, including:
 \describe{
-  \item{xmin}{Minimum longitude value.}
-  \item{xmax}{Maximum longitude value.}
-  \item{ymin}{Minimum latitude value.}
-  \item{ymax}{Maximum latitude value.}
+\item{xmin}{Minimum longitude value.}
+\item{xmax}{Maximum longitude value.}
+\item{ymin}{Minimum latitude value.}
+\item{ymax}{Maximum latitude value.}
 }}
 
 \item{temporal}{A named list specifying temporal query parameters, including:
 \describe{
-  \item{minDate}{Earliest allowable date as a `Date` object.}
-  \item{maxDate}{Latest allowable date as a `Date` object.}
+\item{minDate}{Earliest allowable date as a \code{Date} object.}
+\item{maxDate}{Latest allowable date as a \code{Date} object.}
 }}
 
 \item{tabularSharingPreference}{A character vector specifying accepted sharing preferences.
-Defaults to `c("open", "partial")`. Only projects with these preferences are returned.}
+Defaults to \code{c("open", "partial")}. Only projects with these preferences are returned.}
 }
 \value{
 A character vector of project IDs matching the specified criteria.
@@ -53,5 +53,7 @@ print(relevant_projects)
 }
 }
 \seealso{
-- [mongolite::mongo()] for database queries
+\itemize{
+\item \code{\link[mongolite:mongo]{mongolite::mongo()}} for database queries
+}
 }
