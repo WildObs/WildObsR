@@ -19,15 +19,15 @@ A dataframe with columns transformed according to the schema.
 This function applies the camtrapDP schema to a frictionless data package by converting column types according to the schema definition. It includes flexible datetime parsing to accommodate multiple common formats.
 }
 \details{
-The function converts columns based on the `type` field in the schema:
+The function converts columns based on the \code{type} field in the schema:
 \itemize{
-  \item \code{"datetime"}: Attempts to parse using multiple common formats and converts to ISO 8601.
-  \item \code{"date"}: Converts to `Date` class.
-  \item \code{"integer"}: Converts to integer.
-  \item \code{"number"}: Converts to numeric.
-  \item \code{"boolean"}: Converts logical-like strings (e.g., 'TRUE', 'FALSE', 'T', 'F') to logical.
-  \item \code{"string"}: Converts to character, optionally factoring if an enum constraint is present.
-  \item \code{"factor"}: Converts to factor.
+\item \code{"datetime"}: Attempts to parse using multiple common formats and converts to ISO 8601.
+\item \code{"date"}: Converts to \code{Date} class.
+\item \code{"integer"}: Converts to integer.
+\item \code{"number"}: Converts to numeric.
+\item \code{"boolean"}: Converts logical-like strings (e.g., 'TRUE', 'FALSE', 'T', 'F') to logical.
+\item \code{"string"}: Converts to character, optionally factoring if an enum constraint is present.
+\item \code{"factor"}: Converts to factor.
 }
 
 If an unknown field type is encountered, a warning is issued.

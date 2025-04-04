@@ -10,7 +10,7 @@ wildobs_dp_download(project_ids)
 \item{project_ids}{A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.}
 }
 \value{
-A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/)
+A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about \href{https://camtrap-dp.tdwg.org/}{camtrapDP, click here}, and to learn more about \href{https://specs.frictionlessdata.io/data-package/}{Frictionless Data Packages, click here}
 }
 \description{
 This function connects to the WildObs MongoDB server, retrieves project-specific
@@ -18,17 +18,19 @@ metadata and data resources, and bundles them into Frictionless Data Packages fo
 }
 \details{
 The function performs the following steps:
-1. Connects to MongoDB using read-only credentials.
-2. Retrieves project-level metadata and formats it to match the Frictionless Data Package structure.
-3. Queries the `deployments`, `observations`, and `media` collections for the requested projects.
-4. Applies schemas to ensure data integrity.
-5. Creates Frictionless Data Packages and returns them as a list.
+\enumerate{
+\item Connects to MongoDB using read-only credentials.
+\item Retrieves project-level metadata and formats it to match the Frictionless Data Package structure.
+\item Queries the \code{deployments}, \code{observations}, and \code{media} collections for the requested projects.
+\item Applies schemas to ensure data integrity.
+\item Creates Frictionless Data Packages and returns them as a list.
+}
 
- @seealso
-  \code{\link{convert_df_to_list}} for formatting metadata,
-  \code{\link{clean_list_recursive}} for removing NULL and empty elements,
-  \code{\link{reformat_fields}}, \code{\link{reformat_schema}}, and \code{\link{apply_schema_types}} for processing and applying schema fields,
-  \code{\link{is_empty_spatial}} and \code{\link{is_empty_temporal}} for removing empty spatio-temporal fields.
+@seealso
+\code{\link{convert_df_to_list}} for formatting metadata,
+\code{\link{clean_list_recursive}} for removing NULL and empty elements,
+\code{\link{reformat_fields}}, \code{\link{reformat_schema}}, and \code{\link{apply_schema_types}} for processing and applying schema fields,
+\code{\link{is_empty_spatial}} and \code{\link{is_empty_temporal}} for removing empty spatio-temporal fields.
 }
 \examples{
 \dontrun{
