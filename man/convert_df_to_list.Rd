@@ -17,10 +17,12 @@ This function is used internally in the wildobs_dp_download() function to conver
 }
 \details{
 The function performs the following transformations:
-- Converts the first row of a data frame into a named list.
-- If the input is a list containing a data frame, it processes each row separately and returns a list of lists.
-- Ensures that vector fields (e.g., `path`, `deploymentGroups`) are flattened to prevent unnecessary nested lists.
-- Stops execution if the input is neither a data frame nor a list containing a data frame.
+\itemize{
+\item Converts the first row of a data frame into a named list.
+\item If the input is a list containing a data frame, it processes each row separately and returns a list of lists.
+\item Ensures that vector fields (e.g., \code{path}, \code{deploymentGroups}) are flattened to prevent unnecessary nested lists.
+\item Stops execution if the input is neither a data frame nor a list containing a data frame.
+}
 }
 \examples{
 # Example with a single-row data frame

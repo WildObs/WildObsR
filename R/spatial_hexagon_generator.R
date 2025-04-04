@@ -149,7 +149,7 @@ spatial_hexagon_generator = function(data, scales) {
     land_list[[i]] = dat
   } # end per locationName
   # clean up for testing
-  rm(s,l,i,t,r, temp, dat, hex, hex_list, shape, du, dup, dupl, colname)
+  # rm(s,l,i,t,r, temp, dat, hex, hex_list, shape, du, dup, dupl, colname)
 
   ## combine results into one DF
   meta = do.call(rbind, land_list)

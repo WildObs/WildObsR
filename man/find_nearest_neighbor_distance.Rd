@@ -7,27 +7,27 @@
 find_nearest_neighbor_distance(data)
 }
 \arguments{
-\item{data}{The deployments tabular data containing information about each camera trap location. It must include the columns `locationID`, `longitude`, and `latitude`.}
+\item{data}{The deployments tabular data containing information about each camera trap location. It must include the columns \code{locationID}, \code{longitude}, and \code{latitude}.}
 }
 \value{
 A data frame with the following columns:
 \describe{
-  \item{locationID}{The unique identifier for each camera trap location.}
-  \item{nearestNeighborID}{The `locationID` of the nearest neighboring camera trap.}
-  \item{distance}{The distance (in meters) between the camera trap and its nearest neighbor.}
+\item{locationID}{The unique identifier for each camera trap location.}
+\item{nearestNeighborID}{The \code{locationID} of the nearest neighboring camera trap.}
+\item{distance}{The distance (in meters) between the camera trap and its nearest neighbor.}
 }
 }
 \description{
-This function calculates the distance between each camera trap location (`locationID`) and its nearest neighbor within the dataset.
+This function calculates the distance between each camera trap location (\code{locationID}) and its nearest neighbor within the dataset.
 It uses geographic coordinates (longitude, latitude) to create a spatial data frame, computes the distance matrix between all locations, and returns the nearest neighbor and distance for each location.
 }
 \details{
 The function works in the following steps:
 \enumerate{
-  \item It ensures that only distinct `locationID` values are considered by removing duplicates.
-  \item A spatial data frame is created from the longitude and latitude coordinates of each `locationID`.
-  \item A distance matrix is computed between all locations, and for each `locationID`, the nearest neighbor and the distance to it are identified.
-  \item The diagonal of the distance matrix is set to infinity to avoid a location being considered its own nearest neighbor.
+\item It ensures that only distinct \code{locationID} values are considered by removing duplicates.
+\item A spatial data frame is created from the longitude and latitude coordinates of each \code{locationID}.
+\item A distance matrix is computed between all locations, and for each \code{locationID}, the nearest neighbor and the distance to it are identified.
+\item The diagonal of the distance matrix is set to infinity to avoid a location being considered its own nearest neighbor.
 }
 }
 \examples{

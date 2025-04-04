@@ -7,22 +7,24 @@
 spatial_hexagon_generator(data, scales)
 }
 \arguments{
-\item{data}{A dataframe of covariates that includes at minimum: `deploymentID`, `locationName`,`deploymentGroups`, `source`, `latitude`, and `longitude`. These columns are found in WildObs' camtrapDP-formatted Frictionless Data Packages.}
+\item{data}{A dataframe of covariates that includes at minimum: \code{deploymentID}, \code{locationName},\code{deploymentGroups}, \code{source}, \code{latitude}, and \code{longitude}. These columns are found in WildObs' camtrapDP-formatted Frictionless Data Packages.}
 
-\item{scales}{A named numeric vector specifying the apothem of hexagonal grid cells (in meters). The names of the vector define the spatial scale (e.g., `c("1km" = 1074.6, "3km" = 1861.2)`).}
+\item{scales}{A named numeric vector specifying the apothem of hexagonal grid cells (in meters). The names of the vector define the spatial scale (e.g., \code{c("1km" = 1074.6, "3km" = 1861.2)}).}
 }
 \value{
 A dataframe including the original data plus additional columns for each scale:
-- `polygon_<scale>`: spatially distinct cell assignments.
-- `cellID_<scale>`: temporally and spatially distinct cell assignments (appending contributor info).
+\itemize{
+\item \verb{polygon_<scale>}: spatially distinct cell assignments.
+\item \verb{cellID_<scale>}: temporally and spatially distinct cell assignments (appending contributor info).
+}
 }
 \description{
 This function generates spatially distinct hexagonal sampling units to group nearby camera trap deployment.
 It accounts for spatial and temporal overlap between deployments across different contributors to ensure that sampling units are truly independent.
 }
 \details{
-The function works by overlaying a hexagonal grid of scales determined by the user to group deploymentIDs per `locationName`.
-Each deploymentID is then assigned a unique `cellID` (temporally distinct) and `polygon` ID (spatially distinct) across all provided scales.
+The function works by overlaying a hexagonal grid of scales determined by the user to group deploymentIDs per \code{locationName}.
+Each deploymentID is then assigned a unique \code{cellID} (temporally distinct) and \code{polygon} ID (spatially distinct) across all provided scales.
 If multiple contributors sample the same cell in the same time window, their deployments are grouped into a common code.
 }
 \examples{
