@@ -579,10 +579,11 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,
       ## dont forget to standardize numeric observation covars
       if(is.numeric(obs_land_full[, o_var])){
 
-        #Standardize the observation covaraite
-        me = mean(as.vector(obs2),na.rm=T)
-        s = sd(as.vector(obs2),na.rm=T)
-        cams1<-(obs2-me)/s
+        # #Standardize the observation covaraite
+        # me = mean(as.vector(obs2),na.rm=T)
+        # s = sd(as.vector(obs2),na.rm=T)
+        # cams1<-(obs2-me)/s
+        cams1 = obs2
 
         ## Replace all NA values in obs cov w/ a zero.
         for (i in 1:dim(cams1)[1]) { #Repeat for each sampling unit
