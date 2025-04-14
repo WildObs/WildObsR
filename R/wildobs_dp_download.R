@@ -4,6 +4,7 @@
 #' metadata and data resources, and bundles them into Frictionless Data Packages formatted using the camtrap DP data standard.
 #'
 #' @param project_ids A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.
+#' @param media A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.
 #' @return A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/)
 #' @details
 #' The function performs the following steps:
@@ -39,18 +40,26 @@
 #' @author Zachary Amir
 #'
 #' @export
-wildobs_dp_download = function(project_ids) {
+wildobs_dp_download = function(project_ids, media = FALSE) {
 
   ## read in environment file with confidential DB access info
-  readRenviron(".Renviron.local.ro") # local version
-  # readRenviron(".Renviron.dev.ro") # remote version
+  # readRenviron(".Renviron.local.ro") # local version
+  # readRenviron(".Renviron.prod.ro") # remote production version
+  ### NOT SURE HOW TO MAKE THIS WORK REMOTELY!
 
-  ## load information from enviromnet
-  HOST <- Sys.getenv("HOST")
-  PORT <- Sys.getenv("PORT")
-  DATABASE <- Sys.getenv("DATABASE")
-  USER <- Sys.getenv("USER")
-  PASS <- Sys.getenv("PASS")
+  # ## load information from enviromnet
+  # HOST <- Sys.getenv("HOST")
+  # PORT <- Sys.getenv("PORT")
+  # DATABASE <- Sys.getenv("DATABASE")
+  # USER <- Sys.getenv("USER")
+  # PASS <- Sys.getenv("PASS")
+
+  ## manually specify information from enviromnet
+  HOST <- "203.101.228.237"
+  PORT <- "29017"
+  DATABASE <- "wildobs_camdb"
+  USER <- "woro"
+  PASS <- "woroPa55w0rd"
 
   ## combine all the information into a database-url to enable access
   db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
@@ -212,10 +221,10 @@ wildobs_dp_download = function(project_ids) {
       schema = reformat_schema(resources[r, "schema"])
       ## and create a new field for projectName, which must be present in all datasets
       schema$fields[[length(schema$fields) + 1]] = list(name = "projectName",
-                                                        description = "This is the same name used to describe the overall datapackage, stored in dataPackage$name. This name is used to manage and track many different dataPackages. This value is a short url-usable and preferably human-readable name of the package. The name should be invariant, meaning that it should not change when a data package is updated.",
-                                                        `skos:exactMatch` = "https://specs.frictionlessdata.io/data-package/#name",
+                                                        description = "This is the persistent identifier used to describe the overall datapackage, stored in dataPackage$id. This identifier is used to manage and track many different dataPackages. This value is a short url-usable and preferably human-readable name of the package. The name should be invariant, meaning that it should not change when a data package is updated.",
+                                                        `skos:exactMatch` = "https://specs.frictionlessdata.io/data-package/#id",
                                                         constraits = list(required = "TRUE"),
-                                                        example = "QLD_Kgari_BIOL2015_2023-24",
+                                                        example = "QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",
                                                         type = "string")
 
       ### BUG IN THE DOWNLOADED DATA! COME HERE AND FIX
@@ -230,11 +239,20 @@ wildobs_dp_download = function(project_ids) {
       names(res_list)[r] = unique(resources[r, ]$name)
     } # end per r resources
 
-    ## bundle it all up into a clear list
-    final_meta = list("project_level_metadata" = proj_meta,
-                      "deployments_schema" = res_list$deployments,
-                      "observations_schema" = res_list$observations,
-                      "media_schema" = res_list$media)
+    ## bundle it all up into a clear list, including media or not
+    if(media){
+      final_meta = list("project_level_metadata" = proj_meta,
+                        "deployments_schema" = res_list$deployments,
+                        "observations_schema" = res_list$observations,
+                        "media_schema" = res_list$media,
+                        "covariates_schema" = res_list$covariates)
+    }else{
+      final_meta = list("project_level_metadata" = proj_meta,
+                        "deployments_schema" = res_list$deployments,
+                        "observations_schema" = res_list$observations,
+                        # "media_schema" = res_list$media,
+                        "covariates_schema" = res_list$covariates)
+    }
 
     # and save all the metadata in the final list
     formatted_metadata[[i]] = final_meta
@@ -264,10 +282,10 @@ wildobs_dp_download = function(project_ids) {
   obs = mongolite::mongo(db = "wildobs_camdb", collection = "observations", url = db_url)$find(query) # filtering w/ query
   # deployments
   deps = mongolite::mongo(db = "wildobs_camdb", collection = "deployments", url = db_url)$find(query)
-  # media
-  media = mongolite::mongo(db = "wildobs_camdb", collection = "media", url = db_url)$find(query)
+  # media, but only if specified
+  if(media){media = mongolite::mongo(db = "wildobs_camdb", collection = "media", url = db_url)$find(query)}
   # covariate
-  # covs = mongolite::mongo(db = "wildobs_camdb", collection = "covariates", url = db_url)$find(query) # do this when ready!
+  covs = mongolite::mongo(db = "wildobs_camdb", collection = "covariates", url = db_url)$find(query)
 
   ## save them per project
   dp_list = list()
@@ -279,12 +297,15 @@ wildobs_dp_download = function(project_ids) {
     # subset for specific project
     obs_proj = obs[obs$projectName == proj, ]
     deps_proj = deps[deps$projectName == proj, ]
-    media_proj = media[media$projectName == proj, ]
+    if(media){media_proj = media[media$projectName == proj, ]}
+    cov_proj = covs[covs$projectName == proj, ]
 
     # but before we save, apply schemas to make sure were good!
     obs_proj = suppressWarnings(apply_schema_types(obs_proj, formatted_metadata[[proj]]$observations_schema))
     deps_proj = suppressWarnings(apply_schema_types(deps_proj, formatted_metadata[[proj]]$deployments_schema))
-    media_proj = suppressWarnings(apply_schema_types(media_proj, formatted_metadata[[proj]]$media_schema))
+    if(media){media_proj = suppressWarnings(apply_schema_types(media_proj, formatted_metadata[[proj]]$media_schema))}
+    cov_proj = suppressWarnings(apply_schema_types(cov_proj, formatted_metadata[[proj]]$covariates_schema))
+
 
     ## and make sure the columns follow the order in the schema
     # observations
@@ -302,12 +323,21 @@ wildobs_dp_download = function(project_ids) {
     ## re-order to match
     deps_proj = deps_proj[, col_order]
     # media
+    if(media){
+      col_order = c()
+      for(i in 1:length(formatted_metadata[[proj]]$media_schema$fields)){
+        col_order = c(col_order, formatted_metadata[[proj]]$media_schema$fields[[i]]$name)
+      }
+      ## re-order to match
+      media_proj = media_proj[, col_order]
+    }
+    # covariates
     col_order = c()
-    for(i in 1:length(formatted_metadata[[proj]]$media_schema$fields)){
-      col_order = c(col_order, formatted_metadata[[proj]]$media_schema$fields[[i]]$name)
+    for(i in 1:length(formatted_metadata[[proj]]$covariates_schema$fields)){
+      col_order = c(col_order, formatted_metadata[[proj]]$covariates_schema$fields[[i]]$name)
     }
     ## re-order to match
-    media_proj = media_proj[, col_order]
+    cov_proj = cov_proj[, col_order]
 
 
     ## now bundle into a frictionless DP
@@ -323,10 +353,17 @@ wildobs_dp_download = function(project_ids) {
                                     data = obs_proj,
                                     schema = formatted_metadata[[proj]]$observations_schema)
     # media
+    if(media){
+      dp = frictionless::add_resource(package = dp,
+                                      resource_name = "media",
+                                      data = media_proj,
+                                      schema = formatted_metadata[[proj]]$media_schema)
+    }
+    # covariates
     dp = frictionless::add_resource(package = dp,
-                                    resource_name = "media",
-                                    data = media_proj,
-                                    schema = formatted_metadata[[proj]]$media_schema)
+                                    resource_name = "covariates",
+                                    data = cov_proj,
+                                    schema = formatted_metadata[[proj]]$covariates_schema)
     ## save in a list
     dp_list[[p]] = dp
     names(dp_list)[[p]] = proj
