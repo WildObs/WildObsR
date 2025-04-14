@@ -4,10 +4,12 @@
 \alias{wildobs_dp_download}
 \title{Download Data from WildObs' MongoDB and Format as Frictionless Data Packages}
 \usage{
-wildobs_dp_download(project_ids)
+wildobs_dp_download(project_ids, media = FALSE)
 }
 \arguments{
 \item{project_ids}{A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.}
+
+\item{media}{A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.}
 }
 \value{
 A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about \href{https://camtrap-dp.tdwg.org/}{camtrapDP, click here}, and to learn more about \href{https://specs.frictionlessdata.io/data-package/}{Frictionless Data Packages, click here}
