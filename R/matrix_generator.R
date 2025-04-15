@@ -495,11 +495,11 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,
           # if zero, but still active in window, lebel no detection
           if(length(n) == 0 & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)){
             # instead of no_detection, use the site-level average
-            n = paste(sort(unique(obs_land[[o_var]][obs_land[[row_col]] == su]), collapse = " - "))
+            n = paste(sort(unique(obs_land[[o_var]][obs_land[[row_col]] == su])), collapse = " - ")
           }else{
             # if na, but still active in window, label as the site-level average
             if(any(is.na(n)) & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)){
-              n = paste(sort(unique(obs_land[[o_var]][obs_land[[row_col]] == su]), collapse = " - "))}
+              n = paste(sort(unique(obs_land[[o_var]][obs_land[[row_col]] == su])), collapse = " - ")}
           }
 
           ## Fill in the obs dataframe, matching per row and column
