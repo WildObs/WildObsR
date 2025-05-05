@@ -435,172 +435,254 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,
     ##
     #
 
-    #### COME HERE and maybe add a conditional to bypass if there has been no obs_covs provided?
+    #### Add a conditional to bypass if there has been no obs_covs provided
+    if(length(obs_covs) == 0){
+      # if there are no obs covs, make them an empty list
+      comp_mat_list = list()
+    }else{
+      ## but format all obs covs if present
 
-    ## first check that there is variation in observation covs for this species
-    obs_sum = data.frame("obs_cov" = obs_covs,
-                         "num_levels" = NA )
-    # loop thru each var
-    for(o in 1:length(obs_covs)){
-      o_dat = obs_land[obs_land$scientificName == sp, obs_covs[o]]
-      obs_sum$num_levels[o] = length(unique(o_dat[o_dat != "no_detection"]))
-    }
-    # thin to values w/ more than 1 level
-    obs_covs_thin = obs_sum$obs_cov[obs_sum$num_levels > 1]
+      ## first check that there is variation in observation covs for this species
+      obs_sum = data.frame("obs_cov" = obs_covs,
+                           "num_levels" = NA )
+      # loop thru each var
+      for(o in 1:length(obs_covs)){
+        o_dat = obs_land[obs_land$scientificName == sp, obs_covs[o]]
+        obs_sum$num_levels[o] = length(unique(o_dat[o_dat != "no_detection"]))
+      }
+      # thin to values w/ more than 1 level
+      obs_covs_thin = obs_sum$obs_cov[obs_sum$num_levels > 1]
 
-    # Make a warning statement if there were any observation covariates
-    if(length(obs_covs_thin) < length(obs_covs)){
-      warning(paste("There was no variation in the observation-level covariate:", paste(setdiff(obs_covs, obs_covs_thin), collapse = " & "), "for the species:", sp, "so it has been removed from the matrix generation function for this species."))
-    }
+      # Make a warning statement if there were any observation covariates
+      if(length(obs_covs_thin) < length(obs_covs)){
+        warning(paste("There was no variation in the observation-level covariate:", paste(setdiff(obs_covs, obs_covs_thin), collapse = " & "), "for the species:", sp, "so it has been removed from the matrix generation function for this species."))
+      }
 
-    ## grab observation covs present across all cams (i.e. ActiveAtDate)
-    obs_land_full = dplyr::distinct(dplyr::select(obs_land, all_of(row_col),
-                                                  all_of(obs_covs_thin[grepl("ActiveAtDate", obs_covs_thin)]), seq))
-    ## and grab observation covs specific to each species
-    sp_obs = distinct(dplyr::select(obs_land[obs_land$scientificName == sp, ], all_of(row_col), seq,
-                                    all_of(obs_covs_thin[!grepl("ActiveAtDate", obs_covs_thin)])))
-    ## merge together, forcing NAs in the sp_obs version
-    obs_land_full = merge(sp_obs, obs_land_full, by = c(row_col, "seq"), all.y = TRUE)
-    ## store matricies in this list
-    obs_mat_list = list()
+      ## grab observation covs present across all cams (i.e. ActiveAtDate)
+      obs_land_full = dplyr::distinct(dplyr::select(obs_land, all_of(row_col),
+                                                    all_of(obs_covs_thin[grepl("ActiveAtDate", obs_covs_thin)]), seq))
+      ## and grab observation covs specific to each species
+      sp_obs = distinct(dplyr::select(obs_land[obs_land$scientificName == sp, ], all_of(row_col), seq,
+                                      all_of(obs_covs_thin[!grepl("ActiveAtDate", obs_covs_thin)])))
+      ## merge together, forcing NAs in the sp_obs version
+      obs_land_full = merge(sp_obs, obs_land_full, by = c(row_col, "seq"), all.y = TRUE)
+      ## store matricies in this list
+      obs_mat_list = list()
 
-    # run a loop for all observation-level covariates-
-    for(v in 1:length(names(obs_land_full)[! names(obs_land_full) %in% c(row_col, "seq")])){
-      # grab the name of one var
-      o_var = names(obs_land_full)[! names(obs_land_full) %in% c(row_col, "seq")][v]
-      ## create empty observation matrix dataframe
-      obs_mat = (matrix(NA,
-                        nrow = length(unique(obs_land_full[[row_col]])),
-                        ncol = length(seq(from =1, to= max(obs_land_full$seq))),
-                        dimnames = list(as.character(unique(obs_land_full[[row_col]])), # row names, then column names
-                                        seq(from = 1, to= max(obs_land_full$seq)))))
+      # run a loop for all observation-level covariates-
+      for(v in 1:length(names(obs_land_full)[! names(obs_land_full) %in% c(row_col, "seq")])){
+        # grab the name of one var
+        o_var = names(obs_land_full)[! names(obs_land_full) %in% c(row_col, "seq")][v]
+        ## create empty observation matrix dataframe
+        obs_mat = (matrix(NA,
+                          nrow = length(unique(obs_land_full[[row_col]])),
+                          ncol = length(seq(from =1, to= max(obs_land_full$seq))),
+                          dimnames = list(as.character(unique(obs_land_full[[row_col]])), # row names, then column names
+                                          seq(from = 1, to= max(obs_land_full$seq)))))
 
-      for(u in 1:length(unique(covs_land[[row_col]]))){ #repeat for each sampling unit
-        # Select a single sampling unit (i.e. row)
-        su = unique(covs_land[[row_col]])[u]
-        # Select data from a single sampling unit
-        o = obs_land[obs_land[[row_col]] == su,]
+        for(u in 1:length(unique(covs_land[[row_col]]))){ #repeat for each sampling unit
+          # Select a single sampling unit (i.e. row)
+          su = unique(covs_land[[row_col]])[u]
+          # Select data from a single sampling unit
+          o = obs_land[obs_land[[row_col]] == su,]
 
-        ## but if not,
-        for(x in 1:max(o$seq)){ #repeat for each sequence
-          # Select the sequence (i.e. column)
-          indx = seq(from = 1, to = max(o$seq), by = 1)[x]
-          # select the obs cov
-          n = obs_land_full[obs_land_full[[row_col]] == su & obs_land_full$seq == indx, o_var]
-          # Add conditional to force n to be 1 if no active cams detected a species, but were active in the date sequence
-          if(length(n) == 0 & indx <= max(o$seq) & grepl("ActiveAtDate", o_var)){ n = 1 }
-          # Add a conditional if active cams has more than one value, take the sum
-          if(length(n) > 1 & indx <= max(o$seq) & grepl("ActiveAtDate", o_var)){ n = sum(n)}
+          #Repeat for each sequence
+          for(x in 1:max(o$seq)){
+            # Select the sequence (i.e. column)
+            indx = seq(from = 1, to = max(o$seq), by = 1)[x]
+            # select the obs cov
+            n = unique(obs_land_full[obs_land_full[[row_col]] == su & obs_land_full$seq == indx, o_var])
 
-          # if zero, but still active in window, lebel no detection
-          if(length(n) == 0 & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)){
-            # instead of no_detection, use the site-level average
-            n = paste(sort(unique(obs_land[[o_var]][obs_land[[row_col]] == su])), collapse = " - ")
-          }else{
-            # if na, but still active in window, label as the site-level average
+            # Add conditional to force n to be 1 if no active cams detected a species,
+            # but were active in the date sequence
+            if(length(n) == 0 & indx <= max(o$seq) & grepl("ActiveAtDate", o_var)){ n = 1 }
+
+            # Add a conditional if active cams has more than one value, take the sum
+            if(length(n) > 1 & indx <= max(o$seq) & grepl("ActiveAtDate", o_var)){ n = sum(n)}
+
+            # Add a conditional to past overlapping character values together
+            if(length(n) > 1 & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)){
+              # split apart first to make sure we dont create new combos
+              split_n <- unlist(strsplit(n, " - "))
+              # combine the splits via collapse
+              n = paste(sort(unique(split_n)), collapse = " - ")
+            }
+
+            # if zero, but still active in window,
+            if(length(n) == 0 & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)){
+              # split apart first to make sure we dont create new combos
+              split_n <- unlist(strsplit(unique(obs_land[[o_var]][obs_land[[row_col]] == su]), " - "))
+              # instead of no_detection, use the site-level average
+              n = paste(sort(unique(split_n)), collapse = " - ")
+
+              # label as no detection
+              # n = "no_detection"
+            }
+            # else{
+            #   # if na, but still active in window,
+            #   if(any(is.na(n)) & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)){
+            #     # label as the site-level average
+            #     # n = paste(sort(unique(obs_land[[o_var]][obs_land[[row_col]] == su])), collapse = " - ")}
+            #     # lable as no detection
+            #     n = "no_detection"
+            #   }
+
+            ## if n is NA AND less than sequence and NOT ActiveAtDate,
             if(any(is.na(n)) & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)){
-              n = paste(sort(unique(obs_land[[o_var]][obs_land[[row_col]] == su])), collapse = " - ")}
-          }
+              # split apart first to make sure we dont create new combos
+              split_n <- unlist(strsplit(unique(obs_land[[o_var]][obs_land[[row_col]] == su]), " - "))
+              # instead of no_detection, use the site-level average
+              n = paste(sort(unique(split_n)), collapse = " - ")
 
-          ## Fill in the obs dataframe, matching per row and column
-          obs_mat[su,indx] = paste(sort(unique(n)), collapse = " - ") # adding unique to be safe
+              # # then assign no detection
+              # n = "no_detection"
+            }
 
-        } # End per sequence
-      } # End per sampling unit
+            ## Fill in the obs dataframe, matching per row and column
+            obs_mat[su,indx] = n  #paste(sort(unique(n)), collapse = " - ") # adding unique to be safe
 
-      ## save it!
-      obs_mat_list[[v]] = obs_mat
-      names(obs_mat_list)[v] = o_var
+          } # End per sequence
+        } # End per sampling unit
 
-    } # end per obs var
+        ## save it!
+        obs_mat_list[[v]] = obs_mat
+        names(obs_mat_list)[v] = o_var
 
-    #
-    ##
-    ### Compress observation matricies to match sampling occasion window ----
-    ##
-    #
+      } # end per obs var
 
-    ## store compressed matricies here
-    comp_mat_list = list()
-    for(v in 1:length(obs_mat_list)){
-      ## select one var
-      obs_mat = obs_mat_list[[v]]
-      ## and grab the name
-      o_var = names(obs_mat_list)[v]
-      ## Create a new and empty compressed matrix to fit sampling occasions
-      obs2 = matrix(nrow = nrow(obs_mat), # number of rows are our sampling locations (same as above)
-                    ncol = round(dur/w),  # number of cols is our maximum sampling duration (dur) divided by shink window (w)
-                    dimnames = list(as.character(rownames(obs_mat)), # row names are our sampling unit names
-                                    seq(from = 1, to = round(dur/w)))) # col names are the number of shrunk observation windows.
+      #
+      ##
+      ### Compress observation matricies to match sampling occasion window ----
+      ##
+      #
 
-      for(u in 1:nrow(obs_mat)){ #Repeat for each row in the matrix
-        for(p in 1:round(dur/w)){ # Repeat for each sampling occasion window
-          # Outline the start dates of sampling occasion, using values provided in for-loop
-          starts<-seq(from=1, to=dur, by=w)
-          # Select a single start date
-          l<-starts[p]
+      ## store compressed matricies here
+      comp_mat_list = list()
+      for(v in 1:length(obs_mat_list)){
+        ## select one var
+        obs_mat = obs_mat_list[[v]]
+        ## and grab the name
+        o_var = names(obs_mat_list)[v]
+        ## Create a new and empty compressed matrix to fit sampling occasions
+        obs2 = matrix(nrow = nrow(obs_mat), # number of rows are our sampling locations (same as above)
+                      ncol = round(dur/w),  # number of cols is our maximum sampling duration (dur) divided by shink window (w)
+                      dimnames = list(as.character(rownames(obs_mat)), # row names are our sampling unit names
+                                      seq(from = 1, to = round(dur/w)))) # col names are the number of shrunk observation windows.
 
-          ## by pass to limit matricies going out of bounds
-          if(max(l:(l+w)) > dur){
-            # create a new sequence that terminates at dur
-            seq = l:(l+w)
-            seq = seq[seq < dur]
+        for(u in 1:nrow(obs_mat)){ #Repeat for each row in the matrix
+          for(p in 1:round(dur/w)){ # Repeat for each sampling occasion window
+            # Outline the start dates of sampling occasion, using values provided in for-loop
+            starts<-seq(from=1, to=dur, by=w)
+            # Select a single start date
+            l<-starts[p]
 
-            ## bypass if seq is longer than the observation matrix
-            if(max(seq) > dim(obs_mat)[2]){seq = seq[seq <= dim(obs_mat)[2]]}  # then thin seq to only include max values
-          }else{
-            #if its fine, save the name seq
-            seq = l:(l+w)
-          } # end out of bounds conditional
+            ## by pass to limit matricies going out of bounds
+            if(max(l:(l+w)) > dur){
+              # create a new sequence that terminates at dur
+              seq = l:(l+w)
+              seq = seq[seq < dur]
 
-          ## we want the sum for effort
-          if(grepl("ActiveAtDate", o_var)){
-            # Make if-else statement
-            ifelse(all(is.na(obs_mat[u,seq]), na.rm= TRUE) == "TRUE",
-                   #if all values in matrix @ row u across the sampling occasion window are all NA,
-                   obs2[u,p]<-NA, # then leave the sampling occasion as NA,
-                   obs2[u,p]<- sum(as.numeric(obs_mat[u,seq]), na.rm = TRUE))
-            # But if FALSE, take the the sum of observation covariate
+              ## bypass if seq is longer than the observation matrix
+              if(max(seq) > dim(obs_mat)[2]){seq = seq[seq <= dim(obs_mat)[2]]}  # then thin seq to only include max values
+            }else{
+              #if its fine, save the name seq
+              seq = l:(l+w)
+            } # end out of bounds conditional
 
-            ## we want mode for character vars
-            ### COME HERE, maybe there is an opportunity to format more robustly for character vs numeric cols
-          }else{
-            # Make if-else statement
-            ifelse(all(is.na(obs_mat[u,seq]), na.rm= TRUE) == "TRUE",
-                   #if all values in matrix @ row u across the sampling occasion window are all NA,
-                   obs2[u,p]<-NA, # then leave the sampling occasion as NA,
-                   obs2[u,p]<- Mode(obs_mat[u,seq]))
-            # But if FALSE, take the the mode of observation covariate
+            ## we want the sum for effort
+            if(grepl("ActiveAtDate", o_var)){
+              # Make if-else statement
+              ifelse(all(is.na(obs_mat[u,seq]), na.rm= TRUE) == "TRUE",
+                     #if all values in matrix @ row u across the sampling occasion window are all NA,
+                     obs2[u,p]<-NA, # then leave the sampling occasion as NA,
+                     obs2[u,p]<- sum(as.numeric(obs_mat[u,seq]), na.rm = TRUE))
+              # But if FALSE, take the the sum of observation covariate
 
-          } # end condition for cams
-        } # End loop per sampling occasion
-      } # End loop per row in matrix
+              ## we want mode for character vars
+            }else{
+              # Make if-else statement
+              ifelse(all(is.na(obs_mat[u,seq]), na.rm= TRUE) == "TRUE",
+                     #if all values in matrix @ row u across the sampling occasion window are all NA,
+                     obs2[u,p]<-NA, # then leave the sampling occasion as NA,
+                     obs2[u,p]<- Mode(obs_mat[u,seq])
 
-      ## dont forget to standardize numeric observation covars
-      if(is.numeric(obs_land_full[, o_var])){
+                     #   if(all(is.na(obs_mat[u, seq]) | obs_mat[u, seq] == "no_detection")){
+                     #   # if all values are no_detection or NA, keep it as "no_detection"
+                     #   "no_detection"
+                     # }else{
+                     #   # If other values are present, remove "no_detection" and take the mode of the remaining values
+                     #   non_detection_values <- obs_mat[u, seq][obs_mat[u, seq] != "no_detection" &
+                     #                                             !is.na(obs_mat[u, seq])]
+                     #   # make sure we actually have values (redundant but safe)
+                     #   if (length(non_detection_values) > 0) {
+                     #     Mode(non_detection_values)  # Return the mode of the remaining values
+                     #   } else {
+                     #     "no_detection"  # If no other values, return "no_detection"
+                     #   } # end length condition for non-detection values
+                     # } # end no_detection conditon
 
-        # #Standardize the observation covaraite
-        # me = mean(as.vector(obs2),na.rm=T)
-        # s = sd(as.vector(obs2),na.rm=T)
-        # cams1<-(obs2-me)/s
-        cams1 = obs2
+              ) # end character obs cov if-else filling
 
-        ## Replace all NA values in obs cov w/ a zero.
-        for (i in 1:dim(cams1)[1]) { #Repeat for each sampling unit
-          # Select sampling occasions where any camera was active
-          a <- which(obs2[i,]>0)
-          # and make all other occasions (i.e. NA) equal to zero
-          cams1[i,-a]=0
-        } # end per SU
-        ## rename to match
-        obs2 = cams1
-      } # end per numeric condition
+            } # end condition for cams
+          } # End loop per sampling occasion
+        } # End loop per row in matrix
 
-      ## save it!
-      comp_mat_list[[v]] = obs2
-      names(comp_mat_list)[v] = names(obs_mat_list)[v]
+        ## dont forget to standardize numeric observation covars
+        if(is.numeric(obs_land_full[, o_var])){
 
-    } # end per obs var
+          # #Standardize the observation covaraite
+          # me = mean(as.vector(obs2),na.rm=T)
+          # s = sd(as.vector(obs2),na.rm=T)
+          # cams1<-(obs2-me)/s
+          cams1 = obs2
+
+          ## Replace all NA values in numeric obs cov w/ a zero.
+          for (i in 1:dim(cams1)[1]) { #Repeat for each sampling unit
+            # Select sampling occasions where any camera was active
+            a <- which(obs2[i,]>0)
+            # and make all other occasions (i.e. NA) equal to zero
+            cams1[i,-a]=0
+          } # end per SU
+          ## rename to match
+          obs2 = cams1
+        } # end per numeric condition
+
+        #### CANT HAVE A FACTOR MATRIX IN R, so leaving hashed out for now.
+        # ## but if it is not numeric, save as factor
+        # if(!is.numeric(obs_land_full[, o_var])){
+        #   # grab the corresponding matrix
+        #   o_mat = obs2
+        #
+        #   # Save matrix with factor levels where no_detections is the reference
+        #   obs_mat_factor <- lapply(seq_len(ncol(o_mat)), function(i) { # apply(o_mat, 2, function(x) {
+        #     # select one row
+        #     x <- o_mat[, i]
+        #     # Get all unique values except NAs
+        #     unique_vals <- unique(x[!is.na(x)])
+        #
+        #     # Separate "no_detection" from the rest
+        #     other_vals <- sort(unique_vals[unique_vals != "no_detection"])
+        #
+        #     # Combine "no_detection" with sorted other values
+        #     levels_vec <- c("no_detection", other_vals)
+        #
+        #     # Return factor with specified level order
+        #     factor(x, levels = levels_vec)
+        #   })
+        #
+        #   # and overwrite the value
+        #   obs2 = obs_mat_factor
+        #
+        # } # end character obs covs
+
+        ## save it!
+        comp_mat_list[[v]] = obs2
+        names(comp_mat_list)[v] = names(obs_mat_list)[v]
+
+      } # end per obs var
+
+    } # end obs covs length condition
+
 
     ## bundle relevant info per species
     sp_bundle = list("detection_matrix" = dh_mat,
