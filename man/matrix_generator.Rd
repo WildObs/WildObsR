@@ -14,7 +14,8 @@ matrix_generator(
   all_locationNames,
   scientificNames,
   type,
-  individuals
+  individuals,
+  group_sp = NULL
 )
 }
 \arguments{
@@ -45,6 +46,8 @@ or \code{"occupancy"} to generate a detection history matrix using presence/abse
 
 \item{individuals}{A character string specifying the method for aggregating individual counts used in the count history matrix.
 Use \code{"sum"} to sum detections across occasions or \code{"max"} to take the maximum value.}
+
+\item{group_sp}{Optional character string indicating which species should be grouped to a group-size of one. If provided (e.g., "scientificName"), cells in count matrix will be grouped to one, but will still get aggregated when shrinking the sampling occasion window \code{"w"}. Default is NULL.}
 }
 \value{
 A named \code{list} where each element corresponds to a species. Each element is itself a
