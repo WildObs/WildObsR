@@ -20,6 +20,7 @@
 #'   or \code{"occupancy"} to generate a detection history matrix using presence/absence data.
 #' @param individuals A character string specifying the method for aggregating individual counts used in the count history matrix.
 #'   Use \code{"sum"} to sum detections across occasions or \code{"max"} to take the maximum value.
+#' @param group_sp Optional character string indicating which species should be grouped to a group-size of one. If provided (e.g., "scientificName"), cells in count matrix will be grouped to one, but will still get aggregated when shrinking the sampling occasion window \code{"w"}. Default is NULL.
 #'
 #'@return A named \code{list} where each element corresponds to a species. Each element is itself a
 #'   list with the following components:
@@ -118,8 +119,8 @@
 #' @author Zachary Amir
 #'
 #' @export
-matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,
-                            all_locationNames, scientificNames, type, individuals){
+matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationNames,
+                            scientificNames, type, individuals, group_sp = NULL){
 
   #
   ##
@@ -160,6 +161,16 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,
   ## make sure scientificNames are actually present in the observations
   if(any(!scientificNames %in% obs$scientificName)){
     stop(paste("You have provided the following species names that are not present in the observations table:", paste(setdiff(scientificNames, obs$scientificName), collapse = " & "), "\nPlease choose species names that are present in the observations table."))
+  }
+  ## make sure group_sp are actually present in the observations
+  if(!is.null(group_sp) && length(group_sp) > 0){
+    if(any(!group_sp %in% obs$scientificName)){
+      stop(paste(
+        "You have provided the following species names that are not present in the observations table:",
+        paste(setdiff(group_sp, obs$scientificName), collapse = " & "),
+        "\nPlease choose species names that are present in the observations table."
+      ))
+    }
   }
   ## make sure dates are properly formatted
   if(!any(sapply(obs[, c("eventStart","eventEnd","observationStart","observationEnd")],
@@ -345,10 +356,23 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,
           d = a$date[s]
           #specify the matching date index
           indx = a$seq[a[[row_col]] == su & a$date == d]
-          ## fill in the matrix with the maximum value of individuals.
-          mat[su,indx]= max(unique(a$totalIndividuals[a$date == d])) ## add max just to be safe in case there is more than one value, but there shouldnt be.
-          #in the matrix where the row = sampling unit, and column = occasion,
-          #use the total counts of the specific sampling occasion
+
+          ### Add a conditional for species that appear in large groups AND make sure its not null
+          if(!is.null(group_sp) && sp %in% group_sp){
+
+            # Convert all individuals to groups
+            a$totalIndividuals[a$scientificName %in% group_sp
+                                  & a$totalIndividuals > 0]=  1
+            mat[su,indx]= unique(a$totalIndividuals[a$date == d]) # and save that in the matrix
+
+          }else{
+            #for all other Species, use counts
+            mat[su,indx]= max(unique(a$totalIndividuals[a$date == d]))
+            ## add max just to be safe in case there is more than one value, but there shouldnt be.
+
+            #in the matrix where the row = sampling unit, and column = occasion,
+            #use the total counts of the specific sampling occasion
+          } # end group conditional
         } # end per date loop & count fill
       } # end if-abundance statement
 
