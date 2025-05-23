@@ -79,6 +79,10 @@ update_temporally_overlapping_deployments = function(deps, obs, media){
      length(setdiff(obs$deploymentID, media$deploymentID)) != 0){
     stop("The deploymentID values between the media and observations data files do not match perfectly! This needs to be resolved before running this function.")
   }
+  # Check for repeated deploymentID values
+  if(length(unique(deps$deploymentID)) < nrow(deps)){
+    stop(paste("There are", (nrow(deps) - length(unique(deps$deploymentID))), "repeated deploymentID values in your deployments file. Please inspect the following deploymentIDs before proceeding:", paste(unique(deps$deploymentID[duplicated(deps$deploymentID)], collapse = " & "))))
+  }
 
   ## make a list to store results
   deps_list = list()
@@ -151,7 +155,7 @@ update_temporally_overlapping_deployments = function(deps, obs, media){
           new_start = min(new_d$deploymentStart)
           new_end = max(new_d$deploymentEnd)
           # and the first deploymentGroup
-          new_dgroup = new_d$deploymentGroups[new_d$deploymentStart == new_start]
+          new_dgroup = new_d$deploymentGroups[new_d$deploymentStart == new_start][1] # use 1 to make sure its the first!
 
           # and overwrite old data
           new_d$deploymentID = new_dep
@@ -160,7 +164,7 @@ update_temporally_overlapping_deployments = function(deps, obs, media){
           new_d$deploymentGroups = new_dgroup
 
           # and make it distinct!
-          new_d = distinct(new_d)
+          new_d = dplyr::distinct(new_d)
 
           ## make sure we are only one row now
           if(nrow(new_d) > 1){
@@ -176,7 +180,7 @@ update_temporally_overlapping_deployments = function(deps, obs, media){
                                  "old_deploymentID" = prob_deps,
                                  "locationID" = rep(loc, , length.out = length(prob_deps)))
             # and rbind w/ overal df
-            prob_deps_df = distinct(rbind(prob_deps_df, temp_df))
+            prob_deps_df = dplyr::distinct(rbind(prob_deps_df, temp_df))
 
             ## and save the new deployments in the list!
             temp[[g]] = new_d

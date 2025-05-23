@@ -20,7 +20,10 @@
 #'   or \code{"occupancy"} to generate a detection history matrix using presence/absence data.
 #' @param individuals A character string specifying the method for aggregating individual counts used in the count history matrix.
 #'   Use \code{"sum"} to sum detections across occasions or \code{"max"} to take the maximum value.
-#' @param group_sp Optional character string indicating which species should be grouped to a group-size of one. If provided (e.g., "scientificName"), cells in count matrix will be grouped to one, but will still get aggregated when shrinking the sampling occasion window \code{"w"}. Default is NULL.
+#' @param cap_count Logical. If \code{TRUE}, the function will automatically cap observed counts for each species
+#'  based on its mean and maximum observed group size to prevent extremely large counts from negatively affecting model fit.
+#'    Species with high mean or maximum individual counts will have their values capped (e.g., at 3, 5, or 7), while others retain full counts.
+#'    Default is \code{FALSE}, meaning no capping is applied.
 #'
 #'@return A named \code{list} where each element corresponds to a species. Each element is itself a
 #'   list with the following components:
@@ -120,7 +123,7 @@
 #'
 #' @export
 matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationNames,
-                            scientificNames, type, individuals, group_sp = NULL){
+                            scientificNames, type, individuals, cap_count = FALSE){
 
   #
   ##
@@ -162,16 +165,16 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
   if(any(!scientificNames %in% obs$scientificName)){
     stop(paste("You have provided the following species names that are not present in the observations table:", paste(setdiff(scientificNames, obs$scientificName), collapse = " & "), "\nPlease choose species names that are present in the observations table."))
   }
-  ## make sure group_sp are actually present in the observations
-  if(!is.null(group_sp) && length(group_sp) > 0){
-    if(any(!group_sp %in% obs$scientificName)){
-      stop(paste(
-        "You have provided the following species names that are not present in the observations table:",
-        paste(setdiff(group_sp, obs$scientificName), collapse = " & "),
-        "\nPlease choose species names that are present in the observations table."
-      ))
-    }
-  }
+  # ## make sure group_sp are actually present in the observations
+  # if(!is.null(group_sp) && length(group_sp) > 0){
+  #   if(any(!group_sp %in% obs$scientificName)){
+  #     stop(paste(
+  #       "You have provided the following species names that are not present in the observations table:",
+  #       paste(setdiff(group_sp, obs$scientificName), collapse = " & "),
+  #       "\nPlease choose species names that are present in the observations table."
+  #     ))
+  #   }
+  # }
   ## make sure dates are properly formatted
   if(!any(sapply(obs[, c("eventStart","eventEnd","observationStart","observationEnd")],
                  function(x) inherits(x, "POSIXct")))){
@@ -297,6 +300,10 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
     }
   } # end row check condition
 
+  ## determine which column has the count of individuals
+  count_col = ifelse(any(grepl("Individuals", names(obs))), "totalIndividuals", "count")
+  # resampled, then camtrap DP version
+
 
   #
   ##
@@ -343,6 +350,29 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
       mat[j,indx]=0 # at row J, across all sampling occasions, put a zero there
     }
 
+    ## Before filling in the matrix, determine if we need to calculate count limits
+    if(!is.null(cap_count) && isTRUE(cap_count)) {
+
+      # Grab all relevant counts for the current species
+      sp_counts <- obs_land[[count_col]][obs_land$scientificName == sp]
+      sp_counts <- sp_counts[!is.na(sp_counts) & sp_counts > 0] # make sure no NA or zeros to skew calculations
+
+      # Calculate mean and max counts
+      mean_count <- mean(sp_counts)
+      max_count <- max(sp_counts)
+
+      # Determine species-specific cap limit based on rules (adjust as needed)
+      cap_val <- if (mean_count > 10 || max_count > 20) {
+        7
+      } else if (mean_count > 5 || max_count > 10) {
+        5
+      } else if (mean_count > 3 || max_count > 5) {
+        3
+      } else {
+        Inf
+      }
+    }
+
     ## Fill in the matrix based on sampling unit and sampling occasion
     for(j in 1:length(unique(obs_land[[row_col]]))){ #repeat for each sampling unit
       su = unique(obs_land[[row_col]])[j] #specify the sampling unit
@@ -356,23 +386,26 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
           d = a$date[s]
           #specify the matching date index
           indx = a$seq[a[[row_col]] == su & a$date == d]
+          # Grab the relevant count
+          fill_count = max(unique(a[[count_col]][a$date == d])) # max to be safe if there is more than one value, tho unlikely.
 
-          ### Add a conditional for species that appear in large groups AND make sure its not null
-          if(!is.null(group_sp) && sp %in% group_sp){
+          ### Add a conditional to limit the full number of captures
+          if(!is.null(cap_count) && isTRUE(cap_count)){
 
-            # Convert all individuals to groups
-            a$totalIndividuals[a$scientificName %in% group_sp
-                                  & a$totalIndividuals > 0]=  1
-            mat[su,indx]= unique(a$totalIndividuals[a$date == d]) # and save that in the matrix
+            ## make sure the smaller value is used between fill count or cap_val
+            fill_count = min(fill_count, cap_val)
+
+            # Add the capped value to the matrix
+            mat[su,indx]= fill_count
+            #in the matrix where the row = sampling unit, and column = occasion,
+            #use the capped counts of the specific sampling occasion
 
           }else{
-            #for all other Species, use counts
-            mat[su,indx]= max(unique(a$totalIndividuals[a$date == d]))
-            ## add max just to be safe in case there is more than one value, but there shouldnt be.
-
+            #If counts should not be capped, just take the total count for that species + day
+            mat[su,indx]= fill_count
             #in the matrix where the row = sampling unit, and column = occasion,
             #use the total counts of the specific sampling occasion
-          } # end group conditional
+          } # end cap_count conditional
         } # end per date loop & count fill
       } # end if-abundance statement
 
