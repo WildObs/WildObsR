@@ -31,8 +31,8 @@
 #' dp_list[["QLD_Kgari_BIOL2015_2023-24_WildObsID_0004"]]
 #' }
 #'
-#' @import mongolite
-#' @import frictionless
+#' @importFrom mongolite mongo
+#' @importFrom frictionless add_resource create_package
 #' @importFrom jsonlite toJSON
 #' @importFrom purrr map keep
 #' @importFrom lutz tz_lookup_coords
