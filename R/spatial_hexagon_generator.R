@@ -10,7 +10,8 @@
 #'
 #'
 #' @param data A dataframe of covariates that includes at minimum: `deploymentID`, `locationName`,`deploymentGroups`, `source`, `latitude`, and `longitude`. These columns are found in WildObs' camtrapDP-formatted Frictionless Data Packages.
-#' @param scales A named numeric vector specifying the apothem of hexagonal grid cells (in meters). The names of the vector define the spatial scale (e.g., `c("1km" = 1074.6, "3km" = 1861.2)`).
+#' @param scales A numeric vector representing the area of hexagonal grid cells in **square meters (m²)**.
+#' Values smaller than 1e6 (1 km²) are allowed. Scale names will be auto-generated using appropriate m² or km² units.
 #'
 #' @return A dataframe including the original data plus additional columns for each scale:
 #' - `polygon_<scale>`: spatially distinct cell assignments.
@@ -29,7 +30,7 @@
 #' # extract covariates resource
 #' data = frictionless::read_resource(dp, "covariates")
 #' ## assign spatial scales
-#' scales = c("1km" = 1074.6, "3km" = 1861.2, "5km" = 2403, "10km" = 3398) # number refer to the apothem of the hexagonal cell, name refers to the area covered by the cell
+#' scales = c(1000000, 3000000) # number refer area (in square meters) covered by the cell
 #' ## add dataSource to the covarites
 #' data$source = dp$contributors[[1]]$tag
 #'
@@ -61,6 +62,9 @@ spatial_hexagon_generator = function(data, scales) {
   if(!any(inherits(data[["deploymentStart"]], "POSIXct") & inherits(data[["deploymentEnd"]], "POSIXct"))){
     stop("The data provided contains deploymentStart and/or deploymentEnd columns that are not formatted as a proper datetime class POSIXct.\n Please use the as.posixct() function to format your deploymentStart and deploymentEnd columns before using this function.")
   }
+
+  ## first convert km2 in scales to apothems
+  scales <- area_to_apothem(scales)
 
   #
   ##
