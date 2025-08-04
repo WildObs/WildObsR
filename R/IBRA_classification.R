@@ -32,7 +32,7 @@
 #' }
 #'
 #' @author Zachary Amir
-#' @import terra
+#' @importFrom terra as.data.frame nearest extract crop intersect project vect
 #' @importFrom plyr ddply summarize
 #' @importFrom knitr kable
 #' @export
@@ -127,7 +127,7 @@ ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Drop
     valid_values = terra::vect(valid_values , geom = c("longitude2", "latitude2"), "EPSG:4326")
 
     ## then find the nearest neighbors
-    near = nearest(na_values, valid_values)
+    near = terra::nearest(na_values, valid_values)
     ## replace from_id w/ na_values ID
     near$from_id = na_values$ID[near$from_id]
     ## and the same w/ to_id and valid_values
