@@ -47,8 +47,8 @@ wildobs_mongo_query = function(spatial = NULL, temporal = NULL,
   # library(magrittr) # for the %>%
 
   ## read in environment file with confidential DB access info
-  readRenviron(".Renviron.local.ro") # local version
-  # readRenviron(".Renviron.dev.ro") # remote version
+  # readRenviron("inst/config/.Renviron.local.ro") # local version
+  readRenviron("inst/config/.Renviron.prod.ro") # remote version
 
   ## load information from enviromnet
   HOST <- Sys.getenv("HOST")

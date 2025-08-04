@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: April 4th, 2025
+## last updated: August 4th, 2025
 
 # start fresh!
 rm(list = ls())
@@ -24,8 +24,10 @@ devtools::load_all()
 ##
 ### create a query using wildobs_mongo_query()
 ### CURRENTLY REQUIRES LOCAL MONGO, will update in future when remote DB is ready
-project_ids = wildobs_mongo_query(temporal = list(minDate = as.Date("2023-01-01"), maxDate = as.Date("2023-12-01")))
+project_ids = wildobs_mongo_query(temporal = list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2023-12-01")))
 project_ids
+# select IDs for Kgari (small DPs but multiple)
+project_ids = project_ids[grepl("Kgari", project_ids)]
 
 #
 ##
@@ -41,66 +43,30 @@ class(dp1)
 ##
 ### generate cell IDs from the covariates using spatial_hexagon_generator()
 # make a combined covaraites from the two data packages.
-# a = read_resource(dp1, "covariates") # not in DB yet!!
-a = read_resource(dp1, "deployments")
+a = frictionless::read_resource(dp1, "covariates")
 # save data source
 a$source = dp1$contributors[[1]]$tag
 # second
-b = read_resource(dp2, "deployments")
+b = frictionless::read_resource(dp2, "covariates")
 # save data source
 b$source = dp2$contributors[[1]]$tag
 
 ## combine into one
-deps = rbind(a,b)
+covs = rbind(a,b)
 rm(a,b)
 
 ## format datetimes
-deps$deploymentEnd = as.POSIXct(deps$deploymentEnd)
-deps$deploymentStart = as.POSIXct(deps$deploymentStart) ## Surprised these arent already formatted....
+covs$deploymentEnd = as.POSIXct(covs$deploymentEnd, format = "%Y-%m-%dT%H:%M:%S%z")
+covs$deploymentStart = as.POSIXct(covs$deploymentStart, format = "%Y-%m-%dT%H:%M:%S%z")
 
 ## use the custom function to make cellIDs
-scales = c("1km" = 1074.6, "3km" = 1861.2) # hexagon apothems
-deps_cellIDs = spatial_hexagon_generator(deps, scales)
+scales = c(1000000, 3000000) # hexagon apothems
+covs_cellIDs = spatial_hexagon_generator(covs, scales)
 # inspect
-sort(unique(deps_cellIDs$cellID_3km)) # all good
-rm(deps_cellIDs, dp_list, dp1, dp2, deps)
+sort(unique(covs_cellIDs$cellID_3km)) # all good
+rm(covs_cellIDs, dp_list, dp1, dp2, covs)
 
-#
-##
-###
-#### Manually import DP w/ covariates --> still need to update Mongo!
-dp1 = frictionless::read_package("~/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/QLD_Wet_Tropics_feral_cats_Bruce_2019-20/datapackage.json")
-dp2 = frictionless::read_package("~/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/ZAmir_QLD_Wet_Tropics_2022/datapackage.json")
 
-### also bring in old data with rainfall to add to covariates
-old_data = read.csv("~/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Archive_pre_camtrapDP_data/Step 4 Pre-Sampling Metadata/Clean_Metadata_20241115.csv")
-old_data = old_data[old_data$source %in% c("Z_Amir", "T_Bruce"),]
-old_data = old_data[!grepl("Kgari", old_data$survey_id),]
-old_data = select(old_data, deployment_id, placename, precipitation_3km)
-names(old_data)[1:2] = c("deploymentID", "locationID")
-
-### Extract resources from the data package
-
-# covariates
-covs1 <- frictionless::read_resource(dp1, "covariates")
-covs2 <- frictionless::read_resource(dp2, "covariates")
-# add sources to keep it straight
-covs1$source = dp1$contributors[[1]]$tag
-covs2$source = dp2$contributors[[1]]$tag
-# combine
-covs = rbind(covs1,covs2)
-### and bring in precip data too
-verify_col_match(covs, old_data, "deploymentID") # one known(?) typo here?
-covs[covs$locationID == "DBNP_18",] # only one cam here, but two in old dat --> remove one
-old_data$deploymentID[old_data$deploymentID == "DBNP_18_2022_Cam1"] = "DBNP_18_2022"
-old_data = old_data[old_data$deploymentID != "DBNP_18_2022_Cam2",]
-# check again
-verify_col_match(covs, old_data, "deploymentID") # full match
-verify_col_match(covs, old_data, "locationID") # these match
-
-## do the merge
-covs = merge(covs, old_data, by = c("deploymentID", "locationID"))
-rm(old_data)
 
 #obs
 obs1  <- frictionless::read_resource(dp1, "observations")
