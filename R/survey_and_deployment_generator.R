@@ -34,9 +34,9 @@
 #' @importFrom dplyr select distinct mutate arrange
 #' @importFrom stringr str_remove str_extract
 #' @importFrom chron years
-#' @importFrom plyr ddply
+#' @importFrom plyr ddply summarize
 #'
-#' @author Zachary Amir 
+#' @author Zachary Amir
 #'
 #' @export
 survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 100, szn_filter = TRUE, cam_filter = TRUE){
@@ -292,7 +292,7 @@ survey_and_deployment_generator = function(caps, deps, cam_long = 20, max_dur = 
       } #End szn_filter conditional
 
       # summarize season's starting year via ddply
-      szn = ddply(dates, .(season), summarize,
+      szn = plyr::ddply(dates, "season", plyr::summarize,
                   start_year = chron::years(min(date)))
 
       #rank each season from first to last

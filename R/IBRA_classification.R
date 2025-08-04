@@ -180,7 +180,7 @@ ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Drop
   dat_bioregion$ID = NULL
 
   ## isolate the key results to be printed.
-  check = ddply(dat_bioregion, .(IBRAbioRegionName, IBRAsubRegionName), summarize,
+  check = plyr::ddply(dat_bioregion, c("IBRAbioRegionName", "IBRAsubRegionName"), plyr::summarize,
                 number_of_DeploymentIDs = length(deploymentID))
   # display
   print(knitr::kable(check[order(check$number_of_DeploymentIDs, decreasing = T),], row.names = F))
