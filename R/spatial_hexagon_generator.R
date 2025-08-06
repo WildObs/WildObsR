@@ -164,7 +164,13 @@ spatial_hexagon_generator = function(data, scales) {
   }
 
   ### Create a code to affix to sampling unit to include time and collaborator
-  meta$match = stringr::str_match(meta$deploymentGroups, ".*([0-9]{4})[_]?([a-z]*).*")
+  if(any(grepl("WildObsID", meta$deploymentGroups))){
+    # if WildObs ID is present, grab the string from deploymentID
+    meta$match = stringr::str_match(meta$deploymentID, ".*([0-9]{4})[_]?([a-z]*).*")
+  }else{
+    # but if not, use deploymentGroups
+    meta$match = stringr::str_match(meta$deploymentGroups, ".*([0-9]{4})[_]?([a-z]*).*")
+  }
   # Extract year and letter separately
   meta$year <- meta$match[, 2]
   meta$letter <- meta$match[, 3]

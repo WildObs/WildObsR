@@ -212,7 +212,7 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
   ## standardize site covaraites to ensure variables are comparable across models later
   m_num = data.frame(covs_dat[,sapply(covs_dat, is.numeric), drop = FALSE])
   m_date = covs_dat[, sapply(covs_dat, function(x) inherits(x, "POSIXct"))]
-  m_std = vegan::decostand(m_num, method = "standardize", na.rm = TRUE)
+  m_std = suppressWarnings(vegan::decostand(m_num, method = "standardize", na.rm = TRUE))
   m_std2 = data.frame(m_std[,colSums(is.na(m_std)) < nrow(m_std), drop = FALSE])#remove any columns with no data
   ## Make a statement if site-level cov was removed due to no data
   if(length(names(m_std2)) < length(names(m_std))){

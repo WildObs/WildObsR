@@ -482,11 +482,14 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
             } # end per sp_cols
 
             # and average all numeric observations too
-            for(n in 1:length(num_cols_obs)){
-              # select one
-              n_col = num_cols_obs[n]
-              # update info
-              new[[n_col]] = mean(t3[[n_col]])
+            # but only if present!
+            if(length(num_cols_obs) > 0){
+              for(n in 1:length(num_cols_obs)){
+                # select one
+                n_col = num_cols_obs[n]
+                # update info
+                new[[n_col]] = mean(t3[[n_col]])
+              }
             }
 
             ## Select only the relevant info
