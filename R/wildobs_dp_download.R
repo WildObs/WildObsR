@@ -31,8 +31,8 @@
 #' dp_list[["QLD_Kgari_BIOL2015_2023-24_WildObsID_0004"]]
 #' }
 #'
-#' @import mongolite
-#' @import frictionless
+#' @importFrom mongolite mongo
+#' @importFrom frictionless add_resource create_package
 #' @importFrom jsonlite toJSON
 #' @importFrom purrr map keep
 #' @importFrom lutz tz_lookup_coords
@@ -43,23 +43,17 @@
 wildobs_dp_download = function(project_ids, media = FALSE) {
 
   ## read in environment file with confidential DB access info
-  # readRenviron(".Renviron.local.ro") # local version
-  # readRenviron(".Renviron.prod.ro") # remote production version
-  ### NOT SURE HOW TO MAKE THIS WORK REMOTELY!
+  # readRenviron("inst/config/.Renviron.local.ro") # local version
+  readRenviron("inst/config/.Renviron.prod.ro") # remote version
+  ### NOTE: need to provide a read-only to open/partial shared projects here!!
+  # This MUST be done before going public!
 
-  # ## load information from enviromnet
-  # HOST <- Sys.getenv("HOST")
-  # PORT <- Sys.getenv("PORT")
-  # DATABASE <- Sys.getenv("DATABASE")
-  # USER <- Sys.getenv("USER")
-  # PASS <- Sys.getenv("PASS")
-
-  ## manually specify information from enviromnet
-  HOST <- "203.101.228.237"
-  PORT <- "29017"
-  DATABASE <- "wildobs_camdb"
-  USER <- "woro"
-  PASS <- "woroPa55w0rd"
+  ## load information from enviromnet
+  HOST <- Sys.getenv("HOST")
+  PORT <- Sys.getenv("PORT")
+  DATABASE <- Sys.getenv("DATABASE")
+  USER <- Sys.getenv("USER")
+  PASS <- Sys.getenv("PASS")
 
   ## combine all the information into a database-url to enable access
   db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)

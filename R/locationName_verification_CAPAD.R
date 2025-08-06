@@ -35,7 +35,7 @@
 #' The CAPAD shapefile must be downloaded and available at the specified `capad_file_path`. If you have a CAPAD shapefile saved in a different locaiton on your computer, please edit the path accordingly.
 #' This function assumes the `NAME` and `TYPE_ABBR` fields exist in the CAPAD shapefile for location name extraction.
 #'
-#' @import terra
+#' @importFrom terra distance extract crop ext makeValid intersect project crs as.data.frame vect
 #'
 #' @author Tom Bruce & Zachary Amir
 #'
@@ -52,7 +52,7 @@ locationName_verification_CAPAD <- function(dep, capad_file_path = "~/Dropbox/EC
   layer_data$name_extract <- gsub(" ","_",layer_data$name_extract)
 
   ## Make sure dep is a data frame and not a tibble to work w/ terra functions
-  dep = as.data.frame(dep)
+  dep = terra::as.data.frame(dep)
 
   #Create an ID row for our dep_file to help with sites that have duplicate values of placename
   #e.g. TB's work will have a duplicate placename, but a road and bush camera.

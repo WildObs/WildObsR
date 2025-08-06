@@ -1,6 +1,6 @@
 #' Validate Data Against CamTrap DP Schemas
 #'
-#' This function checks that each camtrapDP resource (i.e. `observations`, `deployments`, and `media`)
+#' This function checks that each camtrapDP resource (i.e. `observations`, `deployments`, `media`, and `covariates`)
 #' conforms to the camtrapDP specified schema by validating field names, data types, and constraints (e.g., required fields, numeric ranges).
 #' It creates missing fields if necessary, ensures data types are aligned with the schema, and reports any discrepancies. The modified dataset is returned with updates applied.
 #'
@@ -41,7 +41,7 @@
 #' validated_data <- check_schema(deps_schema, deps)
 #' print(validated_data)
 #'
-#' @author Tom Bruce
+#' @author Tom Bruce & Zachary Amir
 #' @export
 check_schema <- function(chosen_schema, data) {
   # Loop over all the fields in the schema
@@ -107,22 +107,35 @@ check_schema <- function(chosen_schema, data) {
       expected_type <- unlist(expected_type)
     }
 
+    ## Make a quick exception for numeric and integers being almost equivalent in R
+    if(data_type == "numeric" & expected_type == "integer"){
+      # convert data type to integer
+      data_type = "integer"
+    }
+    # now reverse it!
+    if(data_type == "integer" & expected_type == "numeric"){
+      # convert data type to numeric
+      data_type = "numeric"
+    }
+
+    ### Now add another quick exception for ISO8601 dates in character format
+    if(data_type == "character" & expected_type == "POSIXct"){
+      # establish the regex for ISO8601 date-times
+      iso_regex <- "^\\d{4}-\\d{2}-\\d{2}([ T]([0-2]\\d:[0-5]\\d(:[0-5]\\d)?(\\.\\d+)?(Z|[+-][0-2]\\d:[0-5]\\d)?))?$"
+      # if the iso format is present in the data
+      if(any(grepl(iso_regex, data[[field_name]]))){
+        # update datatype to be date-time
+        data_type = "POSIXct"
+      } # end iso check
+    } # end class check
+
+
     # Check if the actual data type in our environment matches the expected type in camtrapDP
     if (!data_type %in% expected_type) {
       cat("Error: Field", field_name, "has type", data_type, "but expected", paste(expected_type, collapse = ", "), ".\n")
-
-      # #4. IF it is a different format then where you can align them e.g. converting numerics to intigers and vice versa
-      #
-      #       # Convert the variable to the expected type if it's numeric or integer
-      #       if (field_type == "number" && data_type == "integer") {
-      #         data[[field_name]] <- as.numeric(data[[field_name]])
-      #       } else if (field_type == "integer" && data_type == "numeric") {
-      #         data[[field_name]] <- as.integer(data[[field_name]])
-      #       }
     }
 
-
-    #5. if it is numeric and there are constraints defined e.g. coordinates check that it falls within them if not print a warning.
+    #4. if it is numeric and there are constraints defined e.g. coordinates check that it falls within them if not print a warning.
 
     # If it's a number, check constraints like min and max if they exist
     if (field_type == "number" && is.numeric(data[[field_name]])) {
@@ -134,7 +147,7 @@ check_schema <- function(chosen_schema, data) {
       }
     }
 
-    ##6. Check the dates and times are all complete and there is no missing values where appropriate e.g. obs!
+    ##5. Check the dates and times are all complete and there is no missing values where appropriate e.g. obs!
 
     # If it's a datetime, check for valid date formats
     if (field_type == "datetime" && inherits(data[[field_name]], "POSIXct")) {
@@ -143,7 +156,7 @@ check_schema <- function(chosen_schema, data) {
       }
     }
 
-    ##7. If the field is required but it has missing values this could be a problem let us know!
+    ##6. If the field is required but it has missing values this could be a problem let us know!
 
     # Check if the field is required and if there are missing values
     if (!is.null(field$constraints$required) && field$constraints$required) {

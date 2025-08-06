@@ -81,7 +81,7 @@ update_temporally_overlapping_deployments = function(deps, obs, media){
   }
   # Check for repeated deploymentID values
   if(length(unique(deps$deploymentID)) < nrow(deps)){
-    stop(paste("There are", (nrow(deps) - length(unique(deps$deploymentID))), "repeated deploymentID values in your deployments file. Please inspect the following deploymentIDs before proceeding:", paste(unique(deps$deploymentID[duplicated(deps$deploymentID)], collapse = " & "))))
+    stop(paste("There are", (nrow(deps) - length(unique(deps$deploymentID))), "repeated deploymentID values in your deployments file. Please inspect the following deploymentIDs before proceeding:", paste(unique(deps$deploymentID[duplicated(deps$deploymentID)]), collapse = " & ")))
   }
 
   ## make a list to store results
