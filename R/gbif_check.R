@@ -22,7 +22,7 @@
 #' gbif_folder = "path/to/GBIF/files"
 #' gbif_overlap_result = gbif_check(dep, caps, gbif_folder)
 #' print(gbif_overlap_result)
-#' @import terra
+#' @importFrom terra extract project rast vect
 #' @importFrom dplyr select starts_with
 #' @importFrom tidyselect all_of
 #' @author Tom Bruce

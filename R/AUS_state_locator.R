@@ -13,9 +13,8 @@
 #' @return A data frame with the original deployment data, along with an additional `state` column that contains the abbreviated Australian state or territory code (e.g., "NSW", "QLD").
 #'
 #' @importFrom ozmaps ozmap
-#' @importFrom dplyr summarize
+#' @importFrom plyr summarize ddply
 #' @importFrom sf st_as_sf st_crs st_intersection
-#' @importFrom plyr ddply
 #' @examples
 #' # Example data
 #' deps <- data.frame(
@@ -89,15 +88,15 @@ AUS_state_locator = function (deps){
   }
 
   ## calculate average coordinates per landscape
-  avg_land = ddply(deps, .(deploymentID), summarize,
-                   avg_long = mean(longitude),
-                   avg_lat = mean(latitude))
+  avg_land = plyr::ddply(deps, "deploymentID", plyr::summarize,
+                          avg_long = mean(longitude),
+                          avg_lat = mean(latitude))
   # then import a map of the states
   aus = ozmaps::ozmap_states
   # then make average coordinates a spatial object, matching the CRS of the states
-  avg_land = st_as_sf(avg_land, coords = c("avg_long", "avg_lat"), crs = st_crs(aus))
+  avg_land = sf::st_as_sf(avg_land, coords = c("avg_long", "avg_lat"), crs = sf::st_crs(aus))
   # then intersect avg coords and states
-  states = st_intersection(avg_land, aus)
+  states = sf::st_intersection(avg_land, aus)
 
   ## clean up the states dataframe
   states$geometry = NULL

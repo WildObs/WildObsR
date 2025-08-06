@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: April 4th, 2025
+## last updated: August 6th, 2025
 
 # start fresh!
 rm(list = ls())
@@ -16,7 +16,7 @@ devtools::load_all()
 # library(WildObsR)
 
 ## load other relevant libraries
-# library(tidyverse)
+library(tidyverse)
 
 ##### Data analysis workflow ####
 
@@ -24,119 +24,207 @@ devtools::load_all()
 ##
 ### create a query using wildobs_mongo_query()
 ### CURRENTLY REQUIRES LOCAL MONGO, will update in future when remote DB is ready
-project_ids = wildobs_mongo_query(temporal = list(minDate = as.Date("2023-01-01"), maxDate = as.Date("2023-12-01")))
-project_ids
+project_ids = wildobs_mongo_query(temporal = list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2023-12-01")))
+# project_ids = wildobs_mongo_query() # use this to access all open and partial datasets
+sort(project_ids)
+# select IDs for Kgari (small DPs but multiple) and Taggart for extra variation
+project_ids = project_ids[grepl("Kgari|Taggart", project_ids)]
 
 #
 ##
 ### use the output to access data from wildobs_dp_download()
 ### CURRENTLY REQUIRES LOCAL MONGO, will update in future when remote DB is ready
 dp_list = wildobs_dp_download(project_ids) # not a super quick function, mainly due to extracting the media resources.
-# grab both as separate DPs
-dp1 = dp_list[[1]]
-dp2 = dp_list[[2]]
-class(dp1)
+# inspect class to make sure its a DP
+class(dp_list[[1]])
+# make sure all project_ids were downloads
+length(dp_list) == length(project_ids) # MUST BE T
 
 #
 ##
-### generate cell IDs from the covariates using spatial_hexagon_generator()
-# make a combined covaraites from the two data packages.
-# a = read_resource(dp1, "covariates") # not in DB yet!!
-a = read_resource(dp1, "deployments")
-# save data source
-a$source = dp1$contributors[[1]]$tag
-# second
-b = read_resource(dp2, "deployments")
-# save data source
-b$source = dp2$contributors[[1]]$tag
+### Extract deployments covaraites and observations
+covs = list();deps = list();obs = list() # store results here
+for(i in 1:length(dp_list)){
+  # covaraties
+  c = frictionless::read_resource(dp_list[[i]], "covariates")
+  c$source = dp_list[[i]]$id
+  covs[[i]] = c
+  # deployments
+  d = frictionless::read_resource(dp_list[[i]], "deployments")
+  d$source = dp_list[[i]]$id
+  deps[[i]] = d
+  # observations
+  o = frictionless::read_resource(dp_list[[i]], "observations")
+  o$source = dp_list[[i]]$id
+  obs[[i]] = o
+}
+rm(d,i,c,o)
+## Combine into one df
+obs = do.call(rbind, obs)
+deps = do.call(rbind, deps)
+covs = do.call(rbind, covs)
 
-## combine into one
-deps = rbind(a,b)
-rm(a,b)
+### b/c there is so much data in Taggart, remove a few Dgs for speed
+sample_dg = sample(unique(covs$deploymentGroups[grepl("Taggart", covs$deploymentGroups)]), 7) # remove 7 at random
+covs = covs[! covs$deploymentGroups %in% sample_dg, ]
+deps = deps[deps$deploymentGroups %in% covs$deploymentGroups, ]
+rm(sample_dg)
 
-## format datetimes
-deps$deploymentEnd = as.POSIXct(deps$deploymentEnd)
-deps$deploymentStart = as.POSIXct(deps$deploymentStart) ## Surprised these arent already formatted....
+## check that its safe to merge
+verify_col_match(deps, covs, "deploymentID") # all g!
 
-## use the custom function to make cellIDs
-scales = c("1km" = 1074.6, "3km" = 1861.2) # hexagon apothems
-deps_cellIDs = spatial_hexagon_generator(deps, scales)
-# inspect
-sort(unique(deps_cellIDs$cellID_3km)) # all good
-rm(deps_cellIDs, dp_list, dp1, dp2, deps)
+## merge the two based on shared cols
+covs = merge(deps, covs, by = names(covs)[names(covs) %in% names(deps)])
+# dont need deps anymore
+rm(deps)
 
-#
-##
-###
-#### Manually import DP w/ covariates --> still need to update Mongo!
-dp1 = frictionless::read_package("~/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/QLD_Wet_Tropics_feral_cats_Bruce_2019-20/datapackage.json")
-dp2 = frictionless::read_package("~/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/ZAmir_QLD_Wet_Tropics_2022/datapackage.json")
-
-### also bring in old data with rainfall to add to covariates
-old_data = read.csv("~/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Archive_pre_camtrapDP_data/Step 4 Pre-Sampling Metadata/Clean_Metadata_20241115.csv")
-old_data = old_data[old_data$source %in% c("Z_Amir", "T_Bruce"),]
-old_data = old_data[!grepl("Kgari", old_data$survey_id),]
-old_data = select(old_data, deployment_id, placename, precipitation_3km)
-names(old_data)[1:2] = c("deploymentID", "locationID")
-
-### Extract resources from the data package
-
-# covariates
-covs1 <- frictionless::read_resource(dp1, "covariates")
-covs2 <- frictionless::read_resource(dp2, "covariates")
-# add sources to keep it straight
-covs1$source = dp1$contributors[[1]]$tag
-covs2$source = dp2$contributors[[1]]$tag
-# combine
-covs = rbind(covs1,covs2)
-### and bring in precip data too
-verify_col_match(covs, old_data, "deploymentID") # one known(?) typo here?
-covs[covs$locationID == "DBNP_18",] # only one cam here, but two in old dat --> remove one
-old_data$deploymentID[old_data$deploymentID == "DBNP_18_2022_Cam1"] = "DBNP_18_2022"
-old_data = old_data[old_data$deploymentID != "DBNP_18_2022_Cam2",]
-# check again
-verify_col_match(covs, old_data, "deploymentID") # full match
-verify_col_match(covs, old_data, "locationID") # these match
-
-## do the merge
-covs = merge(covs, old_data, by = c("deploymentID", "locationID"))
-rm(old_data)
-
-#obs
-obs1  <- frictionless::read_resource(dp1, "observations")
-obs2  <- frictionless::read_resource(dp2, "observations")
-# combine
-obs = rbind(obs1,obs2)
-obs[grepl("DBNP_18",obs$deploymentID) & obs$scientificName == "Casuarius casuarius" ,] # no detections at this cam anyway
-# deps
-dep1 <- frictionless::read_resource(dp1, "deployments")
-dep2 <- frictionless::read_resource(dp2, "deployments")
-# combine
-deps = rbind(dep1,dep2)
-# clean up
-rm(covs1, covs2, obs1, obs2, dep1, dep2)
-
-## Generate spatial hexagons based on the provided scales
-scales = c("3km" = 1861.2) # hexagon apothems
-covs <- WildObsR::spatial_hexagon_generator(covs, scales)
-rm(scales)
-# merge deps to covs
-cols <- names(deps)[names(deps) %in% names(covs)]
-covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
-
-### thin to landscapes where cassowaries were detected to speed up resampling
-locs = obs$deploymentID[obs$scientificName == "Casuarius casuarius"]
-lands = unique(covs$locationName[covs$deploymentID %in% locs])
-# thin
-covs = covs[covs$locationName %in% lands, ]
+# and dont forget to thin obs to the relevant deploymentIDs now that we have excluded some
 obs = obs[obs$deploymentID %in% covs$deploymentID, ]
 
+## format datetimes
+covs$deploymentEnd = as.POSIXct(covs$deploymentEnd, format = "%Y-%m-%dT%H:%M:%S%z")
+covs$deploymentStart = as.POSIXct(covs$deploymentStart, format = "%Y-%m-%dT%H:%M:%S%z")
+
+# inspect deploymentTags
+unique(covs$deploymentTags) # fix one typo
+covs$deploymentTags[covs$deploymentTags %in% c("bait:none | predatorManagement: No management",
+                                               " | predatorManagement: No management")] = "bait:none | predatorManagement: No management"
+
+## Extract all tags into separate columns in covaraites
+covs_with_tags <- covs %>%
+  # create new cols to track original rows and split tags
+  mutate(
+    row_id = dplyr::row_number(),  # To track original rows
+    tag_list = stringr::str_split(deploymentTags, "\\s*\\|\\s*")
+  ) %>%
+  tidyr::unnest(tag_list) %>%
+  # Remove blanks
+  filter(!is.na(tag_list), tag_list != "") %>%
+  # split  keys and values
+  separate(tag_list, into = c("tag_key", "tag_value"), sep = ":", fill = "right") %>%
+  mutate(
+    tag_key = str_trim(tag_key),
+    tag_value = str_trim(tag_value)
+  ) %>%
+  pivot_wider(
+    id_cols = row_id,
+    names_from = tag_key,
+    values_from = tag_value
+  ) %>%
+  right_join(
+    covs %>% mutate(row_id = dplyr::row_number()),
+    by = "row_id"
+  ) %>%
+  select(-row_id)
+
+# inspect
+table(covs_with_tags$bait)
+table(covs_with_tags$predatorManagement) # can clean one value here
+covs_with_tags$predatorManagement[covs_with_tags$predatorManagement %in% c("Control deployments no management", "No management")] = "No management"
+table(covs_with_tags$experiment)
+
+## now save these extra column names that we will use later
+tag_cols = setdiff(names(covs_with_tags), names(covs))
+
+
+## format their datetimes
+dt_cols = c("eventStart", "eventEnd", "observationStart", "observationEnd")
+for(i in 1:length(dt_cols)){
+  obs[[dt_cols[i]]] = as.POSIXct(obs[[dt_cols[i]]], format = "%Y-%m-%dT%H:%M:%S%z")
+}
+rm(dt_cols, i, obs1,obs2)
+dplyr::glimpse(obs)
+
+## inspect species
+sort(table(obs$scientificName))
+# Canis dingo, Felis catus, Trichosurus caninus, Pitta versicolor, Geopelia humeralis
+sp = c("Felis catus", # common in both sources
+       "Ocyphaps lophotes", "Pitta versicolor", # somewhat common but detected in different sources
+       "Tachyglossus aculeatus") # rare but in both sources
+#
+##
+### Import species traits information to contextualize these critters
+
+# set wd to where external data file lives.
+wd = "/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_tools/"
+# list availible files
+ver_files = list.files(wd)
+ver_files = ver_files[grepl("taxonomy", ver_files)] # only want species data
+# Extract the date parts of the filenames and convert to integers
+dates <- as.numeric(gsub("verified_taxonomy_(\\d{8})", "\\1", ver_files))
+# Order the filenames based on the extracted dates (from most recent to least recent)
+ver_file <- ver_files[order(dates, decreasing = TRUE)]
+# Import the most recent file
+taxa_dp = frictionless::read_package(paste(wd, ver_file[1], "/datapackage.json", sep = ""))
+rm(ver_file, ver_files, dates)
+
+### Extract the species traits from the DP
+frictionless::resources(taxa_dp) # two options
+traits = frictionless::read_resource(taxa_dp, "species_traits")
+
+## check if species are present
+setdiff(sp, traits$binomial_verified) # all are present!
+## reduce to the relevant species
+traits = traits[traits$binomial_verified %in% sp, ]
+# check for NAs in home range
+anyNA(traits$home_range_km2) # true!
+traits[, c("binomial_verified", "home_range_km2")] # three are missing.
+# convert to m2
+traits$home_range_m2 = ceiling(traits$home_range_km2 * 1e6 / 1e6) * 1e6 # but round to the nearest 1km2
+# # Make k'gari dingo home-ranges same as biggest option
+# traits$home_range_m2[traits$binomial_verified == "Canis dingo"] <-  max(traits$home_range_m2, na.rm = T)
+# and all others default to 1km
+traits$home_range_m2[is.na(traits$home_range_m2)] = 1e6
+
+## Save this info as scales to resample
+scales = unique(sort(traits$home_range_m2))
+
+## use spatial hexagon generator to make hexagons suitable for each species
+covs_cellIDs = spatial_hexagon_generator(data = covs_with_tags, scales = scales)
+# inspect
+names(covs_cellIDs[grepl('cellID', names(covs_cellIDs))]) # two new cols, good!
+length(unique(covs_cellIDs$cellID_1km2)) # 368
+length(unique(covs_cellIDs$cellID_6km2)) # 602, checks out!
+
+# Clean up enviro
+rm(covs, taxa_dp, sp)
+
+#
+##
+### Decide which covariates a relevant to include in re-sampled data
+
+# ## Inspect the schema of covariates
+# covs_schema = frictionless::get_schema(dp_list[[1]], "covariates")
+#
+# # Convert schema fields to data frame for easier manipulation
+# library(rlang) # to use  %||%
+# covs_schema_df <- purrr::map_df(covs_schema$fields, ~{
+#   # Extract known fields safely
+#   tibble::tibble(
+#     name = .x$name %||% NA,
+#     description = .x$description %||% NA,
+#     type = .x$type %||% NA,
+#     example = as.character(.x$example %||% NA),
+#     required = .x$constraints$required %||% NA,
+#     unique = .x$constraints$unique %||% NA,
+#     enum = paste(.x$constraints$enum %||% NA, collapse = "|")
+#   )
+# })
+#
+# ## inspect
+# dplyr::glimpse(covs_schema_df)
+# ## which variables are just characters
+# unique(covs_schema_df$name[covs_schema_df$type == "string"])
+# # inspect non-deployment values
+# table(covs_cellIDs$IBRAsubRegionName)
+# table(covs_cellIDs$Olson_global_ecoregion) # only 1 level
+# table(covs_cellIDs$source) # 2 levels here!
 
 ## Define columns for mode aggregation (example: 'source' and 'habitat')
-mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
+mode_cols_covs <- names(covs_cellIDs)[grepl("source|IBRAsubRegionName", names(covs_cellIDs))] # leaving sub region for shits n gigs
 
 ## Set the method for aggregating the total number of individuals detected:
-individuals <- "sum"  # Alternative: "max"
+individuals <- "max"  # Alternative: "sum"
 
 ## Specify observation-level covariate variables derived from deployments.
 # These variables capture information that varies in space and time.
@@ -146,19 +234,151 @@ obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay",
 
 ## run the new spatial resampling function
 start = Sys.time()
-resampled_data = resample_covariates_and_observations(covs, obs, individuals,
-                                                      mode_cols_covs, obs_covs)
+resampled_data = resample_covariates_and_observations(covs = covs_cellIDs, obs = obs,
+                                                      individuals = individuals,
+                                                      mode_cols_covs = mode_cols_covs,
+                                                      obs_covs = obs_covs)
 end = Sys.time()
-resamp_obs = resampled_data$spatially_resampled_observations$cellID_3km
-resamp_covs = resampled_data$spatially_resampled_covariates$cellID_3km
+end-start # 2.2 min for 3 projects. Much faster than expected
 
-end-start # 2 min! Much faster than expected
+## Finally, combine species and scales into small DF
+sp_scales = data.frame("scientificName" = traits$binomial_verified,
+                       "home_range_m2" = traits$home_range_m2)
+# now convert the scales to km2 values
+sp_scales$scale_name = paste(sp_scales$home_range_m2/1e6, "km2", sep = "")
 
-## make a combined trail-status variable in obs
-sort(table(resamp_obs$featureType))
-resamp_obs$trailStatus[grepl("road|trail", resamp_obs$featureType)] = "onTrail"
-resamp_obs$trailStatus[resamp_obs$featureType == ""] = "offTrail"
-table(resamp_obs$trailStatus)
+#
+##
+### Extract UMFs per critter
+
+## thin sp_scales to only include
+
+# Repeat per species
+umf_list = list()
+for(i in 1:length(sp_scales$scientificName)){
+
+  ## grab sp and scale
+  sp = sp_scales$scientificName[i]
+  scale = sp_scales$scale_name[sp_scales$scientificName == sp]
+
+  ## extract re-sampled data at the correct scale
+  resamp_obs = resampled_data$spatially_resampled_observations[[paste("cellID", scale, sep = "_")]]
+  resamp_covs = resampled_data$spatially_resampled_covariates[[paste("cellID", scale, sep = "_")]]
+  # and rename column to be standardized
+  names(resamp_obs)[grepl("cellID", names(resamp_obs))] = "cellID"
+  names(resamp_covs)[grepl("cellID", names(resamp_covs))] = "cellID"
+
+  ## create a simple on/off trail variable based off featureType
+  resamp_obs$trailStatus[grepl("road|trail", resamp_obs$featureType)] = "onTrail"
+  resamp_obs$trailStatus[resamp_obs$featureType == ""] = "offTrail"
+
+  # ## finally, grab all locations where the critter was detected
+  # lands = unique(resamp_covs$locationName[resamp_covs$cellID %in% resamp_obs$cellID[resamp_obs$scientificName == sp]])
+  # # and thin data to those locationNames
+  # resamp_covs = resamp_covs[resamp_covs$locationName %in% lands, ]
+  # resamp_obs = resamp_obs[resamp_obs$cellID %in% resamp_covs$cellID, ]
+
+  ### Thin covariates to variables at relevant scale
+  # Set your target scale
+  target_scale <- as.numeric(gsub("km2", "", scale))
+
+  # Get all km2-related columns
+  km2_cols <- names(resamp_covs)[stringr::str_detect(names(resamp_covs), "_\\d+km2$|_point$")]
+
+  # Extract base variable name and numeric scale
+  scale_info <- tibble::tibble(
+    col = km2_cols
+  ) %>%
+    dplyr::mutate(
+      # Extract scale number, or assign 0 for "point"
+      scale_val = dplyr::if_else(stringr::str_detect(col, "_point$"), 0,
+                          as.numeric(stringr::str_extract(col, "\\d+(?=km2$)"))),
+      # Extract base name by removing suffix
+      base = stringr::str_remove(col, "_(point|\\d+km2)$")
+    )
+
+  # For each base variable, keep the column closest to the target scale
+  closest_cols <- scale_info %>%
+    dplyr::group_by(base) %>%
+    dplyr::slice_min(base::abs(scale_val - target_scale), n = 1, with_ties = FALSE) %>%
+    dplyr::ungroup()
+
+  # Grab modal cols
+  mode_cols = names(resamp_covs[grepl("mode_", names(resamp_covs))])
+  ## and combine with extra important columns
+  site_covs = c(tag_cols,         # deploymentTags calculated earlier
+                closest_cols$col, # correct spatial scale
+                "deploymentGroups", "locationName") # context.
+  ## and grab the observation covariates
+  obs_covs = c("numberDeploymentsActiveAtDate", "trailStatus", mode_cols)
+  # TESTING
+  # obs_covs = c()
+
+
+  ## run models for both occupancy and abundance
+  states = c("occupancy", "abundance")
+  temp = list()# store matricies here
+  for(s in 1:length(states)){
+    ## run the custom function to create the matrix
+    mat = matrix_generator(obs = resamp_obs, covs = resamp_covs, dur = 100, w = 2,
+                           site_covs = site_covs, obs_covs = obs_covs,
+                           all_locationNames = F, scientificNames = sp,
+                           type = states[s], individuals = "max",cap_count = F)
+    ## save this info as a UMF object
+    # then construct the UMF
+    if(states[s] == "occupancy"){
+      if(length(obs_covs)>0){
+        umf = unmarked::unmarkedFrameOccu(y = mat[[1]]$detection_matrix,
+                                          siteCovs = mat[[1]]$site_level_covariates,
+                                          obsCovs = mat[[1]]$observation_level_covariates)
+      }else{
+        # dont include obs_covs if not present!
+        umf = unmarked::unmarkedFrameOccu(y = mat[[1]]$detection_matrix,
+                                          siteCovs = mat[[1]]$site_level_covariates)
+      } # end obs_cov condition
+    } # end occu condition
+    if(states[s] == "abundance"){
+      if(length(obs_covs)>0){
+        umf = unmarked::unmarkedFramePCount(y = mat[[1]]$detection_matrix,
+                                          siteCovs = mat[[1]]$site_level_covariates,
+                                          obsCovs = mat[[1]]$observation_level_covariates)
+      }else{
+        # dont include obs_covs if not present!
+        umf = unmarked::unmarkedFramePCount(y = mat[[1]]$detection_matrix,
+                                          siteCovs = mat[[1]]$site_level_covariates)
+      } # end obs_cov condition
+    } # end abund condition
+
+    # save the matrix
+    temp[[s]] =umf
+    names(temp)[s] = states[s]
+  } # end per state
+
+  ## Save temp per critter
+  umf_list[[i]] = temp
+  names(umf_list)[i] = sp
+
+} # end per critter
+# clean up
+rm(i,s,mat,temp,states,obs_covs, resamp_obs, resamp_covs, site_covs, closest_cols,
+   covs_with_tags, scale_info, traits, km2_cols, mode_cols, mode_cols_covs,
+   scale, scales, sp, start, end, target_scale)
+
+## inspect results
+names(umf_list) # all species present
+names(umf_list$`Pitta versicolor`) # both abundance and occupancy!
+
+## lets run some models?
+# cats abundance
+umf = umf_list$`Ocyphaps lophotes`$occupancy
+# inspect data
+summary(umf)
+plot(umf)
+
+mod1 = unmarked::pcount(~1 ~1, umf)
+
+
+
 
 
 # make sure were good

@@ -249,3 +249,30 @@ Mode <- function(x) {
   ux <- unique(x)
   ux[which.max(tabulate(match(x, ux)))]
 }
+
+
+
+## Quick function for converting vector of km2 areas to a named vector list for spatial_hexagon_generator()
+area_to_apothem <- function(area_m2) {
+  if (!is.numeric(area_m2) || any(area_m2 <= 0)) {
+    stop("`scales` must be numeric and positive, representing area in square meters (m2).")
+  }
+
+  # Step 1: Calculate side length from area
+  side <- sqrt((2 * area_m2) / (3 * sqrt(3)))
+
+  # Step 2: Calculate apothem from side length
+  apothem <- (side * sqrt(3)) / 2
+
+  # Step 3: Create user-friendly names
+  # Name the vector based on whether area is divisible by 1000^2 (i.e., km2)
+  name_labels <- ifelse(
+    area_m2 %% 1e6 == 0,
+    paste0(area_m2 / 1e6, "km2"),
+    paste0(area_m2, "m2")
+  )
+  # save the names
+  names(apothem) <- name_labels
+  # return the vector
+  return(apothem)
+}
