@@ -3,6 +3,9 @@
 #' This function connects to the WildObs MongoDB server, retrieves project-specific
 #' metadata and data resources, and bundles them into Frictionless Data Packages formatted using the camtrap DP data standard.
 #'
+#' @param db_url A character string specifying the MongoDB connection URI. This should follow the format:
+#'   `'mongodb://username:password@host:port/database'`. If `NULL`, the function will stop with an error.
+#'   This parameter allows users to specify their own connection string to the WildObs MongoDB instance.
 #' @param project_ids A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.
 #' @param media A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.
 #' @return A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/)
@@ -40,24 +43,36 @@
 #' @author Zachary Amir
 #'
 #' @export
-wildobs_dp_download = function(project_ids, media = FALSE) {
+wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
 
   ## read in environment file with confidential DB access info
   # readRenviron("inst/config/.Renviron.local.ro") # local version
-  readRenviron("inst/config/.Renviron.prod.ro") # remote version
+  # readRenviron("inst/config/.Renviron.prod.ro") # remote version
   ### NOTE: need to provide a read-only to open/partial shared projects here!!
   # This MUST be done before going public!
 
-  ## load information from enviromnet
-  HOST <- Sys.getenv("HOST")
-  PORT <- Sys.getenv("PORT")
-  DATABASE <- Sys.getenv("DATABASE")
-  USER <- Sys.getenv("USER")
-  PASS <- Sys.getenv("PASS")
+  # ## load information from enviromnet
+  # HOST <- Sys.getenv("HOST")
+  # PORT <- Sys.getenv("PORT")
+  # DATABASE <- Sys.getenv("DATABASE")
+  # USER <- Sys.getenv("USER")
+  # PASS <- Sys.getenv("PASS")
+  #
+  # ## combine all the information into a database-url to enable access
+  # db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
+  # # rm(USER, PASS, HOST, PORT, DATABASE)
 
-  ## combine all the information into a database-url to enable access
-  db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
-  # rm(USER, PASS, HOST, PORT, DATABASE)
+  #### UPDATE: until we can create a public facing log-in information to access the DB,
+  ### I will leave db_url as an option that users have to input to the function
+  ## so they can access the database. Ideally we will have a better solution in the future!
+  if(is.null(db_url)){
+    stop("You have not provided a URL to access MongoDB.\nPlease provide an appropriate URL if you want to access the database.")
+  }
+  ## Make sure the db URL they provide matches the basic pattern
+  pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+\\/[a-zA-Z0-9._-]+$"
+  if (!grepl(pattern, db_url)) {
+    stop("The URL to access the database must be a valid MongoDB URI of the follwoing format: \n'mongodb://user:password@host:port/dbname'")
+  }
 
   ## access the metadata from the DB
   metadata = mongolite::mongo(db = "wildobs_camdb", collection = "metadata", url = db_url)$find()

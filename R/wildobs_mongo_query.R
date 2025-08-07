@@ -6,6 +6,10 @@
 #'
 #' The character vector of project IDs that is returned from this function is then used in the function @seealso \code{\link{wildobs_dp_download}} for extracting data packages from WildObs' MongoDB.
 #'
+#' @param db_url A character string specifying the MongoDB connection URI. This should follow the format:
+#'   `'mongodb://username:password@host:port/database'`. If `NULL`, the function will stop with an error.
+#'   This parameter allows users to specify their own connection string to the WildObs MongoDB instance.
+#'
 #' @param spatial A named list specifying spatial query parameters, including:
 #'   \describe{
 #'     \item{xmin}{Minimum longitude value.}
@@ -19,7 +23,7 @@
 #'     \item{maxDate}{Latest allowable date as a `Date` object.}
 #'   }
 #' @param tabularSharingPreference A character vector specifying accepted sharing preferences.
-#'   Defaults to `c("open", "partial")`. Only projects with these preferences are returned.
+#'   Defaults to `c("open")`, but the user can also specify 'partial' for limited metadata of the project. Only projects with these preferences are returned.
 #' @return A character vector of project IDs matching the specified criteria.
 #' @examples
 #' \dontrun{
@@ -37,29 +41,38 @@
 #' - [mongolite::mongo()] for database queries
 #' @importFrom magrittr %>%
 #' @export
-wildobs_mongo_query = function(spatial = NULL, temporal = NULL,
+wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
                                #taxonomic, samplingDesign, contributors, # TODO:  Fill in later!
-                               tabularSharingPreference = c("open", "partial")){
+                               tabularSharingPreference = c("open")){
   # create an empty vector to store project IDs
   proj_ids = c()
 
-  # load rel library
-  # library(magrittr) # for the %>%
-
   ## read in environment file with confidential DB access info
   # readRenviron("inst/config/.Renviron.local.ro") # local version
-  readRenviron("inst/config/.Renviron.prod.ro") # remote version
+  # readRenviron("inst/config/.Renviron.prod.ro") # remote version
 
-  ## load information from enviromnet
-  HOST <- Sys.getenv("HOST")
-  PORT <- Sys.getenv("PORT")
-  DATABASE <- Sys.getenv("DATABASE")
-  USER <- Sys.getenv("USER")
-  PASS <- Sys.getenv("PASS")
-
-  ## combine all the information into a database-url to enable access
-  db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
+  # ## load information from enviromnet
+  # HOST <- Sys.getenv("HOST")
+  # PORT <- Sys.getenv("PORT")
+  # DATABASE <- Sys.getenv("DATABASE")
+  # USER <- Sys.getenv("USER")
+  # PASS <- Sys.getenv("PASS")
+  #
+  # ## combine all the information into a database-url to enable access
+  # db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
   # rm(USER, PASS, HOST, PORT, DATABASE)
+
+  #### UPDATE: until we can create a public facing log-in information to access the DB,
+  ### I will leave db_url as an option that users have to input to the function
+  ## so they can access the database. Ideally we will have a better solution in the future!
+  if(is.null(db_url)){
+    stop("You have not provided a URL to access MongoDB.\nPlease provide an appropriate URL if you want to access the database.")
+  }
+  ## Make sure the db URL they provide matches the basic pattern
+  pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+\\/[a-zA-Z0-9._-]+$"
+  if (!grepl(pattern, db_url)) {
+    stop("The URL to access the database must be a valid MongoDB URI of the follwoing format: \n'mongodb://user:password@host:port/dbname'")
+  }
 
   ## access the metadata from the DB
   metadata = mongolite::mongo(db = "wildobs_camdb", collection = "metadata", url = db_url)$find()
