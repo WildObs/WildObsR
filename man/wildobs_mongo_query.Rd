@@ -5,12 +5,17 @@
 \title{Query WildObs MongoDB for Relevant Project IDs}
 \usage{
 wildobs_mongo_query(
+  db_url = NULL,
   spatial = NULL,
   temporal = NULL,
-  tabularSharingPreference = c("open", "partial")
+  tabularSharingPreference = c("open")
 )
 }
 \arguments{
+\item{db_url}{A character string specifying the MongoDB connection URI. This should follow the format:
+\code{'mongodb://username:password@host:port/database'}. If \code{NULL}, the function will stop with an error.
+This parameter allows users to specify their own connection string to the WildObs MongoDB instance.}
+
 \item{spatial}{A named list specifying spatial query parameters, including:
 \describe{
 \item{xmin}{Minimum longitude value.}
@@ -26,7 +31,7 @@ wildobs_mongo_query(
 }}
 
 \item{tabularSharingPreference}{A character vector specifying accepted sharing preferences.
-Defaults to \code{c("open", "partial")}. Only projects with these preferences are returned.}
+Defaults to \code{c("open")}, but the user can also specify 'partial' for limited metadata of the project. Only projects with these preferences are returned.}
 }
 \value{
 A character vector of project IDs matching the specified criteria.
