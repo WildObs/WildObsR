@@ -115,7 +115,7 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
     ]
 
     # save the relevant project ids
-    proj_ids = unique(c(proj_ids, bbox_df_filtered$id))
+    proj_ids_spatial <- bbox_df_filtered$id
 
     ## clean up for testing
     # rm(bbox_df, bbox_df_filtered, spatial)
@@ -152,7 +152,7 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
       )
 
     # save the relevant project ids
-    proj_ids = unique(c(proj_ids, temporal_df_filtered$id))
+    proj_ids_temporal <- temporal_df_filtered$id
   } # end temporal condition
 
   #
@@ -170,6 +170,12 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
   #
   ##
   ### Return the updated vector of IDs.
+
+  ## make a list of all relevant project IDs
+  id_lists <- list(proj_ids_spatial, proj_ids_temporal)  # come here and add more as they arise!
+  ## Take the intersection of all queries
+  proj_ids <- Reduce(intersect, id_lists)
+
   # but if there are no conditions met, provide all open and partial options
   if(length(proj_ids) == 0){
     # print a message
