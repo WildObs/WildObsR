@@ -4,9 +4,13 @@
 \alias{wildobs_dp_download}
 \title{Download Data from WildObs' MongoDB and Format as Frictionless Data Packages}
 \usage{
-wildobs_dp_download(project_ids, media = FALSE)
+wildobs_dp_download(db_url = NULL, project_ids, media = FALSE)
 }
 \arguments{
+\item{db_url}{A character string specifying the MongoDB connection URI. This should follow the format:
+\code{'mongodb://username:password@host:port/database'}. If \code{NULL}, the function will stop with an error.
+This parameter allows users to specify their own connection string to the WildObs MongoDB instance.}
+
 \item{project_ids}{A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.}
 
 \item{media}{A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.}
