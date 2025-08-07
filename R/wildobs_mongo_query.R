@@ -106,11 +106,13 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
     # grab relevant project IDs
     bbox_df <- bbox_df %>% dplyr::mutate(id = metadata$id[row_id])
 
-    # Filter bbox_df to only rows that **overlap** the spatial extent
-    bbox_df_filtered = bbox_df[bbox_df$xmin >= spatial$xmin &      # At least some part of bbox must be within xmin
-                                 bbox_df$xmax <= spatial$xmax &    # At least some part of bbox must be within xmax
-                                 bbox_df$ymax >= spatial$ymax &    # At least some part of bbox must be within ymin
-                                 bbox_df$ymin <= spatial$ymin, ]   # At least some part of bbox must be within ymax
+    # Filter bbox_df to remove any non-overlapping boxes from the spatial extent
+    bbox_df_filtered <- bbox_df[
+      !(bbox_df$xmax < spatial$xmin |   # bbox entirely west of xmin
+          bbox_df$xmin > spatial$xmax |   # bbox entirely east of xmax
+          bbox_df$ymax < spatial$ymin |   # bbox entirely south of ymin
+          bbox_df$ymin > spatial$ymax),   # bbox entirely north of ymax
+    ]
 
     # save the relevant project ids
     proj_ids = unique(c(proj_ids, bbox_df_filtered$id))
