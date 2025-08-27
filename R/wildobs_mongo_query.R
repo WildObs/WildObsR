@@ -22,8 +22,11 @@
 #'     \item{minDate}{Earliest allowable date as a `Date` object.}
 #'     \item{maxDate}{Latest allowable date as a `Date` object.}
 #'   }
+#'  @param taxonomic A vector of species names in binomial nomenclature (i,e., Latin names), and all projects that detect any of the species listed will be returned.
+#'  @param samplingDesing A vector of enumerated sampling design values, and projects with the specific sampling designs will be returned. The enumerated values are:"simpleRandom", "systematicRandom", "clusteredRandom", "experimental", "targeted", & "opportunistic"
+#'  @param contributor A vector of first and last names of people associated with any projects. Regardless of their role in the project, if the name is found in the metadata, the relevant projects will be returned.
 #' @param tabularSharingPreference A character vector specifying accepted sharing preferences.
-#'   Defaults to `c("open")`, but the user can also specify 'partial' for limited metadata of the project. Only projects with these preferences are returned.
+#'   Defaults to `c("open")`, but the user can also specify 'partial' for limited metadata of the project. If the user provides admin DB credentials, the user can access 'closed' data, but if admin credentials have not been provided, 'closed' data will be removed from the projects list.  Only projects with these preferences are returned.
 #' @return A character vector of project IDs matching the specified criteria.
 #' @examples
 #' \dontrun{
@@ -33,8 +36,19 @@
 #' # Define temporal query: select projects active in 2022-2025
 #' temporal_query <- list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2025-01-01"))
 #'
+#' # Define taxonomic query: want all koalas and echidnas
+#' taxa_query = c("Phascolarctos cinereus", "Tachyglossus aculeatus")
+#'
+#' # Define sampling design query: only opportunistic and random datasets
+#' sample_query = c("simpleRandom", "opportunistic")
+#'
+#' # Define contributor query: only want data from the WildObsR maintainer
+#' contributor_query = c("Zachry Amir")
+#'
 #' # Query the WildObs database for matching projects
-#' relevant_projects <- wildobs_mongo_query(spatial = spatial_query, temporal = temporal_query)
+#' relevant_projects <- wildobs_mongo_query(db_url, spatial = spatial_query, temporal = temporal_query, taxonomic = taxa_query, samplingDesign = sample_query, contributors = contributor_query, tabularSharingPreference = "open")
+#'
+#' # display the matching projects
 #' print(relevant_projects)
 #' }
 #' @seealso
@@ -42,7 +56,8 @@
 #' @importFrom magrittr %>%
 #' @export
 wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
-                               #taxonomic, samplingDesign, contributors, # TODO:  Fill in later!
+                               taxonomic = NULL, samplingDesign = NULL,
+                               contributors = NULL,
                                tabularSharingPreference = c("open")){
   # create an empty vector to store project IDs
   proj_ids = c()
@@ -76,6 +91,17 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
 
   ## access the metadata from the DB
   metadata = mongolite::mongo(db = "wildobs_camdb", collection = "metadata", url = db_url)$find()
+
+  ## double check for closed in sharing preference AND admin credentials
+  if("closed" %in% tabularSharingPreference){
+    # if true, verify admin status
+    if(! grepl("admin", db_url)){
+      # if not, remove closed from the preferences w/ a warning
+      tabularSharingPreference = tabularSharingPreference[tabularSharingPreference != "closed"]
+      # and give an update
+      warning("You have requested data with closed data sharing agreements but have not provided admin credentials to access this data, so these projects have been removed from your query")
+    }
+  }
 
   ## and immediately thin metadata to include the specific sharing preferences
   metadata = metadata[metadata$WildObsMetadata$tabularSharingPreference %in% tabularSharingPreference, ]
@@ -119,6 +145,9 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
 
     ## clean up for testing
     # rm(bbox_df, bbox_df_filtered, spatial)
+  }else{
+    # but if not present, leave it as blank
+    proj_ids_spatial = ""
   } # end spatial condition
 
   #
@@ -153,31 +182,120 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
 
     # save the relevant project ids
     proj_ids_temporal <- temporal_df_filtered$id
+  }else{
+    # but if not present, leave it as blank
+    proj_ids_temporal = ""
   } # end temporal condition
 
   #
   ##
-  ### Taxonomic
+  ### Taxonomic ----
+
+  # # for testing
+  # taxonomic = c("Phascolarctos cinereus", "Tachyglossus aculeatus")
+
+  if(!missing(taxonomic) && !is.null(taxonomic) && length(taxonomic) > 0){
+    # extract the data frame from metadata
+    taxa = metadata$taxonomic
+    # create a list to store results
+    taxa_df = list()
+    for(i in 1:length(taxa)){
+      # extract a dataframe
+      t = purrr::map_dfr(taxa[i], as.data.frame)
+      # and add the project name
+      t$projectName = metadata$name[i]
+      # save in the list
+      taxa_df[[i]] = t
+    } # end per length taxa
+    rm(i, t)
+
+    # combine into one df
+    taxa_df = do.call(rbind, taxa_df)
+
+    # subset taxa_df to the relevant species
+    taxa_df_subset = taxa_df[taxa_df$scientificName %in% taxonomic, ]
+
+    # extract project IDs for the relevant species
+    proj_ids_taxa = unique(taxa_df_subset$projectName)
+  }else{
+    # but if not present, leave it as blank
+    proj_ids_taxa = ""
+  } # end taxonomic condition
 
   #
   ##
-  ### Contributors
+  ### Contributors ----
+
+  # # for testing
+  # contributors = c("Zachary Amir", "Grant Linley")
+
+  if(!missing(contributors) && !is.null(contributors) && length(contributors) > 0){
+
+    ## COME HERE, and try to incorproate ORCIDs, names, and/or emails!! currently only running w/ names
+    # could detect which column to check in the contributors DF later.
+
+    # extract the information from metadata
+    cont = metadata$contributors
+    # create a list to store results
+    cont_df = list()
+    for(i in 1:length(cont)){
+      # extract a dataframe
+      t = purrr::map_dfr(cont[i], as.data.frame)
+      # and add the project name
+      t$projectName = metadata$name[i]
+      # save in the list
+      cont_df[[i]] = t
+    } # end per length taxa
+    rm(i, t)
+
+    # combine into one df
+    cont_df = do.call(rbind, cont_df)
+
+    # subset taxa_df to the relevant species
+    cont_df_subset = cont_df[cont_df$title %in% contributors, ] # come here and update w/ orcids and emails too!
+
+    # extract project IDs for the relevant species
+    proj_ids_contributors = unique(cont_df_subset$projectName)
+
+  }else{
+    # but if not present, leave it as blank
+    proj_ids_contributors = ""
+  } # end per contributors
 
   #
   ##
-  ### samplingDesign
+  ### samplingDesign ----
+
+  ## remember, these are the enumerated values: "simpleRandom", "systematicRandom", "clusteredRandom", "experimental", "targeted", "opportunistic"
+
+  # # for testing
+  # samplingDesign = c("simpleRandom", "opportunistic")
+
+  if(!missing(samplingDesign) && !is.null(samplingDesign) && length(samplingDesign) > 0){
+    # extract project info
+    proj = metadata$project
+    # and subset based on specific sampling design
+    proj_sub = proj[proj$samplingDesign %in% samplingDesign, ]
+    # then pull out the relevant IDs
+    proj_ids_SD = proj_sub$id
+  }else{
+    # but if not present, leave it as blank
+    proj_ids_SD = ""
+  } # end sampling design condition
+
 
   #
   ##
   ### Return the updated vector of IDs.
 
   ## make a list of all relevant project IDs
-  id_lists <- list(proj_ids_spatial, proj_ids_temporal)  # come here and add more as they arise!
+  id_lists <- list(proj_ids_spatial, proj_ids_temporal, proj_ids_taxa,
+                   proj_ids_contributors, proj_ids_SD)  # come here and add more as they arise!
   ## Take the intersection of all queries
   proj_ids <- Reduce(intersect, id_lists)
 
   # but if there are no conditions met, provide all open and partial options
-  if(length(proj_ids) == 0){
+  if(proj_ids == ""){
     # print a message
     print(paste("There were no matches in our database of the specific parameters provided in your function. This will return all project IDs that match the tabular data sharing preference of", paste0(tabularSharingPreference, collapse = " & ")))
     # grab em all
