@@ -309,7 +309,7 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
   # deployments
   deps = mongolite::mongo(db = "wildobs_camdb", collection = "deployments", url = db_url)$find(query)
   # media, but only if specified
-  if(media){media = mongolite::mongo(db = "wildobs_camdb", collection = "media", url = db_url)$find(query)}
+  if(media){media_df = mongolite::mongo(db = "wildobs_camdb", collection = "media", url = db_url)$find(query)}
   # covariate
   covs = mongolite::mongo(db = "wildobs_camdb", collection = "covariates", url = db_url)$find(query)
 
@@ -323,7 +323,7 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
     # subset for specific project
     obs_proj = obs[obs$projectName == proj, ]
     deps_proj = deps[deps$projectName == proj, ]
-    if(media){media_proj = media[media$projectName == proj, ]}
+    if(media){media_proj = media_df[media_df$projectName == proj, ]}
     cov_proj = covs[covs$projectName == proj, ]
 
     # but before we save, apply schemas to make sure were good!
