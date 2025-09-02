@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: August 6th, 2025
+## last updated: September 2nd, 2025
 
 # start fresh!
 rm(list = ls())
@@ -23,28 +23,92 @@ library(tidyverse)
 #
 ##
 ### create a query using wildobs_mongo_query()
-### CURRENTLY REQUIRES LOCAL MONGO, will update in future when remote DB is ready
-project_ids = wildobs_mongo_query(temporal = list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2023-12-01")))
-# project_ids = wildobs_mongo_query() # use this to access all open and partial datasets
+
+### First, gather relevant information to inform the query
+
+## read in environment file with confidential DB access info
+readRenviron("inst/config/.Renviron.prod.admin") # remote access for admin, but authentification isnt working!
+# readRenviron("inst/config/.Renviron.prod.ro") # remote access for read-only
+# Contact Zach if you want access to this file.
+
+## load information from enviromnet
+HOST <- Sys.getenv("HOST")
+PORT <- Sys.getenv("PORT")
+DATABASE <- Sys.getenv("DATABASE")
+USER <- Sys.getenv("USER")
+PASS <- Sys.getenv("PASS")
+
+## combine all the information into a database-url to enable access
+db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
+rm(USER, PASS, HOST, PORT, DATABASE)
+
+## Define a temporal range to query
+temporal = list(minDate = as.Date("2010-01-01"),
+            maxDate = as.Date("2023-12-01")) # data from 2021-2023
+
+## Define a spatial bounding box to query
+spatial = list(xmin = 137.995, xmax = 153.552, ymin = -28.999, ymax = -9.142)
+
+## Define taxonomic query
+taxonomic = c() #c("Casuarius casuarius")
+
+## Define sampling design query
+samplingDesign = c() # dont care right now
+
+## Define contributor query only want data from WildObsR team
+contributors = c() #c("Zachry Amir", "Tom Bruce")
+
+## Define sharing status
+tabularSharingPreference = c("open", "partial", "closed")
+
+## Gather relevant project_ids using the mongo query function
+project_ids = wildobs_mongo_query(db_url = db_url,
+                                  temporal = temporal,
+                                  spatial = spatial,
+                                  taxonomic = taxonomic,
+                                  samplingDesign = samplingDesign,
+                                  contributors = contributors,
+                                  tabularSharingPreference = tabularSharingPreference
+                                  )
+## OR, can access all open data when not querying
+# project_ids = wildobs_mongo_query(db_url = db_url)
+
+## Who did we get?
 sort(project_ids)
-# select IDs for Kgari (small DPs but multiple) and Taggart for extra variation
-project_ids = project_ids[grepl("Kgari|Taggart", project_ids)]
+# for testing
+project_ids = c("QLD_Wet_Tropics_feral_cats_Bruce_2019-20_WildObsID_0007", "QLD_Simpson_Desert_Greenville_2010-15_WildObsID_0002")  # closed and partial data!
+
+## clean up query info
+rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, temporal)
 
 #
 ##
 ### use the output to access data from wildobs_dp_download()
-### CURRENTLY REQUIRES LOCAL MONGO, will update in future when remote DB is ready
-dp_list = wildobs_dp_download(project_ids) # not a super quick function, mainly due to extracting the media resources.
+# set media to FALSE to make a quicker download
+start = Sys.time()
+dp_list = wildobs_dp_download(db_url = db_url, project_ids = project_ids, media = F)
+end = Sys.time()
+
+## how long did this take?
+end-start # 5 min now
+
 # inspect class to make sure its a DP
 class(dp_list[[1]])
 # make sure all project_ids were downloads
 length(dp_list) == length(project_ids) # MUST BE T
+# check if we have data resources
+frictionless::resources(dp_list[[1]]) # no media, but the rest is there!
 
 #
 ##
 ### Extract deployments covaraites and observations
 covs = list();deps = list();obs = list() # store results here
 for(i in 1:length(dp_list)){
+  ## add a condition to skip partial and closed datasets (i.e., no resources)
+  if(length(frictionless::resources(dp_list[[i]])) == 0){
+    # skip to the next if not open
+    next
+  }
   # covaraties
   c = frictionless::read_resource(dp_list[[i]], "covariates")
   c$source = dp_list[[i]]$id
@@ -63,12 +127,14 @@ rm(d,i,c,o)
 obs = do.call(rbind, obs)
 deps = do.call(rbind, deps)
 covs = do.call(rbind, covs)
+# inspect
+table(deps$projectName)
 
-### b/c there is so much data in Taggart, remove a few Dgs for speed
-sample_dg = sample(unique(covs$deploymentGroups[grepl("Taggart", covs$deploymentGroups)]), 7) # remove 7 at random
-covs = covs[! covs$deploymentGroups %in% sample_dg, ]
-deps = deps[deps$deploymentGroups %in% covs$deploymentGroups, ]
-rm(sample_dg)
+# ### b/c there is so much data in Taggart, remove a few Dgs for speed
+# sample_dg = sample(unique(covs$deploymentGroups[grepl("Taggart", covs$deploymentGroups)]), 7) # remove 7 at random
+# covs = covs[! covs$deploymentGroups %in% sample_dg, ]
+# deps = deps[deps$deploymentGroups %in% covs$deploymentGroups, ]
+# rm(sample_dg)
 
 ## check that its safe to merge
 verify_col_match(deps, covs, "deploymentID") # all g!
