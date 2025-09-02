@@ -8,6 +8,9 @@ wildobs_mongo_query(
   db_url = NULL,
   spatial = NULL,
   temporal = NULL,
+  taxonomic = NULL,
+  samplingDesign = NULL,
+  contributors = NULL,
   tabularSharingPreference = c("open")
 )
 }
@@ -28,18 +31,20 @@ This parameter allows users to specify their own connection string to the WildOb
 \describe{
 \item{minDate}{Earliest allowable date as a \code{Date} object.}
 \item{maxDate}{Latest allowable date as a \code{Date} object.}
-}}
+}
+@param taxonomic A vector of species names in binomial nomenclature (i,e., Latin names), and all projects that detect any of the species listed will be returned.
+@param samplingDesing A vector of enumerated sampling design values, and projects with the specific sampling designs will be returned. The enumerated values are:"simpleRandom", "systematicRandom", "clusteredRandom", "experimental", "targeted", & "opportunistic"
+@param contributor A vector of first and last names of people associated with any projects. Regardless of their role in the project, if the name is found in the metadata, the relevant projects will be returned.}
 
 \item{tabularSharingPreference}{A character vector specifying accepted sharing preferences.
-Defaults to \code{c("open")}, but the user can also specify 'partial' for limited metadata of the project. Only projects with these preferences are returned.}
+Defaults to \code{c("open")}, but the user can also specify 'partial' for limited metadata of the project. If the user provides admin DB credentials, the user can access 'closed' data, but if admin credentials have not been provided, 'closed' data will be removed from the projects list.  Only projects with these preferences are returned.}
 }
 \value{
 A character vector of project IDs matching the specified criteria.
 }
 \description{
-This function queries the WildObs MongoDB database for projects matching specified spatial, temporal, and data-sharing criteria.
-It extracts metadata from the database and filters projects based on bounding box overlaps, temporal overlaps, and sharing preferences..
-This function is planned to be continually developed to allow more information to query eventually.
+This function queries the WildObs MongoDB database for projects matching specified spatial, temporal, taxonomic, contributor, and data-sharing criteria.
+It extracts metadata from the database and filters projects based on bounding box overlaps, temporal overlaps, species detected, contributors associated, and data sharing preferences. The function also ensures that only projects that have past their embargo date are shared. Only admin credentials in the db_url parameter will allow users to access data with 'closed' sharing agreements or projects not past their embargo date.
 }
 \details{
 The character vector of project IDs that is returned from this function is then used in the function @seealso \code{\link{wildobs_dp_download}} for extracting data packages from WildObs' MongoDB.
@@ -52,8 +57,19 @@ spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -16.0, ymax = -20.0)
 # Define temporal query: select projects active in 2022-2025
 temporal_query <- list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2025-01-01"))
 
+# Define taxonomic query: want all koalas and echidnas
+taxa_query = c("Phascolarctos cinereus", "Tachyglossus aculeatus")
+
+# Define sampling design query: only opportunistic and random datasets
+sample_query = c("simpleRandom", "opportunistic")
+
+# Define contributor query: only want data from the WildObsR maintainer
+contributor_query = c("Zachry Amir")
+
 # Query the WildObs database for matching projects
-relevant_projects <- wildobs_mongo_query(spatial = spatial_query, temporal = temporal_query)
+relevant_projects <- wildobs_mongo_query(db_url, spatial = spatial_query, temporal = temporal_query, taxonomic = taxa_query, samplingDesign = sample_query, contributors = contributor_query, tabularSharingPreference = "open")
+
+# display the matching projects
 print(relevant_projects)
 }
 }
