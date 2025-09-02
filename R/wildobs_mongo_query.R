@@ -333,7 +333,8 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
 
   # but if there are no conditions met, provide all open and partial options
   # accommodate NO returns and NO intersections
-  if(any(proj_ids == "" | length(proj_ids) == 0)){
+  # if(any(proj_ids == "" | length(proj_ids) == 0)){
+  if(length(proj_ids) == 0 || any(proj_ids == "")){
     # print a message
     warning(paste("There were no matches in our database of the specific parameters provided in your function. This will return all project IDs that match the tabular data sharing preference of", paste0(tabularSharingPreference, collapse = " & ")))
     # grab em all
