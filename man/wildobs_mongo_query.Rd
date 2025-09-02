@@ -43,9 +43,8 @@ Defaults to \code{c("open")}, but the user can also specify 'partial' for limite
 A character vector of project IDs matching the specified criteria.
 }
 \description{
-This function queries the WildObs MongoDB database for projects matching specified spatial, temporal, and data-sharing criteria.
-It extracts metadata from the database and filters projects based on bounding box overlaps, temporal overlaps, and sharing preferences..
-This function is planned to be continually developed to allow more information to query eventually.
+This function queries the WildObs MongoDB database for projects matching specified spatial, temporal, taxonomic, contributor, and data-sharing criteria.
+It extracts metadata from the database and filters projects based on bounding box overlaps, temporal overlaps, species detected, contributors associated, and data sharing preferences. The function also ensures that only projects that have past their embargo date are shared. Only admin credentials in the db_url parameter will allow users to access data with 'closed' sharing agreements or projects not past their embargo date.
 }
 \details{
 The character vector of project IDs that is returned from this function is then used in the function @seealso \code{\link{wildobs_dp_download}} for extracting data packages from WildObs' MongoDB.

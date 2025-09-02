@@ -16,7 +16,7 @@ This parameter allows users to specify their own connection string to the WildOb
 \item{media}{A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.}
 }
 \value{
-A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about \href{https://camtrap-dp.tdwg.org/}{camtrapDP, click here}, and to learn more about \href{https://specs.frictionlessdata.io/data-package/}{Frictionless Data Packages, click here}
+A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about \href{https://camtrap-dp.tdwg.org/}{camtrapDP, click here}, and to learn more about \href{https://specs.frictionlessdata.io/data-package/}{Frictionless Data Packages, click here}. Note that only data with an 'open' data sharing agreement will return tabular data, while data shared with a  'partial' data sharing agreement will return only the project-level metadata.
 }
 \description{
 This function connects to the WildObs MongoDB server, retrieves project-specific

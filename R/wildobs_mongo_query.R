@@ -1,8 +1,7 @@
 #' Query WildObs MongoDB for Relevant Project IDs
 #'
-#' This function queries the WildObs MongoDB database for projects matching specified spatial, temporal, and data-sharing criteria.
-#' It extracts metadata from the database and filters projects based on bounding box overlaps, temporal overlaps, and sharing preferences..
-#' This function is planned to be continually developed to allow more information to query eventually.
+#' This function queries the WildObs MongoDB database for projects matching specified spatial, temporal, taxonomic, contributor, and data-sharing criteria.
+#' It extracts metadata from the database and filters projects based on bounding box overlaps, temporal overlaps, species detected, contributors associated, and data sharing preferences. The function also ensures that only projects that have past their embargo date are shared. Only admin credentials in the db_url parameter will allow users to access data with 'closed' sharing agreements or projects not past their embargo date.
 #'
 #' The character vector of project IDs that is returned from this function is then used in the function @seealso \code{\link{wildobs_dp_download}} for extracting data packages from WildObs' MongoDB.
 #'
@@ -54,6 +53,7 @@
 #' @seealso
 #' - [mongolite::mongo()] for database queries
 #' @importFrom magrittr %>%
+#' @importFrom lubridate add_with_rollback
 #' @export
 wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
                                taxonomic = NULL, samplingDesign = NULL,
@@ -84,7 +84,7 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
     stop("You have not provided a URL to access MongoDB.\nPlease provide an appropriate URL if you want to access the database.")
   }
   ## Make sure the db URL they provide matches the basic pattern
-  pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+\\/[a-zA-Z0-9._-]+$"
+  pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/\\?.*)?$"
   if (!grepl(pattern, db_url)) {
     stop("The URL to access the database must be a valid MongoDB URI of the follwoing format: \n'mongodb://user:password@host:port/dbname'")
   }
@@ -106,6 +106,40 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
   ## and immediately thin metadata to include the specific sharing preferences
   metadata = metadata[metadata$WildObsMetadata$tabularSharingPreference %in% tabularSharingPreference, ]
 
+  #
+  ##
+  ### Create a true/false column in the metadata to determine if the embargo period has passed
+  # First, convert unknown embargo periods based on sharing preference
+  # open data has no embargo
+  metadata$WildObsMetadata$embargoPeriodMonths[metadata$WildObsMetadata$embargoPeriodMonths == "unknown" &
+                                                 metadata$WildObsMetadata$tabularSharingPreference == "open"] = 0
+  # closed and partial has longest embargo
+  metadata$WildObsMetadata$embargoPeriodMonths[metadata$WildObsMetadata$embargoPeriodMonths == "unknown" &
+                                                 metadata$WildObsMetadata$tabularSharingPreference %in% c("partial", "closed")] = 48
+
+  #now calculate when the date the emabrgo is done
+  metadata$embargo_end <- lubridate::add_with_rollback(
+    # take the created date
+    as.POSIXct(metadata$created),
+    # and add the embargo months
+    months(as.integer(metadata$WildObsMetadata$embargoPeriodMonths)),
+    # while keeping valid last day (e.g., Jan 31 -> Feb 28/29)
+    roll_to_first = FALSE,
+    # and we only care about dates, not time.
+    preserve_hms = FALSE
+  )
+  # and create a new T/F column if the embargo date is past today
+  metadata$embargo_pass = metadata$embargo_end < Sys.time()
+
+  ## update metadata to onclude only data ready to be shared,
+  # but allow an exception for admin access!
+  if(grepl("admin", db_url)){
+    # if admin, convert all embargo pass to true
+    metadata$embargo_pass = TRUE
+  }
+
+  ## now thin
+  metadata = metadata[metadata$embargo_pass == TRUE, ]
 
   #
   ##
@@ -141,7 +175,7 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
     ]
 
     # save the relevant project ids
-    proj_ids_spatial <- bbox_df_filtered$id
+    proj_ids_spatial <- unique(bbox_df_filtered$id)
 
     ## clean up for testing
     # rm(bbox_df, bbox_df_filtered, spatial)
@@ -181,7 +215,7 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
       )
 
     # save the relevant project ids
-    proj_ids_temporal <- temporal_df_filtered$id
+    proj_ids_temporal <- unique(temporal_df_filtered$id)
   }else{
     # but if not present, leave it as blank
     proj_ids_temporal = ""
@@ -202,8 +236,8 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
     for(i in 1:length(taxa)){
       # extract a dataframe
       t = purrr::map_dfr(taxa[i], as.data.frame)
-      # and add the project name
-      t$projectName = metadata$name[i]
+      # and add the id
+      t$id = metadata$id[i]
       # save in the list
       taxa_df[[i]] = t
     } # end per length taxa
@@ -216,7 +250,7 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
     taxa_df_subset = taxa_df[taxa_df$scientificName %in% taxonomic, ]
 
     # extract project IDs for the relevant species
-    proj_ids_taxa = unique(taxa_df_subset$projectName)
+    proj_ids_taxa = unique(taxa_df_subset$id)
   }else{
     # but if not present, leave it as blank
     proj_ids_taxa = ""
@@ -241,8 +275,8 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
     for(i in 1:length(cont)){
       # extract a dataframe
       t = purrr::map_dfr(cont[i], as.data.frame)
-      # and add the project name
-      t$projectName = metadata$name[i]
+      # and add the id
+      t$id = metadata$id[i]
       # save in the list
       cont_df[[i]] = t
     } # end per length taxa
@@ -255,7 +289,7 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
     cont_df_subset = cont_df[cont_df$title %in% contributors, ] # come here and update w/ orcids and emails too!
 
     # extract project IDs for the relevant species
-    proj_ids_contributors = unique(cont_df_subset$projectName)
+    proj_ids_contributors = unique(cont_df_subset$id)
 
   }else{
     # but if not present, leave it as blank
@@ -277,7 +311,7 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
     # and subset based on specific sampling design
     proj_sub = proj[proj$samplingDesign %in% samplingDesign, ]
     # then pull out the relevant IDs
-    proj_ids_SD = proj_sub$id
+    proj_ids_SD = unique(proj_sub$id)
   }else{
     # but if not present, leave it as blank
     proj_ids_SD = ""
@@ -286,18 +320,22 @@ wildobs_mongo_query = function(db_url = NULL, spatial = NULL, temporal = NULL,
 
   #
   ##
-  ### Return the updated vector of IDs.
+  ### Return the updated vector of project IDs -----
 
   ## make a list of all relevant project IDs
   id_lists <- list(proj_ids_spatial, proj_ids_temporal, proj_ids_taxa,
                    proj_ids_contributors, proj_ids_SD)  # come here and add more as they arise!
+
+  ## filter out empties for both length == 0 and ""
+  id_lists <- Filter(function(x) length(x) > 0 && !all(x == ""), id_lists)
   ## Take the intersection of all queries
   proj_ids <- Reduce(intersect, id_lists)
 
   # but if there are no conditions met, provide all open and partial options
-  if(proj_ids == ""){
+  # accommodate NO returns and NO intersections
+  if(any(proj_ids == "" | length(proj_ids) == 0)){
     # print a message
-    print(paste("There were no matches in our database of the specific parameters provided in your function. This will return all project IDs that match the tabular data sharing preference of", paste0(tabularSharingPreference, collapse = " & ")))
+    warning(paste("There were no matches in our database of the specific parameters provided in your function. This will return all project IDs that match the tabular data sharing preference of", paste0(tabularSharingPreference, collapse = " & ")))
     # grab em all
     proj_ids = metadata$id
   }

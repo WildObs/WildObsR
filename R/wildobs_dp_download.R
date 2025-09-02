@@ -8,7 +8,7 @@
 #'   This parameter allows users to specify their own connection string to the WildObs MongoDB instance.
 #' @param project_ids A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.
 #' @param media A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.
-#' @return A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/)
+#' @return A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/). Note that only data with an 'open' data sharing agreement will return tabular data, while data shared with a  'partial' data sharing agreement will return only the project-level metadata.
 #' @details
 #' The function performs the following steps:
 #' 1. Connects to MongoDB using read-only credentials.
@@ -69,12 +69,12 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
     stop("You have not provided a URL to access MongoDB.\nPlease provide an appropriate URL if you want to access the database.")
   }
   ## Make sure the db URL they provide matches the basic pattern
-  pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+\\/[a-zA-Z0-9._-]+$"
+  pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/\\?.*)?$"
   if (!grepl(pattern, db_url)) {
     stop("The URL to access the database must be a valid MongoDB URI of the follwoing format: \n'mongodb://user:password@host:port/dbname'")
   }
 
-  ## access the metadata from the DB
+  ## access all of the the metadata from the DB
   metadata = mongolite::mongo(db = "wildobs_camdb", collection = "metadata", url = db_url)$find()
 
   #
@@ -89,7 +89,7 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
     ## and the matching metadata
     meta = metadata[metadata$id == name,] # must produce one row
     ## verify there is only one row
-    if(nrow(meta)>1){print(paste("The project name:", name, "has multiple rows of metadata. This is not good and means repeated project names which violates our database rules.Please inspect manually!"))}
+    if(nrow(meta)>1){print(paste("The project name:", name, "has multiple rows of metadata. This is not good and means repeated project names which violates our database rules. Please inspect manually!"))}
 
     ## convert to a list
     meta_list = as.list(meta)
@@ -116,8 +116,8 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
     ## apply a few quick fixes to unlist or list things
     proj_meta$keywords = unlist(proj_meta$keywords)
     proj_meta$homepage = unlist(proj_meta$homepage)
-    proj_meta$homepage = unlist(proj_meta$relatedIdentifiers)
-    proj_meta$homepage = proj_meta$references[[1]] # come here, this might change!
+    proj_meta$relatedIdentifiers = unlist(proj_meta$relatedIdentifiers)
+    proj_meta$references = proj_meta$references[[1]] # come here, this might change!
     proj_meta$sources = as.list(proj_meta$sources[1, ])
 
     # "temporal","spatial", and "taxonomic" need special attention!
@@ -272,7 +272,7 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
   # for testing
   # rm(b, b_tax, meta_list, proj_meta, res_list, resources, meta,
   #    s_clean, s_nested, schema,t_clean, t_nested, tax, tax_list,
-  #    t, i,  n, na, name, r, s, final_meta, tz)
+  #    t, i,  n, na, name, r, s, final_meta, tz, lat, lon, pattern, bbox)
 
 
   #
@@ -280,11 +280,28 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
   ###
   #### Extract key resources, apply schemas, and bundle together
 
+  ## Extract project_ids that have an open data sharing preference
+  # BUT if were admin, all projects can be included
+  if(grepl("admin", db_url)){
+    # all projects can be accessed by admin
+    project_ids_query = project_ids
+  }else{
+    # check for open projects only if not admin
+    project_ids_query = c() # store them here
+    for(i in 1:length(formatted_metadata)){
+      x = formatted_metadata[[i]]
+      val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
+      if(val == "open"){
+        project_ids_query = c(project_ids_query, x$project_level_metadata$id)
+      } # end open condition
+    } # end per metadata
+  } # end admin condition
+
   ## construct the project_id based query in json format
-  query <- if(length(project_ids) == 1) {
-    jsonlite::toJSON(list(projectName = project_ids), auto_unbox = TRUE) # Single ID
+  query <- if(length(project_ids_query) == 1) {
+    jsonlite::toJSON(list(projectName = project_ids_query), auto_unbox = TRUE) # Single ID
   } else {
-    jsonlite::toJSON(list(projectName = list("$in" = project_ids)), auto_unbox = TRUE) # Multiple IDs
+    jsonlite::toJSON(list(projectName = list("$in" = project_ids_query)), auto_unbox = TRUE) # Multiple IDs
   }
 
   # grab observations
@@ -350,29 +367,62 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
 
 
     ## now bundle into a frictionless DP
+    # use metadata to create the DP
     dp = frictionless::create_package(formatted_metadata[[proj]]$project_level_metadata)
-    # deployments
-    dp = frictionless::add_resource(package = dp,
-                                    resource_name = "deployments",
-                                    data = deps_proj,
-                                    schema = formatted_metadata[[proj]]$deployments_schema)
-    # observations
-    dp = frictionless::add_resource(package = dp,
-                                    resource_name = "observations",
-                                    data = obs_proj,
-                                    schema = formatted_metadata[[proj]]$observations_schema)
-    # media
-    if(media){
+    # Allow admin to access all data
+    if(grepl("admin", db_url)){
+      # deployments
       dp = frictionless::add_resource(package = dp,
-                                      resource_name = "media",
-                                      data = media_proj,
-                                      schema = formatted_metadata[[proj]]$media_schema)
-    }
-    # covariates
-    dp = frictionless::add_resource(package = dp,
-                                    resource_name = "covariates",
-                                    data = cov_proj,
-                                    schema = formatted_metadata[[proj]]$covariates_schema)
+                                      resource_name = "deployments",
+                                      data = deps_proj,
+                                      schema = formatted_metadata[[proj]]$deployments_schema)
+      # observations
+      dp = frictionless::add_resource(package = dp,
+                                      resource_name = "observations",
+                                      data = obs_proj,
+                                      schema = formatted_metadata[[proj]]$observations_schema)
+      # media
+      if(media){
+        dp = frictionless::add_resource(package = dp,
+                                        resource_name = "media",
+                                        data = media_proj,
+                                        schema = formatted_metadata[[proj]]$media_schema)
+      }
+      # covariates
+      dp = frictionless::add_resource(package = dp,
+                                      resource_name = "covariates",
+                                      data = cov_proj,
+                                      schema = formatted_metadata[[proj]]$covariates_schema)
+    }else{
+      # but if not admin, only allow open data to be returned
+      # only add data if there is an open data sharing agreement!
+      if(formatted_metadata[[proj]]$project_level_metadata$WildObsMetadata$tabularSharingPreference == "open"){
+        # deployments
+        dp = frictionless::add_resource(package = dp,
+                                        resource_name = "deployments",
+                                        data = deps_proj,
+                                        schema = formatted_metadata[[proj]]$deployments_schema)
+        # observations
+        dp = frictionless::add_resource(package = dp,
+                                        resource_name = "observations",
+                                        data = obs_proj,
+                                        schema = formatted_metadata[[proj]]$observations_schema)
+        # media
+        if(media){
+          dp = frictionless::add_resource(package = dp,
+                                          resource_name = "media",
+                                          data = media_proj,
+                                          schema = formatted_metadata[[proj]]$media_schema)
+        }
+        # covariates
+        dp = frictionless::add_resource(package = dp,
+                                        resource_name = "covariates",
+                                        data = cov_proj,
+                                        schema = formatted_metadata[[proj]]$covariates_schema)
+
+      } # end open data sharing condition
+    } # end admin condition
+
     ## save in a list
     dp_list[[p]] = dp
     names(dp_list)[[p]] = proj
