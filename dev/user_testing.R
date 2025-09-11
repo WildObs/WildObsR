@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: September 2nd, 2025
+## last updated: September 11th, 2025
 
 # start fresh!
 rm(list = ls())
@@ -27,20 +27,24 @@ library(tidyverse)
 ### First, gather relevant information to inform the query
 
 ## read in environment file with confidential DB access info
-readRenviron("inst/config/.Renviron.prod.admin") # remote access for admin, but authentification isnt working!
+# readRenviron("inst/config/.Renviron.prod.admin") # remote access for admin, but authentification isnt working!
 # readRenviron("inst/config/.Renviron.prod.ro") # remote access for read-only
 # Contact Zach if you want access to this file.
 
-## load information from enviromnet
-HOST <- Sys.getenv("HOST")
-PORT <- Sys.getenv("PORT")
-DATABASE <- Sys.getenv("DATABASE")
-USER <- Sys.getenv("USER")
-PASS <- Sys.getenv("PASS")
+# ## load information from enviromnet
+# HOST <- Sys.getenv("HOST")
+# PORT <- Sys.getenv("PORT")
+# DATABASE <- Sys.getenv("DATABASE")
+# USER <- Sys.getenv("USER")
+# PASS <- Sys.getenv("PASS")
+#
+# ## combine all the information into a database-url to enable access
+# db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
+# rm(USER, PASS, HOST, PORT, DATABASE)
 
-## combine all the information into a database-url to enable access
-db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
-rm(USER, PASS, HOST, PORT, DATABASE)
+## Instead of the DB_url, test out the new admin api key
+readRenviron("inst/config/.Renviron.admin.api")
+api_key = Sys.getenv("API_KEY")
 
 ## Define a temporal range to query
 temporal = list(minDate = as.Date("2010-01-01"),
@@ -62,7 +66,7 @@ contributors = c() #c("Zachry Amir", "Tom Bruce")
 tabularSharingPreference = c("open", "partial", "closed")
 
 ## Gather relevant project_ids using the mongo query function
-project_ids = wildobs_mongo_query(db_url = db_url,
+project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url,
                                   temporal = temporal,
                                   spatial = spatial,
                                   taxonomic = taxonomic,
