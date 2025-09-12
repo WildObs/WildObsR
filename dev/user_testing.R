@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: September 11th, 2025
+## last updated: September 12th, 2025
 
 # start fresh!
 rm(list = ls())
@@ -90,7 +90,8 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 ### use the output to access data from wildobs_dp_download()
 # set media to FALSE to make a quicker download
 start = Sys.time()
-dp_list = wildobs_dp_download(db_url = db_url, project_ids = project_ids, media = F)
+dp_list = wildobs_dp_download(api_key = api_key, #db_url = db_url,
+                              project_ids = project_ids, media = F)
 end = Sys.time()
 
 ## how long did this take?
