@@ -4,12 +4,18 @@
 \alias{wildobs_dp_download}
 \title{Download Data from WildObs' MongoDB and Format as Frictionless Data Packages}
 \usage{
-wildobs_dp_download(db_url = NULL, project_ids, media = FALSE)
+wildobs_dp_download(db_url = NULL, api_key = NULL, project_ids, media = FALSE)
 }
 \arguments{
 \item{db_url}{A character string specifying the MongoDB connection URI. This should follow the format:
 \code{'mongodb://username:password@host:port/database'}. If \code{NULL}, the function will stop with an error.
 This parameter allows users to specify their own connection string to the WildObs MongoDB instance.}
+
+\item{api_key}{A character string specifying the API key used for authenticated access to the WildObs
+public API. If provided, the function will query the API instead of connecting directly to the MongoDB
+instance with \code{mongolite}. API keys grant read-only access to specific endpoints and should be kept
+confidential (e.g., stored in an \code{.Renviron} file or other secure environment variable).
+Defaults to \code{NULL}, in which case the function expects a valid \code{db_url} to connect directly to MongoDB.}
 
 \item{project_ids}{A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.}
 
@@ -41,8 +47,13 @@ The function performs the following steps:
 \examples{
 \dontrun{
 # Example usage:
+# Load the general use WildObs API key
+api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+
+# Load relevant project ids
 project_ids <- c("QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",
                  "QLD_Kgari_potoroos_Amir_2022_WildObsID_0003")
+
 dp_list <- wildobs_dp_download(project_ids)
 
 # Access the data for a specific project
