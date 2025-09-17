@@ -62,7 +62,7 @@
 #' - [mongolite::mongo()] for database queries
 #' @importFrom magrittr %>%
 #' @importFrom lubridate add_with_rollback
-#' @importFrom httr status_code content
+#' @importFrom httr status_code content GET add_headers
 #' @importFrom jsonlite fromJSON
 #' @importFrom mongolite mongo
 #'
@@ -124,9 +124,9 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## Access the metadata from the DB, but do it via API key, or not
   if(use_api){
     # Send a GET request using the URL, API key, and only query for the metadata
-    response <- GET(
-      "http://203.101.231.54:8000/find", # hard coding API url for now... maybe change later?
-      add_headers("X-API-Key" = api_key),
+    response <- httr::GET(
+      "https://camdbapi.wildobs.org.au/find", # hard code API url
+      httr::add_headers("X-API-Key" = api_key),
       query =     list(
         collection = "metadata"
       )
