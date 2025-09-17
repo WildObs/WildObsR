@@ -6,6 +6,11 @@
 #' @param db_url A character string specifying the MongoDB connection URI. This should follow the format:
 #'   `'mongodb://username:password@host:port/database'`. If `NULL`, the function will stop with an error.
 #'   This parameter allows users to specify their own connection string to the WildObs MongoDB instance.
+#' @param api_key A character string specifying the API key used for authenticated access to the WildObs
+#'  public API. If provided, the function will query the API instead of connecting directly to the MongoDB
+#'  instance with `mongolite`. API keys grant read-only access to specific endpoints and should be kept
+#'  confidential (e.g., stored in an `.Renviron` file or other secure environment variable).
+#'  Defaults to `NULL`, in which case the function expects a valid `db_url` to connect directly to MongoDB.
 #' @param project_ids A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.
 #' @param media A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.
 #' @return A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/). Note that only data with an 'open' data sharing agreement will return tabular data, while data shared with a  'partial' data sharing agreement will return only the project-level metadata.
@@ -26,8 +31,13 @@
 #' @examples
 #' \dontrun{
 #' # Example usage:
+#' # Load the general use WildObs API key
+#' api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+#'
+#' # Load relevant project ids
 #' project_ids <- c("QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",
 #'                  "QLD_Kgari_potoroos_Amir_2022_WildObsID_0003")
+#'
 #' dp_list <- wildobs_dp_download(project_ids)
 #'
 #' # Access the data for a specific project
@@ -39,11 +49,12 @@
 #' @importFrom jsonlite toJSON
 #' @importFrom purrr map keep
 #' @importFrom lutz tz_lookup_coords
+#' @importFrom httr2 req_perform req_body_json req_method request
 #'
 #' @author Zachary Amir
 #'
 #' @export
-wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
+wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media = FALSE) {
 
   ## read in environment file with confidential DB access info
   # readRenviron("inst/config/.Renviron.local.ro") # local version
@@ -60,22 +71,68 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
   #
   # ## combine all the information into a database-url to enable access
   # db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
-  # # rm(USER, PASS, HOST, PORT, DATABASE)
+  # rm(USER, PASS, HOST, PORT, DATABASE)
 
-  #### UPDATE: until we can create a public facing log-in information to access the DB,
-  ### I will leave db_url as an option that users have to input to the function
-  ## so they can access the database. Ideally we will have a better solution in the future!
-  if(is.null(db_url)){
-    stop("You have not provided a URL to access MongoDB.\nPlease provide an appropriate URL if you want to access the database.")
-  }
-  ## Make sure the db URL they provide matches the basic pattern
-  pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/\\?.*)?$"
-  if (!grepl(pattern, db_url)) {
-    stop("The URL to access the database must be a valid MongoDB URI of the follwoing format: \n'mongodb://user:password@host:port/dbname'")
-  }
+  ### Determine if we will use the API key or the DB url to access data
+  if(!is.null(api_key) && is.null(db_url)){
+    # if API key is supplied and db url is still null, use the API
+    use_api = TRUE
+  }else{
+    # but if there is a db_url supplied, prioritize that over the API key
+    if(!is.null(db_url)){
+      use_api = FALSE
+    } # end non-null DB condition
+  } # end api key present condition
 
-  ## access all of the the metadata from the DB
-  metadata = mongolite::mongo(db = "wildobs_camdb", collection = "metadata", url = db_url)$find()
+  ## But if neither an API key or db_url was provied
+  if(is.null(api_key) && is.null(db_url)){
+    # stop the function and tell them to get more info!
+    stop("You have not provided an API key or a database URL to access MongoDB.\nPlease provide an appropriate API key or URL if you want to access the database. \nIf you do not know how to access an appropriate API key or database URL, please contact the WildObs team at wildobs-support@qcif.edu.au")
+  } # end double null condition
+
+  # inspect the DB url that was provided to make sure its legit if we are NOT using an API
+  if(use_api == FALSE){
+    # if the db_url is null
+    if(is.null(db_url)){
+      # stop the function and give an error.
+      stop("You have not provided a URL to access MongoDB.\nPlease provide an appropriate URL if you want to access the database.")
+    } # end null check
+    ## Make sure the db URL they provide matches the basic pattern
+    pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/\\?.*)?$"
+    if (!grepl(pattern, db_url)) {
+      stop("The URL to access the database must be a valid MongoDB URI of the follwoing format: \n'mongodb://user:password@host:port/dbname'")
+    } # end pattern check
+  } # end API check
+
+  ## Access the metadata from the DB, but do it via API key, or not
+  if(use_api){
+    # Send a GET request using the URL, API key, and only query for the metadata
+    response <- GET(
+      "https://camdbapi.wildobs.org.au/find", # hard code API url
+      add_headers("X-API-Key" = api_key),
+      query =     list(
+        collection = "metadata"
+      )
+    )
+    ## inspect status code, only 200 means success.
+    if (httr::status_code(response) != 200) {
+      stop("Failed to retrieve metadata from API. Status code: ", httr::status_code(response))
+    }
+
+    ## Extract the raw text from the response
+    raw_text <- httr::content(response, "text", encoding = "UTF-8")
+    ## then parse it from JSON
+    parsed <- jsonlite::fromJSON(raw_text)
+
+    # API appears to be structured where data is the first element in the returned list
+    # and the 1st nested element is the number of rows, and the 2nd nested element is the data
+    # 2nd element of the list appears to be the status code.
+    metadata <- parsed[[1]][[2]]  # Extract the data
+
+  }else{
+    ## access the metadata from the DB
+    metadata = mongolite::mongo(db = "wildobs_camdb", collection = "metadata", url = db_url)$find()
+  } # end else use_api
 
   #
   ##
@@ -280,38 +337,175 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
   ###
   #### Extract key resources, apply schemas, and bundle together
 
-  ## Extract project_ids that have an open data sharing preference
-  # BUT if were admin, all projects can be included
-  if(grepl("admin", db_url)){
-    # all projects can be accessed by admin
-    project_ids_query = project_ids
+  ### Extract project_ids that have an open data sharing preference
+  ## BUT if were admin, all projects can be included
+  # First check if we are checking API or DB url for admin access
+  if(use_api){
+    # check if admin string is present in the api key
+    if(grepl("e95f47130dd589ca84d8f0b0a94c7d3f223d7", api_key)){
+      # only checking middle chunk of api key^^^, not full thing
+      # all projects can be accessed by admin
+      project_ids_query = project_ids
+    }else{
+      ## But if not admin api, check for open projects
+      project_ids_query = c() # store them here
+      for(i in 1:length(formatted_metadata)){
+        x = formatted_metadata[[i]]
+        val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
+        if(val == "open"){
+          project_ids_query = c(project_ids_query, x$project_level_metadata$id)
+        } # end open condition
+      } # end per metadata
+    } # end else admin api check
   }else{
-    # check for open projects only if not admin
-    project_ids_query = c() # store them here
-    for(i in 1:length(formatted_metadata)){
-      x = formatted_metadata[[i]]
-      val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
-      if(val == "open"){
-        project_ids_query = c(project_ids_query, x$project_level_metadata$id)
-      } # end open condition
-    } # end per metadata
-  } # end admin condition
+    ## But if not using api keys, check for admin in the db_url
+    if(grepl("admin", db_url)){
+      # all projects can be accessed by admin
+      project_ids_query = project_ids
+    }else{
+      # check for open projects only if not admin
+      project_ids_query = c() # store them here
+      for(i in 1:length(formatted_metadata)){
+        x = formatted_metadata[[i]]
+        val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
+        if(val == "open"){
+          project_ids_query = c(project_ids_query, x$project_level_metadata$id)
+        } # end open condition
+      } # end per metadata
+    } # end else admin condition
+  } # end use api
 
-  ## construct the project_id based query in json format
-  query <- if(length(project_ids_query) == 1) {
-    jsonlite::toJSON(list(projectName = project_ids_query), auto_unbox = TRUE) # Single ID
-  } else {
-    jsonlite::toJSON(list(projectName = list("$in" = project_ids_query)), auto_unbox = TRUE) # Multiple IDs
-  }
+  ### Construct an API query or DB_url query and download the data
+  if(use_api){
+    ## assign the API URL
+    url <- "https://camdbapi.wildobs.org.au/find"
+    # first determine if we have one or multiple project_ids
+    if(length(project_ids_query) == 1){
+      ## specify deployments parameters
+      dep_body <- list(
+        collection = "deployments",
+        filter = list(projectName = project_ids_query))
+      ## Observations
+      obs_body = list(
+        collection = "observations",
+        filter = list(projectName = project_ids_query))
+      ## Covariates
+      cov_body = list(
+        collection = "covariates",
+        filter = list(projectName = project_ids_query))
+      ## Media
+      media_body = list(
+        collection = "deployments",
+        filter = list(projectName = project_ids_query))
+    }else{
+      ## Specify deployments parameters
+      dep_body <- list(
+        collection = "deployments",
+        filter = list(
+          projectName = list(`$in` = project_ids_query)))
+      ## Observations
+      obs_body <- list(
+        collection = "observations",
+        filter = list(
+          projectName = list(`$in` = project_ids_query)))
+      ## covariates
+      cov_body <- list(
+        collection = "covariates",
+        filter = list(
+          projectName = list(`$in` = project_ids_query)))
+      ## Media
+      media_body <- list(
+        collection = "media",
+        filter = list(
+          projectName = list(`$in` = project_ids_query)))
+    } # end else proj_id = 1 condition
 
-  # grab observations
-  obs = mongolite::mongo(db = "wildobs_camdb", collection = "observations", url = db_url)$find(query) # filtering w/ query
-  # deployments
-  deps = mongolite::mongo(db = "wildobs_camdb", collection = "deployments", url = db_url)$find(query)
-  # media, but only if specified
-  if(media){media_df = mongolite::mongo(db = "wildobs_camdb", collection = "media", url = db_url)$find(query)}
-  # covariate
-  covs = mongolite::mongo(db = "wildobs_camdb", collection = "covariates", url = db_url)$find(query)
+    ## Use httr2 functions to create a query for the url for each resource
+    # deployments
+    dep_req <- httr2::request(url) |>
+      # Ensure the endpoint is GET-only
+      httr2::req_method("GET") |>
+      # assign headers
+      httr2::req_headers("X-API-Key" = api_key) |>
+      # put collection + filter in JSON body
+      httr2::req_body_json(dep_body)
+    # observations
+    obs_req <- httr2::request(url) |>
+      # Ensure the endpoint is GET-only
+      httr2::req_method("GET") |>
+      # assign headers
+      httr2::req_headers("X-API-Key" = api_key) |>
+      # put collection + filter in JSON body
+      httr2::req_body_json(obs_body)
+    # Covariates
+    cov_req <- httr2::request(url) |>
+      # Ensure the endpoint is GET-only
+      httr2::req_method("GET") |>
+      # assign headers
+      httr2::req_headers("X-API-Key" = api_key) |>
+      # put collection + filter in JSON body
+      httr2::req_body_json(cov_body)
+    # media
+    media_req <- httr2::request(url) |>
+      # Ensure the endpoint is GET-only
+      httr2::req_method("GET") |>
+      # assign headers
+      httr2::req_headers("X-API-Key" = api_key) |>
+      # put collection + filter in JSON body
+      httr2::req_body_json(media_body)
+
+    ## Now preform requests to access the data for each resource
+    # deployments
+    dep_resp <- httr2::req_perform(dep_req)
+    # extract the body text string and then convert from JSON
+    data_dep <- jsonlite::fromJSON(httr2::resp_body_string(dep_resp, encoding = "UTF-8"),
+                                   simplifyVector = TRUE)
+    # then grab the data.frame from the API data
+    deps = data_dep[[1]][[2]]
+
+    # observations
+    obs_resp <- httr2::req_perform(obs_req)
+    # extract the body text string and then convert from JSON
+    data_obs <- jsonlite::fromJSON(httr2::resp_body_string(obs_resp, encoding = "UTF-8"),
+                                   simplifyVector = TRUE)
+    # then grab the data.frame from the API data
+    obs = data_obs[[1]][[2]]
+    # covariates
+    cov_resp <- httr2::req_perform(cov_req)
+    # extract the body text string and then convert from JSON
+    data_cov <- jsonlite::fromJSON(httr2::resp_body_string(cov_resp, encoding = "UTF-8"),
+                                   simplifyVector = TRUE)
+    # then grab the data.frame from the API data
+    covs = data_cov[[1]][[2]]
+    # media, but only if true!
+    if(media){
+      # make the request
+      media_resp = httr2::req_perform(media_req)
+      # extract the body
+      data_media <- jsonlite::fromJSON(httr2::resp_body_string(media_resp, encoding = "UTF-8"),
+                                       simplifyVector = TRUE)
+      # take data.frame
+      media_df = data_media[[1]][[2]]
+      } # end media condition
+
+  }else{
+    ## if not using API, stick with the old method
+    # construct the project_id based query in json format
+    query <- if(length(project_ids_query) == 1) {
+      jsonlite::toJSON(list(projectName = project_ids_query), auto_unbox = TRUE) # Single ID
+    } else {
+      jsonlite::toJSON(list(projectName = list("$in" = project_ids_query)), auto_unbox = TRUE) # Multiple IDs
+    }
+
+    # grab observations
+    obs = mongolite::mongo(db = "wildobs_camdb", collection = "observations", url = db_url)$find(query) # filtering w/ query
+    # deployments
+    deps = mongolite::mongo(db = "wildobs_camdb", collection = "deployments", url = db_url)$find(query)
+    # media, but only if specified
+    if(media){media_df = mongolite::mongo(db = "wildobs_camdb", collection = "media", url = db_url)$find(query)}
+    # covariate
+    covs = mongolite::mongo(db = "wildobs_camdb", collection = "covariates", url = db_url)$find(query)
+  }# end else use api
 
   ## save them per project
   dp_list = list()
@@ -369,8 +563,9 @@ wildobs_dp_download = function(db_url = NULL, project_ids, media = FALSE) {
     ## now bundle into a frictionless DP
     # use metadata to create the DP
     dp = frictionless::create_package(formatted_metadata[[proj]]$project_level_metadata)
-    # Allow admin to access all data
-    if(grepl("admin", db_url)){
+    # Allow admin to access all data, but DB_url or api_key
+    if(any(grepl("admin", db_url) |
+           grepl("e95f47130dd589ca84d8f0b0a94c7d3f223d7", api_key))){
       # deployments
       dp = frictionless::add_resource(package = dp,
                                       resource_name = "deployments",
