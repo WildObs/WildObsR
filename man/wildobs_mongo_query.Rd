@@ -6,18 +6,25 @@
 \usage{
 wildobs_mongo_query(
   db_url = NULL,
+  api_key = NULL,
   spatial = NULL,
   temporal = NULL,
   taxonomic = NULL,
   samplingDesign = NULL,
   contributors = NULL,
-  tabularSharingPreference = c("open")
+  tabularSharingPreference = c("open", "closed")
 )
 }
 \arguments{
 \item{db_url}{A character string specifying the MongoDB connection URI. This should follow the format:
 \code{'mongodb://username:password@host:port/database'}. If \code{NULL}, the function will stop with an error.
 This parameter allows users to specify their own connection string to the WildObs MongoDB instance.}
+
+\item{api_key}{A character string specifying the API key used for authenticated access to the WildObs
+public API. If provided, the function will query the API instead of connecting directly to the MongoDB
+instance with \code{mongolite}. API keys grant read-only access to specific endpoints and should be kept
+confidential (e.g., stored in an \code{.Renviron} file or other secure environment variable).
+Defaults to \code{NULL}, in which case the function expects a valid \code{db_url} to connect directly to MongoDB.}
 
 \item{spatial}{A named list specifying spatial query parameters, including:
 \describe{
@@ -51,8 +58,11 @@ The character vector of project IDs that is returned from this function is then 
 }
 \examples{
 \dontrun{
+# Load the general use WildObs API key
+api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+
 # Define spatial query: extract projects in a specific bounding box
-spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -16.0, ymax = -20.0)
+spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -20.0, ymax = -16.0)
 
 # Define temporal query: select projects active in 2022-2025
 temporal_query <- list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2025-01-01"))
@@ -60,11 +70,11 @@ temporal_query <- list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2025-
 # Define taxonomic query: want all koalas and echidnas
 taxa_query = c("Phascolarctos cinereus", "Tachyglossus aculeatus")
 
-# Define sampling design query: only opportunistic and random datasets
-sample_query = c("simpleRandom", "opportunistic")
+# Define sampling design query: opportunistic and random datasets
+sample_query = c("simpleRandom", "opportunistic", "systematicRandom")
 
 # Define contributor query: only want data from the WildObsR maintainer
-contributor_query = c("Zachry Amir")
+contributor_query = c("Zachary Amir")
 
 # Query the WildObs database for matching projects
 relevant_projects <- wildobs_mongo_query(db_url, spatial = spatial_query, temporal = temporal_query, taxonomic = taxa_query, samplingDesign = sample_query, contributors = contributor_query, tabularSharingPreference = "open")
