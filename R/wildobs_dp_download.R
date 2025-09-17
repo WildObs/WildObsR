@@ -108,7 +108,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
   if(use_api){
     # Send a GET request using the URL, API key, and only query for the metadata
     response <- GET(
-      "http://203.101.231.54:8000/find", # hard coding API url for now... maybe change later?
+      "https://camdbapi.wildobs.org.au/find", # hard code API url
       add_headers("X-API-Key" = api_key),
       query =     list(
         collection = "metadata"
@@ -378,7 +378,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
   ### Construct an API query or DB_url query and download the data
   if(use_api){
     ## assign the API URL
-    url <- "http://203.101.231.54:8000/find"
+    url <- "https://camdbapi.wildobs.org.au/find"
     # first determine if we have one or multiple project_ids
     if(length(project_ids_query) == 1){
       ## specify deployments parameters

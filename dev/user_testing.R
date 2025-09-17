@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: September 12th, 2025
+## last updated: September 17th, 2025
 
 # start fresh!
 rm(list = ls())
@@ -43,8 +43,11 @@ library(tidyverse)
 # rm(USER, PASS, HOST, PORT, DATABASE)
 
 ## Instead of the DB_url, test out the new admin api key
-readRenviron("inst/config/.Renviron.admin.api")
-api_key = Sys.getenv("API_KEY")
+# readRenviron("inst/config/.Renviron.admin.api")
+# api_key = Sys.getenv("API_KEY")
+
+## Test out general use API key
+api_key = "REDACTED_API_KEY"
 
 ## Define a temporal range to query
 temporal = list(minDate = as.Date("2010-01-01"),
