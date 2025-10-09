@@ -7,6 +7,14 @@
 ## Load libraries
 library(testthat)    ## For testing functions
 library(devtools)    ## For loading all functions in library
+library(covr)        ## For checking code coverage
+
+# Typical development cycle:
+devtools::load_all()           # Load your code
+devtools::test()               # Run all tests
+covr::report()                 # Check coverage
+devtools::check()              # Full package check before release
+
 
 #### Devtools ####
 
@@ -58,3 +66,26 @@ test_that("description of what you're testing", {
   # Assert - check results with expect_*()
 })
 
+##### covr #####
+
+# Generate interactive HTML coverage report
+covr::report()
+
+# Get coverage object
+cov <- covr::package_coverage()
+
+# View coverage summary
+cov
+
+# Find functions with zero coverage
+covr::zero_coverage(cov)
+
+# Coverage for specific file
+covr::file_coverage(
+  source_files = "R/utils.R",
+  test_files = "tests/testthat/test-utils.R"
+)
+
+# Set up CI/CD coverage tracking (GitHub)
+usethis::use_coverage()
+usethis::use_github_action("test-coverage")
