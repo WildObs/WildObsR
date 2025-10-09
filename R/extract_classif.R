@@ -13,8 +13,8 @@
 extract_classif = function(uids = NULL, classif = NULL, request = c("species","genus","family","order","class")){
 
   #warnings
-  if(is.null(uids)){ print("Missing argument 1: IDs. Use taxize::get_ids() to obtain the ids"); break }
-  if(is.null(classif)){ print("Missing argument 2: Classification. Use taxize::classification() to obtain the classification"); break }
+  if(is.null(uids)){ print("Missing argument 1: IDs. Use taxize::get_ids() to obtain the ids"); return(NULL) }
+  if(is.null(classif)){ print("Missing argument 2: Classification. Use taxize::classification() to obtain the classification"); return(NULL) }
 
   #make a table
   sp = data.frame(user_provided_name = attr(uids[[1]],"names")) %>%
