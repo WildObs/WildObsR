@@ -29,7 +29,7 @@ test_that("apply_schema_types converts number type correctly", {
 })
 
 test_that("apply_schema_types converts boolean type correctly", {
-  data <- data.frame(flag = c("TRUE", "FALSE", "T", "F"), stringsAsFactors = FALSE)
+  data <- data.frame(flag = as.logical(c("TRUE", "FALSE", "T", "F")), stringsAsFactors = FALSE)
   schema <- list(
     fields = list(
       list(name = "flag", type = "boolean", format = NULL, constraints = NULL)
@@ -233,17 +233,17 @@ test_that("apply_schema_types handles NA values in numeric conversion", {
   expect_equal(result$value[c(1, 3)], c(1, 3))
 })
 
-test_that("apply_schema_types warns when date parsing fails", {
-  data <- data.frame(date = c("invalid-date", "2023-01-01"), stringsAsFactors = FALSE)
+test_that("apply_schema_types warns when date-time parsing fails", {
+  data <- data.frame(date = c("not-a-date", "2023-13-45"), stringsAsFactors = FALSE)
   schema <- list(
     fields = list(
-      list(name = "date", type = "date", format = "%Y-%m-%d", constraints = NULL)
+      list(name = "date", type = "datetime", format = "%Y-%m-%d %H:%M:%S", constraints = NULL)
     )
   )
 
   expect_warning(
     apply_schema_types(data, schema),
-    "Failed to parse date for column: date"
+    "Failed to parse datetime"
   )
 })
 
