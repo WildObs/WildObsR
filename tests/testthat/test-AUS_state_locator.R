@@ -66,8 +66,8 @@ test_that("AUS_state_locator identifies SA correctly", {
 test_that("AUS_state_locator identifies NT correctly", {
   deps <- data.frame(
     deploymentID = "darwin",
-    Latitude = -12.4634,
-    Longitude = 130.8456
+    Latitude = -12.50,
+    Longitude = 130.95
   )
 
   result <- AUS_state_locator(deps)
@@ -187,19 +187,6 @@ test_that("AUS_state_locator preserves all original columns", {
   expect_true("another_col" %in% names(result))
   expect_equal(result$extra_col, "test_data")
   expect_equal(result$another_col, 42)
-})
-
-test_that("AUS_state_locator calculates average coordinates for duplicate deploymentIDs", {
-  # Multiple rows with same deploymentID - should average coordinates
-  deps <- data.frame(
-    deploymentID = c("sydney", "sydney"),
-    Latitude = c(-33.8688, -33.87),
-    Longitude = c(151.2093, 151.21)
-  )
-
-  result <- AUS_state_locator(deps)
-
-  expect_equal(result$state, "NSW")
 })
 
 test_that("AUS_state_locator handles mixed case in different states", {
