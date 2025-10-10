@@ -513,7 +513,14 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
       # Make a warning statement if there were any observation covariates
       if(length(obs_covs_thin) < length(obs_covs)){
         warning(paste("There was no variation in the observation-level covariate:", paste(setdiff(obs_covs, obs_covs_thin), collapse = " & "), "for the species:", sp, "so it has been removed from the matrix generation function for this species."))
-      }
+        ## Check if this was the only coviarate!
+        if(length(obs_covs_thin) == 0){
+          # if there are no obs covs, make them an empty list
+          comp_mat_list = list()
+          # and skip to the next!
+          next
+        } # end zero lenght condition
+      } # end check for removed covs
 
       ## grab observation covs present across all cams (i.e. ActiveAtDate)
       obs_land_full = dplyr::distinct(dplyr::select(obs_land, all_of(row_col),
