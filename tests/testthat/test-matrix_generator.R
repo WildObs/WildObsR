@@ -3,20 +3,20 @@
 # Helper function to create minimal test data for matrix_generator
 create_test_obs_matrix <- function() {
   data.frame(
-    cellID_10km = c("Cell_A", "Cell_A", "Cell_B", "Cell_B"),
-    scientificName = c("Species A", "Species A", "Species B", "Species A"),
-    count = c(1, 2, 1, 3),
-    totalIndividuals = c(1, 2, 1, 3), # matrix_generator looks for this
-    eventStart = as.POSIXct(c("2023-01-01 10:00:00", "2023-01-02 14:00:00",
-                               "2023-01-03 12:00:00", "2023-01-04 09:00:00")),
-    eventEnd = as.POSIXct(c("2023-01-01 10:05:00", "2023-01-02 14:05:00",
-                             "2023-01-03 12:05:00", "2023-01-04 09:05:00")),
-    observationStart = as.POSIXct(c("2023-01-01 10:00:00", "2023-01-02 14:00:00",
-                                     "2023-01-03 12:00:00", "2023-01-04 09:00:00")),
-    observationEnd = as.POSIXct(c("2023-01-01 10:05:00", "2023-01-02 14:05:00",
-                                   "2023-01-03 12:05:00", "2023-01-04 09:05:00")),
-    baitUse = c("none", "none", "bait", "none"),
-    numberDeploymentsActiveAtDate = c(1, 1, 1, 1),
+    cellID_10km = c("Cell_A", "Cell_A", "Cell_A", "Cell_B", "Cell_B"),
+    scientificName = c("Species A", "Species A", "Species B", "Species A", "Species B"),
+    count = c(1, 2, 1, 3, 1),
+    totalIndividuals = c(1, 2, 1, 3, 1), # matrix_generator looks for this
+    eventStart = as.POSIXct(c("2023-02-01 10:00:00", "2023-02-01 12:00:00", "2023-02-06 14:00:00",
+                               "2023-02-09 12:00:00", "2023-02-22 09:00:00")),
+    eventEnd = as.POSIXct(c("2023-02-01 10:05:00", "2023-02-01 12:05:00",  "2023-02-06 14:05:00",
+                             "2023-02-09 12:05:00", "2023-02-22 09:05:00")),
+    observationStart = as.POSIXct(c("2023-02-01 10:00:00", "2023-02-01 12:00:00", "2023-02-06 14:00:00",
+                                     "2023-02-09 12:00:00", "2023-02-22 09:00:00")),
+    observationEnd = as.POSIXct(c("2023-02-01 10:05:00", "2023-02-01 12:05:00",  "2023-02-06 14:05:00",
+                                   "2023-02-09 12:05:00", "2023-02-22 09:05:00")),
+    baitUse = c("none", "none", "bait", "bait", "bait"),
+    numberDeploymentsActiveAtDate = c(1, 1, 1, 2, 1),
     stringsAsFactors = FALSE
   )
 }
@@ -25,8 +25,8 @@ create_test_covs_matrix <- function() {
   data.frame(
     cellID_10km = c("Cell_A", "Cell_B"),
     locationName = c("Site1", "Site2"),
-    samplingStart = as.POSIXct(c("2023-01-01 08:00:00", "2023-01-03 08:00:00")),
-    samplingEnd = as.POSIXct(c("2023-01-05 18:00:00", "2023-01-07 18:00:00")),
+    samplingStart = as.POSIXct(c("2023-02-01 08:00:00", "2023-02-02 08:00:00")),
+    samplingEnd = as.POSIXct(c("2023-02-23 18:00:00", "2023-02-24 18:00:00")),
     Avg_latitude = c(-17.5, -17.6),
     Avg_longitude = c(145.5, 145.6),
     mode_habitat = c("forest", "grassland"),
@@ -182,7 +182,7 @@ test_that("matrix_generator creates observation_level_covariates", {
 
   result <- matrix_generator(obs, covs, dur = 10, w = 2,
                               site_covs = c("mode_habitat"),
-                              obs_covs = c("cameraHeight"),
+                              obs_covs = c("baitUse"),
                               all_locationNames = TRUE,
                               scientificNames = "Species A",
                               type = "occupancy",
@@ -190,7 +190,7 @@ test_that("matrix_generator creates observation_level_covariates", {
 
   expect_true("observation_level_covariates" %in% names(result$Species_A))
   expect_type(result$Species_A$observation_level_covariates, "list")
-})
+}) ### Obs covs have always been tricky!!!
 
 # Tests for occupancy vs abundance ----
 
@@ -198,7 +198,7 @@ test_that("matrix_generator type='occupancy' creates binary matrix", {
   obs <- create_test_obs_matrix()
   covs <- create_test_covs_matrix()
 
-  result <- matrix_generator(obs, covs, dur = 10, w = 2,
+  result <- matrix_generator(obs, covs, dur = 20, w = 2,
                               site_covs = c("mode_habitat"),
                               obs_covs = character(0),
                               all_locationNames = TRUE,
@@ -358,7 +358,7 @@ test_that("matrix_generator compresses sampling occasions correctly", {
   obs <- create_test_obs_matrix()
   covs <- create_test_covs_matrix()
 
-  result <- matrix_generator(obs, covs, dur = 10, w = 2,
+  result <- matrix_generator(obs, covs, dur = 20, w = 2,
                               site_covs = c("mode_habitat"),
                               obs_covs = character(0),
                               all_locationNames = TRUE,
@@ -367,8 +367,8 @@ test_that("matrix_generator compresses sampling occasions correctly", {
                               individuals = "sum")
 
   mat <- result$Species_A$detection_matrix
-  # Number of columns should be dur/w = 10/2 = 5
-  expect_equal(ncol(mat), 5)
+  # Number of columns should be dur/w = 20/2 = 5
+  expect_equal(ncol(mat), 10)
 })
 
 test_that("matrix_generator adjusts dur if max_seq is smaller", {
@@ -446,13 +446,13 @@ test_that("matrix_generator creates observation covariate matrices", {
   obs <- create_test_obs_matrix()
   covs <- create_test_covs_matrix()
 
-  result <- matrix_generator(obs, covs, dur = 10, w = 2,
+  result <- matrix_generator(obs, covs, dur = 10, w = 10,
                               site_covs = c("mode_habitat"),
                               obs_covs = c("numberDeploymentsActiveAtDate"),
                               all_locationNames = TRUE,
                               scientificNames = "Species A",
                               type = "occupancy",
-                              individuals = "sum")
+                              individuals = "sum") # come here!
 
   obs_covs <- result$Species_A$observation_level_covariates
   expect_true("numberDeploymentsActiveAtDate" %in% names(obs_covs))
@@ -487,10 +487,10 @@ test_that("matrix_generator cap_count=FALSE does not cap counts", {
     scientificName = "Species A",
     count = 50,
     totalIndividuals = 50,
-    eventStart = as.POSIXct("2023-01-05 10:00:00"),
-    eventEnd = as.POSIXct("2023-01-05 10:05:00"),
-    observationStart = as.POSIXct("2023-01-05 10:00:00"),
-    observationEnd = as.POSIXct("2023-01-05 10:05:00"),
+    eventStart = as.POSIXct("2023-02-05 10:00:00"),
+    eventEnd = as.POSIXct("2023-02-05 10:05:00"),
+    observationStart = as.POSIXct("2023-02-05 10:00:00"),
+    observationEnd = as.POSIXct("2023-02-05 10:05:00"),
     baitUse = "none",
     numberDeploymentsActiveAtDate = 1
   ))
@@ -519,10 +519,10 @@ test_that("matrix_generator cap_count=TRUE caps high counts", {
       scientificName = "Species A",
       count = 20,
       totalIndividuals = 20,
-      eventStart = as.POSIXct(paste0("2023-01-0", (i %% 5) + 1, " ", 10 + i, ":00:00")),
-      eventEnd = as.POSIXct(paste0("2023-01-0", (i %% 5) + 1, " ", 10 + i, ":05:00")),
-      observationStart = as.POSIXct(paste0("2023-01-0", (i %% 5) + 1, " ", 10 + i, ":00:00")),
-      observationEnd = as.POSIXct(paste0("2023-01-0", (i %% 5) + 1, " ", 10 + i, ":05:00")),
+      eventStart = as.POSIXct(paste0("2023-02-0", (i %% 5) + 1, " ", 10 + i, ":00:00")),
+      eventEnd = as.POSIXct(paste0("2023-02-0", (i %% 5) + 1, " ", 10 + i, ":05:00")),
+      observationStart = as.POSIXct(paste0("2023-02-0", (i %% 5) + 1, " ", 10 + i, ":00:00")),
+      observationEnd = as.POSIXct(paste0("2023-02-0", (i %% 5) + 1, " ", 10 + i, ":05:00")),
       baitUse = "none",
       numberDeploymentsActiveAtDate = 1
     ))
@@ -549,13 +549,13 @@ test_that("matrix_generator handles single species with single detection", {
   # Need to update covs to match the single cell
   covs <- create_test_covs_matrix()[1, ]
 
-  result <- matrix_generator(obs, covs, dur = 10, w = 2,
+  expect_warning(result <- matrix_generator(obs, covs, dur = 10, w = 2,
                               site_covs = c("mode_habitat"),
                               obs_covs = character(0),
                               all_locationNames = TRUE,
                               scientificNames = "Species A",
                               type = "occupancy",
-                              individuals = "sum")
+                              individuals = "sum")) # this shouldnt happen and should generate a warning!
 
   expect_true(is.matrix(result$Species_A$detection_matrix))
 })
@@ -575,3 +575,4 @@ test_that("matrix_generator returns list structure", {
   expect_type(result, "list")
   expect_type(result$Species_A, "list")
 })
+
