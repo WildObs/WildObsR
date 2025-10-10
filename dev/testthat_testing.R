@@ -22,7 +22,7 @@ devtools::check()              # Full package check before release
 devtools::load_all()
 
 ## Test one function
-devtools::test_active_file("tests/testthat/test-apply_schema_types.R")
+devtools::test_active_file("tests/testthat/test-spatial_hexagon_generator.R")
 
 # Run all tests in tests/testthat/ (i.e. entire package)
 devtools::test()
