@@ -23,3 +23,4 @@ long_to_UTM_zone(long) # output is 3 different utm zones.
 \author{
 Zachary Amir & ChatGPT
 }
+\keyword{internal}
