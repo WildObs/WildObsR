@@ -22,7 +22,7 @@
 #' closest_matches <- find_closest_match(missing_species, verified_species)
 #' print(closest_matches)
 #'
-#' @export
+#' @keywords internal
 find_closest_match <- function(string, target_strings) {
 
   # Function to find the closest match for each species name

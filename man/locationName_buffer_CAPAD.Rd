@@ -44,6 +44,7 @@ This function assumes that the CAPAD shapefile is properly formatted and contain
 The function uses the \code{terra} package for spatial processing.
 }
 \examples{
+\dontrun{
 # Example usage:
 dep <- data.frame(
   deploymentID = c("dep1", "dep2"),
@@ -57,6 +58,7 @@ buffered_dep <- locationName_buffer_CAPAD(dep, buffer_size = 10000,
 
 # View results
 head(buffered_dep)
+}
 
 }
 \author{

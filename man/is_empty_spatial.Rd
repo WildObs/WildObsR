@@ -28,3 +28,4 @@ is_empty_spatial("polygon")   # FALSE
 \author{
 Zachary Amir & ChatGPT
 }
+\keyword{internal}

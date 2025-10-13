@@ -5,11 +5,13 @@
 #' This is acheived by taking each missing species name, searching the common name column of binomial verifeid and suggesting replacements to the user from binomial_verified for any matches to the common name.
 #' If a common_name is not found it will tell you.
 #'
-#' @param data_caps The observations tabular data that contains all observed species, with names stored in a column named either 'Species' or 'scientificName'
-#' @param data_verified The WildObs verified taxonomy database, containing all user provided names (common and not) and the corresponding verified binomial nomenclature with links to GBIF & NCBI
-#' @param interactive A logical value. If 'TRUE', the user will manually verify when there are multiple different binomial names. If 'FALSE', multiple binomial names are skipped.
 #'
-#' @return The function updates the species names in the observations tabular data (parameter 'data_caps') with the verified binomial nomenclature.
+#' @param obs_data A data frame containing observation data with a species column (either "scientificName" or "Species")
+#' @param verified_data A data frame with verified species information containing columns: Common_name, user_provided_name, and binomial_verified
+#' @param interactive Logical. If TRUE, prompts user to choose replacement when multiple matches exist (default: FALSE)
+#'
+#' @return The obs_data data frame with scientificName column updated with verified binomial nomenclature where matches were found
+#'
 #'
 #' @details
 #' The function can work interactivtly, allowing users to verify a name is correct or not.
@@ -21,129 +23,132 @@
 #' it gets skipped for closer inspection later, but prints a message to let us know.
 #'
 #' @examples
-#' obs <- update_common_to_binomial(obs, verified, interactive = FALSE)
-#' @author Tom Bruce & Zachary Amir
+#' \dontrun{
+#' obs <- data.frame(Species = c("Red Fox", "Coyote", "Lace monitor"))
+#' verified <- data.frame(
+#'   Common_name = c("Red Fox", "Coyote", "goanna"),
+#'   user_provided_name = c("fox", "", ""),
+#'   binomial_verified = c("Vulpes vulpes", "Canis latrans", "Varanus varius")
+#' )
+#' update_common_to_binomial(obs, verified)
+#' }
+#' @author Tom Bruce & Zachary Amir & Shinyen Chiu
 #' @export
-update_common_to_binomial <- function(data_caps, data_verified, interactive = FALSE) {
+update_common_to_binomial <- function(obs_data, verified_data, interactive = FALSE) {
 
   #First check our column names for what we need for this function to work that could differ between camtrapDP and OG
   #deploymentID = deployment_id
   #scientificName = Species
 
-  # Store the original column names
-  original_colnames = colnames(data_caps)
-
-  # Create flags to track if we need to rename columns back at the end
-  changed_deployment_id = FALSE
-  changed_species = FALSE
+  # # Store the original column names
+  # original_colnames = colnames(obs_data)
+  #
+  # # Create flags to track if we need to rename columns back at the end
+  # changed_deployment_id = FALSE
+  # changed_species = FALSE
 
   # Check and rename columns if necessary
-  if ("deployment_id" %in% colnames(data_caps)) {
-    colnames(data_caps)[colnames(data_caps) == "deployment_id"] = "deploymentID"
+  if ("deployment_id" %in% colnames(obs_data)) {
+    colnames(obs_data)[colnames(obs_data) == "deployment_id"] = "deploymentID"
     changed_deployment_id = TRUE
   }
 
-  if ("Species" %in% colnames(data_caps)) {
-    colnames(data_caps)[colnames(data_caps) == "Species"] = "scientificName"
+  if ("Species" %in% colnames(obs_data)) {
+    colnames(obs_data)[colnames(obs_data) == "Species"] = "scientificName"
     changed_species = TRUE
   }
 
-  #Then identify our missing species names that might need changing.
+  # Lowercase for case-insensitive matching
+  obs_lower <- tolower(obs_data$scientificName)
+  verified_common_lower <- tolower(verified_data$Common_name)
+  verified_user_lower <- tolower(verified_data$user_provided_name)
 
-  missing_names <- setdiff(setdiff(data_caps$scientificName, data_verified$user_provided_name), data_verified$binomial_verified)#identify the missing names by comparing the Species from caps, to user_provided_name and binomial verified in verified.
+  # Create mapping from common/user names to binomial
+  name_map <- setNames(verified_data$binomial_verified, verified_common_lower)
+  name_map_user <- setNames(verified_data$binomial_verified, verified_user_lower)
 
-  for (missing_name in missing_names) { #Then for each missing name
-    matching_rows <- which(tolower(data_verified$Common_name) == tolower(missing_name)) #Search the common_names in verified for the missing name with both forced to be lower case and extract the row numbers of verified
+  # First try matching common names
+  match_common <- name_map[obs_lower]
 
-    if (length(matching_rows) > 0) { #If there is a match
+  # If no match from common names, try user_provided_name
+  no_match <- is.na(match_common)
+  match_common[no_match] <- name_map_user[obs_lower[no_match]]
 
-      if (interactive == TRUE) { # if we want an interactive session,
+  # Get unique unmatched names to check for interactive resolution
+  unmatched_names <- unique(obs_data$scientificName[is.na(match_common)])
 
-        #Print the missing name of the species
+  ### Apply logic to correcting names based on interactive or not
+  if (interactive && length(unmatched_names) > 0) {
+    for (missing_name in unmatched_names) {
+      # Find all matching rows in verified_data (case-insensitive)
+      matching_rows <- which(tolower(verified_data$Common_name) == tolower(missing_name))
+
+      # if there are matching rows
+      if (length(matching_rows) > 0) {
+        # give us a message
         cat("Species:", missing_name, "\n")
-        #Tell the user the following could be possible replacements
         cat("Possible replacements based on Common_name:\n")
-
-        for (i in seq_along(matching_rows)) { #For each row in match_rows,
-
-          #Show the options using the index row numbers to extract each possible binomial_verified from the verified dataframe
-          cat("[",i,"]", data_verified$binomial_verified[matching_rows[i]], "\n")
+        # and print each option
+        for (i in seq_along(matching_rows)) {
+          cat("[", i, "] ", verified_data$binomial_verified[matching_rows[i]], "\n", sep = "")
         }
+        # solicit feedback
+        cat("Do you want to use a suggested replacement? (Enter the number, press Enter to skip): ")
+        user_input <- as.numeric(readline())
 
-        cat("Do you want to use a suggested replacement? (Enter the number, press Enter to skip): ") #Ask the user if they want to choose one of the options
-        user_input <- as.numeric(readline()) #This is the interactive part where it will assign the number the user enters to user_input
+        # if there was a replacement
+        if (!is.na(user_input) && user_input >= 1 && user_input <= length(matching_rows)) {
+          # make the replacement
+          chosen_replacement <- verified_data$binomial_verified[matching_rows[user_input]]
+          obs_data$scientificName[obs_data$scientificName == missing_name] <- chosen_replacement
+        }
+      } else {
+        # No matching rows found - offer manual entry
+        cat("No matching Common_name found for: '", missing_name, "'\n", sep = "")
+        cat("Would you like to enter a new binomial name? (y/n): ")
+        user_response <- tolower(readline())
+        # take the new name if yes
+        if (user_response == "y") {
+          cat("Enter the binomial name for '", missing_name, "': ", sep = "")
+          new_binomial <- readline()
+          # save the updated name in scientificeName
+          if (nchar(trimws(new_binomial)) > 0) {
+            obs_data$scientificName[obs_data$scientificName == missing_name] <- trimws(new_binomial)
+            cat("Updated '", missing_name, "' to '", trimws(new_binomial), "'\n", sep = "")
+          } else {
+            # or dont if they didnt provide one
+            cat("No entry provided. Skipping '", missing_name, "'.\n", sep = "")
+          } # end saving condition
+        } # end yes/no condition
+      } # end overall condition for manual entry
+    } # end per missing name
+  } else if (!interactive && length(unmatched_names) > 0) {
+    # Non-interactive mode: check for ambiguous matches
+    for (missing_name in unmatched_names) {
+      matching_rows <- which(tolower(verified_data$Common_name) == tolower(missing_name))
 
-        if (!is.na(user_input) && user_input >= 1 && user_input <= length(matching_rows))
+      if (length(matching_rows) > 1) {
+        chosen_replacement <- unique(verified_data$binomial_verified[matching_rows])
 
-          #IF statment checks as follows:
-          # !is.na(user_input): Check the user input is not NA and  user has provided a number
-
-          #user_input >= 1: Check the user has provided a positive numeric input
-
-          #user_input <= length(matching_rows): Check the user provided number is less than or equal to the length of the availble options i.e. if there are only 3 options but the user enters 4 it cannot be possible and will not change anything and will move to the next species.
-
-          #If all of these are met carry out chosen_replacement.
-
-        {
-          chosen_replacement <- data_verified$binomial_verified[matching_rows[user_input]] #Select the chosen replacement species based on the user's input. take the binomial name from the verified dataframe by extracting the matching row based on the users input
-
-          # Check the number of records for the current species before replacement
-          before_records <- sum(data_caps$scientificName == missing_name)
-
-          data_caps$scientificName[data_caps$scientificName == missing_name] <- chosen_replacement #Replace the current species in the caps data frame with the chosen replacement.
-
-          # Check the number of records for the current species after replacement
-          after_records <- sum(data_caps$scientificName == chosen_replacement)
-
-          if (before_records != after_records) {
-            cat("Warning: The number of records for", missing_name, "changed after replacement. Please review.\n")
-          } # end warning condition
-        } # end user input condition
-
-      }else{ # but if interactive == FALSE
-
-        ## gather the replacement based only on matching rows and ensure there is only one value
-        chosen_replacement <- unique(data_verified$binomial_verified[matching_rows])
-
-        ## If there is more than one value,
-        if(length(chosen_replacement) > 1){
-          ## print a message noting of the original species name to investigate further.
-          cat("Warning: The number of verified binomial nomenclature for",
-              missing_name,
-              "has more than one unique value. Please review outside the function, or turn the interactive argument to TRUE.\n")
-          ## and skip this one and move to the next
+        if (length(chosen_replacement) > 1) {
+          warning("Multiple verified binomials for '", missing_name,
+                  "'. Please review or use interactive = TRUE.", call. = FALSE)
           next
-        }
+        } # end greater than one condition
+      } # end length matching_rows condition
+    } # end missing_name in matching names loop
+  } # end overall conditon
 
-        # Check the number of records for the current species before replacement
-        before_records <- sum(data_caps$scientificName == missing_name)
+  # Replace scientificName where matches were found
+  obs_data$scientificName[!is.na(match_common)] <- match_common[!is.na(match_common)]
 
-        data_caps$scientificName[data_caps$scientificName == missing_name] <- chosen_replacement #Replace the current species in the caps data frame with the chosen replacement.
-
-        # Check the number of records for the current species after replacement
-        after_records <- sum(data_caps$scientificName == chosen_replacement)
-
-        if (before_records != after_records) {
-          cat("Warning: The number of records for", missing_name, "changed after replacement. Please review.\n")
-        } # end warning condition
-
-      } # end interactive condition
-
-    } else {
-      #If there are no matching rows, then there are no species found, so tell us which species.
-      cat("No matching Common_name found for:", missing_name, "\n")
-
-    } # end length of matching rows condition
-  } # end per missing names loop
-
-  # Change the column names back to original if they were changed
-  if (changed_deployment_id) {
-    colnames(data_caps)[colnames(data_caps) == "deploymentID"] <- "deployment_id"
+  # Report any remaining unmatched names
+  remaining_unmatched <- unique(obs_data$scientificName[is.na(match_common)])
+  if (length(remaining_unmatched) > 0) {
+    warning("No matching Common_name or user_provided_name found for: ",
+            paste(remaining_unmatched, collapse = ", "), call. = FALSE)
   }
 
-  if (changed_species) {
-    colnames(data_caps)[colnames(data_caps) == "scientificName"] <- "Species"
-  }
+  return(obs_data)
 
-  return(data_caps)
 } # end function
