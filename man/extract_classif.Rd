@@ -27,3 +27,4 @@ This function helps create the WildObs verified taxonomy database by wrangling t
 \author{
 Nathan Travell (I think?)
 }
+\keyword{internal}

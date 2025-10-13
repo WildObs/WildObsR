@@ -9,7 +9,7 @@
 #'
 #' @return Creates a dataframe that matches the format of the WildObs verified taxonomy database.
 #' @author Nathan Travell (I think?)
-#' @export
+#' @keywords internal
 extract_classif = function(uids = NULL, classif = NULL, request = c("species","genus","family","order","class")){
 
   #warnings

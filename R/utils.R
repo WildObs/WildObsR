@@ -26,7 +26,7 @@
 #'
 #' @author Zachary Amir & ChatGPT
 #'
-#' @export
+#' @keywords internal
 convert_df_to_list <- function(df) {
   if (is.data.frame(df)) {
     # Convert first row to list and flatten any list-like columns
@@ -74,7 +74,7 @@ convert_df_to_list <- function(df) {
 #'
 #' @author Zachary Amir & ChatGPT
 #'
-#' @export
+#' @keywords internal
 is_empty_spatial <- function(x) {
   is.null(x) || all(is.na(x)) || x == "NULL" #|| !is.character(x)
 }
@@ -100,7 +100,7 @@ is_empty_spatial <- function(x) {
 #'
 #' @author Zachary Amir & ChatGPT
 #'
-#' @export
+#' @keywords internal
 is_empty_temporal = function(x) {
   if (is.data.frame(x) && all(is.na(x[1, ]))) return(TRUE)  # Check if all values in the first row are NA
   if (is.atomic(x) && all(is.na(x))) return(TRUE)  # Handle direct NA values like `timeZone`
@@ -130,7 +130,7 @@ is_empty_temporal = function(x) {
 #'
 #' @author Zachary Amir & ChatGPT
 #'
-#' @export
+#' @keywords internal
 clean_list_recursive <- function(x) {
   ## Remember! resources > schema > fields
   if (is.list(x)) {
@@ -170,7 +170,7 @@ clean_list_recursive <- function(x) {
 #'
 #' @author Zachary Amir & ChatGPT
 #'
-#' @export
+#' @keywords internal
 reformat_fields <- function(fields) {
   ## can load data for testing.
   # fields = resources[resources$name == "deployments",]
@@ -223,7 +223,7 @@ reformat_fields <- function(fields) {
 #'
 #' @author Zachary Amir & ChatGPT
 #'
-#' @export
+#' @keywords internal
 reformat_schema <- function(schema) {
   ## can load data for testing:
   # schema = resources[resources$name == "deployments", "schema"]
@@ -240,7 +240,20 @@ reformat_schema <- function(schema) {
 
 
 
-# Quick function for mode, since R doesnt have a built in one
+#' Calculate Mode of a Vector
+#'
+#' Returns the most frequently occurring value in a vector.
+#'
+#' @param x A vector of values
+#'
+#' @return The mode (most frequent value) in the vector, or NA if the input
+#'   is empty or all values are NA
+#'
+#' @examples
+#' Mode(c(1, 2, 2, 3, 3, 3))
+#' Mode(c("a", "b", "b", "c"))
+#'
+#' @keywords internal
 Mode <- function(x) {
   x <- x[!is.na(x)]  # Remove NA values
   if (length(x) == 0) {
@@ -251,8 +264,27 @@ Mode <- function(x) {
 }
 
 
-
-## Quick function for converting vector of km2 areas to a named vector list for spatial_hexagon_generator()
+#' Convert Area to Hexagon Apothem
+#'
+#' Calculates the apothem (distance from center to midpoint of side) for
+#' a regular hexagon given its area in square meters.
+#'
+#' @param area_m2 Numeric vector of hexagon areas in square meters.
+#'   Must be positive values.
+#'
+#' @return A numeric vector of apothem values (in meters) with names
+#'   indicating the original area (formatted as "km2" or "m2")
+#'
+#' @details
+#' Calculates hexagon dimensions using standard formulas:
+#' side length = sqrt((2 * area) / (3 * sqrt(3)))
+#' apothem = (side * sqrt(3)) / 2
+#'
+#' @examples
+#' area_to_apothem(1e6)  # 1 km²
+#' area_to_apothem(c(1e6, 5e6))  # Multiple areas
+#'
+#' @keywords internal
 area_to_apothem <- function(area_m2) {
   if (!is.numeric(area_m2) || any(area_m2 <= 0)) {
     stop("`scales` must be numeric and positive, representing area in square meters (m2).")
@@ -276,3 +308,344 @@ area_to_apothem <- function(area_m2) {
   # return the vector
   return(apothem)
 }
+
+#
+##
+### Data mob blank template functions
+##
+#
+
+#' Rename or Add a Column
+#'
+#' Renames an existing column or creates a new column with NA values if the
+#' old column name is not provided.
+#'
+#' @param df A data frame
+#' @param new_name Character string of the new column name
+#' @param old_name Character string of the old column name. If empty, NA, or
+#'   length 0, a new column is created instead.
+#'
+#' @return A data frame with the renamed or new column
+#'
+#' @examples
+#' df <- data.frame(x = 1:3, y = 4:6)
+#' rename_or_add_column(df, "new_col", "x")
+#' rename_or_add_column(df, "blank_col", "")
+#'
+#' @keywords internal
+rename_or_add_column <- function(df, new_name, old_name) {
+  if (length(old_name) == 0 || is.na(old_name) || old_name == "") {
+    df[[new_name]] <- NA  # Create new column with NA
+  } else {
+    names(df)[names(df) == old_name] <- new_name  # Rename column
+  }
+  return(df)
+}
+
+#' Get Decimal Places from Numeric Values
+#'
+#' Extracts the number of decimal places from a numeric value, removing
+#' trailing zeros.
+#'
+#' @param x A numeric value
+#'
+#' @return An integer representing the number of significant decimal places
+#'
+#' @examples
+#' get_decimal_places(12.345)
+#' get_decimal_places(10.5)
+#' get_decimal_places(5.00)
+#'
+#' @keywords internal
+get_decimal_places <- function(x) {
+  x_str <- as.character(x)
+  # Remove trailing zeroes after the decimal
+  decimals <- sub("^[^.]*\\.?", "", x_str)
+  decimals <- gsub("0+$", "", decimals)
+  nchar(decimals)
+}
+
+
+#
+##
+### camDB send data to MongoDB functions
+##
+#
+
+#' Clean Data Frame for MongoDB
+#'
+#' Converts character "NA" strings and NaN values to proper NA values,
+#' preparing the data frame for MongoDB insertion.
+#'
+#' @param df A data frame to clean
+#'
+#' @return A data frame with "NA" character strings and NaN values converted to NA
+#'
+#' @examples
+#' df <- data.frame(x = c(1, NaN, 3), y = c("a", "NA", "c"))
+#' mongo_clean_df(df)
+#'
+#' @keywords internal
+mongo_clean_df <- function(df) {
+  df[] <- lapply(df, function(x) {
+    if (is.character(x)) x[x == "NA"] <- NA
+    if (is.numeric(x)) x[is.nan(x)] <- NA
+    return(x)
+  })
+  return(df)
+}
+
+#' Prepare Document for MongoDB
+#'
+#' Converts date columns to MongoDB extended JSON format and handles
+#' collection-specific formatting requirements.
+#'
+#' @param doc A list or data frame representing a document
+#' @param date_cols Character vector of column names containing dates
+#' @param collection Character string specifying the collection type
+#'   (e.g., "observations")
+#'
+#' @return A list with date columns formatted as MongoDB extended JSON
+#'   (`$date` format) and collection-specific fields processed
+#'
+#' @details
+#' Character date strings are converted to POSIXct format (UTC) before
+#' formatting. POSIXt objects are converted directly to ISO 8601 format.
+#' For the "observations" collection, missing classificationTimestamp
+#' values are set to NA (converted to JSON null).
+#'
+#' @keywords internal
+mongo_prepare_doc <- function(doc, date_cols, collection) {
+  # Process date columns: if x is character, convert it to POSIXct first;
+  # if it’s a valid POSIXt value then convert to MongoDB extended JSON.
+  doc[date_cols] <- lapply(doc[date_cols], function(x) {
+    # If date-time is stored as a character value, try converting it.
+    if (is.character(x)) {
+      dt <- as.POSIXct(x, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+      if (!is.na(dt)) {
+        return(list(`$date` = format(dt, "%Y-%m-%dT%H:%M:%OS3Z")))
+      } else {
+        return(NA)
+      }
+      # but if stored as proper date-time, convert to mongo format
+    } else if (inherits(x, "POSIXt") && !is.na(x)) {
+      return(list(`$date` = format(x, "%Y-%m-%dT%H:%M:%OS3Z")))
+    } else {
+      return(NA)
+    }
+  })
+
+  # For the observations collection: if classificationTimestamp is missing,
+  # set it to NA so that jsonlite converts it to JSON null.
+  if (collection == "observations" && (is.null(doc[["classificationTimestamp"]]) || is.na(doc[["classificationTimestamp"]]))) {
+    doc[["classificationTimestamp"]] <- NA
+  }
+  # return the cleaned up list
+  return(doc)
+}
+
+# Convert a single row (data frame slice) to JSON using our preparation function.
+convert_row_to_json <- function(row, date_cols, collection) {
+  doc <- as.list(row)
+  doc <- mongo_prepare_doc(doc, date_cols, collection)
+  jsonlite::toJSON(doc, auto_unbox = TRUE, na = "null", pretty = FALSE)
+}
+
+#' Convert Data Frame Row to JSON
+#'
+#' Converts a single row to a JSON string with proper MongoDB formatting
+#' for date fields.
+#'
+#' @param row A single row from a data frame (typically obtained via subsetting)
+#' @param date_cols Character vector of column names containing dates
+#' @param collection Character string specifying the collection type
+#'   (e.g., "observations")
+#'
+#' @return A character string containing the JSON representation of the row
+#'
+#' @details
+#' This is a wrapper function that converts a row to a list, applies
+#' MongoDB-specific formatting via `mongo_prepare_doc()`, and then
+#' serializes to JSON with `jsonlite::toJSON()`.
+#'
+#' @keywords internal
+mongo_format_dates <- function(x) {
+  # Check if the value is a character. Adjust the format string if needed.
+  if (is.character(x)) {
+    dt <- as.POSIXct(x, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+    if (!is.na(dt)) {
+      return(list(`$date` = format(dt, "%Y-%m-%dT%H:%M:%OS3Z")))
+    } else {
+      return(NA)
+    }
+  } else if (inherits(x, "POSIXt") && !is.na(x)) {
+    return(list(`$date` = format(x, "%Y-%m-%dT%H:%M:%OS3Z")))
+  } else {
+    return(NA)
+  }
+}
+
+#' Convert to Standard Date Format
+#'
+#' Converts various date formats (including Unix epoch timestamps) to
+#' standard ISO 8601 format.
+#'
+#' @param x A date value: character string, POSIXct, or Date object.
+#'   Can be in multiple formats including ISO 8601, common date-time formats,
+#'   or Unix epoch (seconds since 1970-01-01).
+#'
+#' @return A character string in "YYYY-MM-DD HH:MM:SS" format (UTC),
+#'   or empty string if input is NA or empty
+#'
+#' @details
+#' Attempts to parse input in the following order:
+#' 1. If already a POSIXt or Date object, format directly
+#' 2. Try common date-time string formats
+#' 3. If all digits, treat as Unix epoch timestamp
+#' 4. Return input as-is if parsing fails
+#'
+#' All output times are in UTC timezone.
+#'
+#' @examples
+#' convert_to_standard_date("2022-06-01 12:30:45")
+#' convert_to_standard_date("1654070445")  # Unix epoch
+#' convert_to_standard_date(as.POSIXct("2022-06-01"))
+#'
+#' @keywords internal
+convert_to_standard_date <- function(x) {
+  ## Assuming x here is a single element
+
+  # Remove extraneous whitespace:
+  x <- trimws(x)
+
+  # If x is NA or an empty string, return an empty string.
+  if (is.na(x) || x == "") return("")
+
+  # If x is already a date-time (POSIXct), simply format it:
+  if(inherits(x, "POSIXt") || inherits(x, "Date")) {
+    return(format(x, "%Y-%m-%d %H:%M:%S", tz = "UTC"))
+  }
+
+  # Otherwise, assume x is a character string.
+  # First, try to parse it using common formats.
+  dt <- tryCatch(
+    as.POSIXct(x, tz = "UTC", tryFormats = c("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%OS")),
+    error = function(e) NA
+  )
+
+  if (!is.na(dt)) {
+    return(format(dt, "%Y-%m-%d %H:%M:%S", tz = "UTC"))
+  }
+
+  # If that fails, check if the string is only digits (i.e. a Unix epoch)
+  if (grepl("^[0-9]+$", x)) {
+    dt_epoch <- tryCatch(
+      as.POSIXct(as.numeric(x), origin = "1970-01-01", tz = "UTC"),
+      error = function(e) NA
+    )
+    if (!is.na(dt_epoch)) {
+      return(format(dt_epoch, "%Y-%m-%d %H:%M:%S", tz = "UTC"))
+    }
+  }
+
+  # Otherwise, return x as is (or NA)
+  return(x)
+}
+
+#' Canonicalize Data Frame for Comparison
+#'
+#' Standardizes a data frame for consistent comparison by converting dates,
+#' rounding numerics, and normalizing missing values.
+#'
+#' @param df A data frame to canonicalize
+#' @param date_cols Character vector of column names containing dates
+#' @param numeric_round Integer specifying decimal places for rounding
+#'   numeric columns (default: 2)
+#'
+#' @return A data frame with all columns as character strings, dates
+#'   standardized, numerics rounded and NaN converted to NA, columns
+#'   sorted alphabetically, and missing values normalized to empty strings
+#'
+#' @details
+#' This function prepares data frames for comparison by:
+#' 1. Converting specified date columns using `convert_to_standard_date()`
+#' 2. Rounding numeric columns and replacing NaN with NA
+#' 3. Converting all columns to character type
+#' 4. Standardizing missing values (NA and "" treated as equivalent)
+#' 5. Sorting columns alphabetically
+#'
+#' @examples
+#' df <- data.frame(
+#'   name = c("Alice", "Bob"),
+#'   date = c("2022-06-01", "2022-07-15"),
+#'   value = c(1.234, 5.678)
+#' )
+#' canonicalize_df(df, date_cols = "date", numeric_round = 2)
+#'
+#' @keywords internal
+canonicalize_df <- function(df, date_cols, numeric_round = 2) {
+  df_copy <- as.data.frame(df, stringsAsFactors = FALSE)  # Convert input to data.frame
+
+  # Process date columns using our helper function.
+  for (col in date_cols) {
+    if (col %in% names(df_copy)) {
+      # Use sapply to apply the function elementwise.
+      df_copy[[col]] <- sapply(df_copy[[col]], convert_to_standard_date)
+    }
+  }
+
+  # Identify numeric columns and round them to 1 decimal places (or adjust as needed).
+  numeric_cols <- sapply(df_copy, is.numeric)
+  # For these columns, replace NaN with NA, then round to the value provided in the function
+  df_copy[numeric_cols] <- lapply(df_copy[numeric_cols], function(x) {
+    x[is.nan(x)] <- NA
+    round(x, numeric_round)
+  })
+
+  # Convert all columns to character to have a consistent basis for comparison.
+  df_char <- data.frame(lapply(df_copy, as.character), stringsAsFactors = FALSE)
+
+  # For all character columns, standardize missing values:
+  # Replace NA with "" so that both NA and "" are treated equally.
+  for (col in names(df_char)) {
+    if (is.character(df_char[[col]])) {
+      df_char[[col]][is.na(df_char[[col]])] <- ""
+    }
+  }
+
+  # Order the columns alphabetically for consistency.
+  df_char <- df_char[, sort(names(df_char))]
+
+  return(df_char)
+}
+
+#' Compute Row Hashes
+#'
+#' Generates a hash for each row in a data frame to enable row-level
+#' comparison and duplicate detection.
+#'
+#' @param df A data frame
+#'
+#' @return A character vector of hash values (one per row), computed using
+#'   MD5 algorithm via `digest::digest()`
+#'
+#' @details
+#' Columns are sorted alphabetically before hashing to ensure consistent
+#' hash values across data frames with the same data in different column orders.
+#' Row values are concatenated with "||" separator before hashing.
+#'
+#' @examples
+#' df <- data.frame(x = 1:3, y = c("a", "b", "c"))
+#' compute_row_hashes(df)
+#'
+#' @keywords internal
+compute_row_hashes <- function(df) {
+  # Ensure the columns are in a consistent order.
+  df <- df[, sort(names(df)), drop = FALSE]
+  # for each row,
+  apply(df, 1, function(row) {
+    # Create the hashes using digest and concatenate all values with a separator.
+    digest(paste(row, collapse = "||"))
+  })
+}
+
