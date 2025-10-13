@@ -121,7 +121,7 @@ check_schema <- function(chosen_schema, data) {
     ### Now add another quick exception for ISO8601 dates in character format
     if(data_type == "character" & expected_type == "POSIXct"){
       # establish the regex for ISO8601 date-times
-      iso_regex <- "^\\d{4}-\\d{2}-\\d{2}([ T]([0-2]\\d:[0-5]\\d(:[0-5]\\d)?(\\.\\d+)?(Z|[+-][0-2]\\d:[0-5]\\d)?))?$"
+      iso_regex <- "^\\d{4}-\\d{2}-\\d{2}([ T]([0-2]\\d:[0-5]\\d(:[0-5]\\d)?(\\.\\d+)?(Z|[+-][0-2]\\d:?[0-5]\\d)?))?$"
       # if the iso format is present in the data
       if(any(grepl(iso_regex, data[[field_name]]))){
         # update datatype to be date-time
