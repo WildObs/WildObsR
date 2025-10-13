@@ -1,3 +1,8 @@
+<div style="display: flex; align-items: center; gap: 20px;">
+  <img src="man/figures/WildObsLogo_green.svg" style="width: 75%; height: auto;" alt="WildObsR logo"/>
+  <img src="man/figures/wildobs.svg" style="width: 25%; height: auto;" alt="WildObsR icon"/>
+</div>
+
 # WildObsR
 
 [![R Package](https://img.shields.io/badge/R-package-blue.svg)](https://www.r-project.org/)
