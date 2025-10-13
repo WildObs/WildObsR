@@ -1,6 +1,6 @@
-<div style="display: flex; align-items: center; gap: 20px;">
-  <img src="man/figures/WildObsLogo_green.svg" style="width: 75%; height: auto;" alt="WildObsR logo"/>
-  <img src="man/figures/wildobs.svg" style="width: 25%; height: auto;" alt="WildObsR icon"/>
+<div style="display: flex; align-items: center; gap: 20px; flex-wrap: nowrap;">
+  <img src="man/figures/WildObsLogo_green.svg" style="width: 50%; height: auto;" alt="WildObsR logo"/>
+  <img src="man/figures/wildobs.svg" style="width: 20%; height: auto;" alt="WildObsR icon"/>
 </div>
 
 # WildObsR
