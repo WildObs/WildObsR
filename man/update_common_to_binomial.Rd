@@ -4,17 +4,17 @@
 \alias{update_common_to_binomial}
 \title{Update common names to binomial nomenclature}
 \usage{
-update_common_to_binomial(data_caps, data_verified, interactive = FALSE)
+update_common_to_binomial(obs_data, verified_data, interactive = FALSE)
 }
 \arguments{
-\item{data_caps}{The observations tabular data that contains all observed species, with names stored in a column named either 'Species' or 'scientificName'}
+\item{obs_data}{A data frame containing observation data with a species column (either "scientificName" or "Species")}
 
-\item{data_verified}{The WildObs verified taxonomy database, containing all user provided names (common and not) and the corresponding verified binomial nomenclature with links to GBIF & NCBI}
+\item{verified_data}{A data frame with verified species information containing columns: Common_name, user_provided_name, and binomial_verified}
 
-\item{interactive}{A logical value. If 'TRUE', the user will manually verify when there are multiple different binomial names. If 'FALSE', multiple binomial names are skipped.}
+\item{interactive}{Logical. If TRUE, prompts user to choose replacement when multiple matches exist (default: FALSE)}
 }
 \value{
-The function updates the species names in the observations tabular data (parameter 'data_caps') with the verified binomial nomenclature.
+The obs_data data frame with scientificName column updated with verified binomial nomenclature where matches were found
 }
 \description{
 This function is used to convert species names from common names into binomial nomenclature, based off the WildObs verified taxonomy database.
@@ -31,8 +31,16 @@ Any time there is more than one different binomial name to replace the common na
 it gets skipped for closer inspection later, but prints a message to let us know.
 }
 \examples{
-obs <- update_common_to_binomial(obs, verified, interactive = FALSE)
+\dontrun{
+obs <- data.frame(Species = c("Red Fox", "Coyote", "Lace monitor"))
+verified <- data.frame(
+  Common_name = c("Red Fox", "Coyote", "goanna"),
+  user_provided_name = c("fox", "", ""),
+  binomial_verified = c("Vulpes vulpes", "Canis latrans", "Varanus varius")
+)
+update_common_to_binomial(obs, verified)
+}
 }
 \author{
-Tom Bruce & Zachary Amir
+Tom Bruce & Zachary Amir & Shinyen Chiu
 }

@@ -12,7 +12,7 @@
 #' long = c(120, 60, 21)
 #' long_to_UTM_zone(long) # output is 3 different utm zones.
 #'
-#' @export
+#' @keywords internal
 long_to_UTM_zone <- function(long) {
   (floor((long + 180)/6) %% 60) + 1
 }
