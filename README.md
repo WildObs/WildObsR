@@ -5,8 +5,11 @@
 
 # WildObsR
 
+<!-- badges: start -->
 [![R Package](https://img.shields.io/badge/R-package-blue.svg)](https://www.r-project.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Codecov test coverage](https://codecov.io/gh/WildObs/WildObsR/graph/badge.svg)](https://app.codecov.io/gh/WildObs/WildObsR)
+<!-- badges: end -->
 
 > Professional tools for camera trap data management and analysis in R
 
