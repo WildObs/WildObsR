@@ -5,6 +5,9 @@
 #' This is not perfect, but it provides a quick flag to check for anything that might not make sense
 #' e.g. gorillas in the centre of Australia.
 #'
+#' Currently keeping this function internal until fixed.
+#' @keywords internal
+#' @noRd
 #'
 #' @param deps The deployment file with camera coordinates which will take the average these must be labelled as Latitude and Longitude or X and Y, the code will check for both.
 #' @param obs The observations file which will generate the species list to check. There must be a column called Species or scientificName
@@ -19,9 +22,11 @@
 #'
 #' @details The GBIF raster layers that this function relies upon do not live in this R package (for now). These are maintined in the WildObs DropBox account and can be granted access with permission.
 #' @examples
+#' \dontrun{
 #' gbif_folder = "path/to/GBIF/files"
 #' gbif_overlap_result = gbif_check(dep, caps, gbif_folder)
 #' print(gbif_overlap_result)
+#' }
 #' @importFrom terra extract project rast vect
 #' @importFrom dplyr select starts_with
 #' @importFrom tidyselect all_of

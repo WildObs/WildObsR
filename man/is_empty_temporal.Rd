@@ -32,3 +32,4 @@ is_empty_temporal(df2)  # FALSE
 \author{
 Zachary Amir & ChatGPT
 }
+\keyword{internal}
