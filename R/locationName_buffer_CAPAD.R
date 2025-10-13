@@ -27,6 +27,7 @@
 #' @importFrom dplyr distinct
 #'
 #' @examples
+#' \dontrun{
 #' # Example usage:
 #' dep <- data.frame(
 #'   deploymentID = c("dep1", "dep2"),
@@ -40,6 +41,7 @@
 #'
 #' # View results
 #' head(buffered_dep)
+#' }
 #'
 #' @note This function assumes that the CAPAD shapefile is properly formatted and contains fields such as `NAME` and `TYPE_ABBR`.
 #' The function uses the `terra` package for spatial processing.
