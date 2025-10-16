@@ -111,7 +111,7 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
           res <- purrr::map_dfr(el_list$features, function(f) {
             coords <- f$geometry$coordinates[[1]]
             data.frame(
-              name = f$properties$name,
+              locationName = f$properties$name,
               xmin = coords[[1]][[1]],
               ymin = coords[[1]][[2]],
               xmax = coords[[3]][[1]],
@@ -122,7 +122,7 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
           # this handles extraacting coordinates from only one polygon rather than a collection of many
           coords <- el_list$coordinates[[1]]
           res <- data.frame(
-            name = NA,
+            locationName = NA,
             xmin = coords[[1]][[1]],
             ymin = coords[[1]][[2]],
             xmax = coords[[3]][[1]],
