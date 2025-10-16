@@ -58,7 +58,7 @@
 #' @export
 extract_metadata <- function(dp_list, elements = c("contributors", "sources", "licenses", "relatedIdentifiers", "references", "project", "WildObsMetadata", "spatial", "temporal", "taxonomic")){
   # ## testing!!!
-  # elements = c("sources","contributors", "WildObsMetadata")
+  # elements = c("sources","contributors", "WildObsMetadata", "spatial")
 
   ## current supported elements
   supp_el = c("contributors", "sources", "licenses", "relatedIdentifiers", "references", "project", "WildObsMetadata", "spatial", "temporal", "taxonomic")
@@ -103,28 +103,66 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
         next
       }
 
-      # if nothing was found, make res null here
-      if (length(el_list) == 0){ res = NULL} # end zero condition
+      ## Make a special exception for spatial information formatted as a geoJSON
+      if (elements[i] == "spatial") {
+        # if were extracting spatial, first check if the data is formatted as a geoJSON
+        if (!is.null(el_list$type) && el_list$type == "FeatureCollection") {
+          # extract the coordinates of the bounding boxes and save as a dataframe
+          res <- purrr::map_dfr(el_list$features, function(f) {
+            coords <- f$geometry$coordinates[[1]]
+            data.frame(
+              locationName = f$properties$name,
+              xmin = coords[[1]][[1]],
+              ymin = coords[[1]][[2]],
+              xmax = coords[[3]][[1]],
+              ymax = coords[[3]][[2]]
+            )
+          })
+        } else if (!is.null(el_list$type) && el_list$type == "Polygon") {
+          # this handles extraacting coordinates from only one polygon rather than a collection of many
+          coords <- el_list$coordinates[[1]]
+          res <- data.frame(
+            locationName = NA,
+            xmin = coords[[1]][[1]],
+            ymin = coords[[1]][[2]],
+            xmax = coords[[3]][[1]],
+            ymax = coords[[3]][[2]]
+          )
+        } else {
+          # warning("Spatial format not recognized; skipping.")
+          next
+        }
+        # save the type, either polygon (one locationName) or featureCollection (many locaitons)
+        res$type <- el_list$type
+        # and dont forget the id
+        res$DPID <- dp$id
+      }else{
+        # now for all other sorts of elements, handle them normally
 
-      # Check if this is a list of objects (each element is itself a list)
-      # or a single flat object (list of scalars)
-      if (is.list(el_list[[1]]) && !is.data.frame(el_list[[1]])) {
-        # first safely replace NULL values w/ NA to prevent dimension mis-match
-        el_list_clean <- purrr::map(el_list, ~{
-          .x[sapply(.x, is.null)] <- NA
-          .x
-        })
-        # then normally convert the list of objects
-        res <- purrr::map_df(el_list_clean, ~as.data.frame(as.list(.x)))
+        # if nothing was found, make res null here
+        if (length(el_list) == 0){ res = NULL} # end zero condition
 
+        # Check if this is a list of objects (each element is itself a list)
+        # or a single flat object (list of scalars)
+        if (is.list(el_list[[1]]) && !is.data.frame(el_list[[1]])) {
+          # first safely replace NULL values w/ NA to prevent dimension mis-match
+          el_list_clean <- purrr::map(el_list, ~{
+            .x[sapply(.x, is.null)] <- NA
+            .x
+          })
+          # then normally convert the list of objects
+          res <- purrr::map_df(el_list_clean, ~as.data.frame(as.list(.x)))
 
-      } else {
-        # Single flat object or mixed: convert to single-row data frame
-        res = as.data.frame(as.list(el_list))
-      } # end list structure condition
+        } else {
+          # Single flat object or mixed: convert to single-row data frame
+          res = as.data.frame(as.list(el_list))
+        } # end list structure condition
 
-      ## save the ID of the DP in the data frame
-      res$DPID = dp$id
+        ## save the ID of the DP in the data frame
+        res$DPID = dp$id
+
+      } # end else conditon for spatial
+
 
       # Save the results by searching for null elements
       if (is.null(accumulated_results[[elements[i]]])) {
