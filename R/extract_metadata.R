@@ -136,30 +136,33 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
         res$type <- el_list$type
         # and dont forget the id
         res$DPID <- dp$id
-      } # end spatial
+      }else{
+        # now for all other sorts of elements, handle them normally
 
+        # if nothing was found, make res null here
+        if (length(el_list) == 0){ res = NULL} # end zero condition
 
-      # if nothing was found, make res null here
-      if (length(el_list) == 0){ res = NULL} # end zero condition
+        # Check if this is a list of objects (each element is itself a list)
+        # or a single flat object (list of scalars)
+        if (is.list(el_list[[1]]) && !is.data.frame(el_list[[1]])) {
+          # first safely replace NULL values w/ NA to prevent dimension mis-match
+          el_list_clean <- purrr::map(el_list, ~{
+            .x[sapply(.x, is.null)] <- NA
+            .x
+          })
+          # then normally convert the list of objects
+          res <- purrr::map_df(el_list_clean, ~as.data.frame(as.list(.x)))
 
-      # Check if this is a list of objects (each element is itself a list)
-      # or a single flat object (list of scalars)
-      if (is.list(el_list[[1]]) && !is.data.frame(el_list[[1]])) {
-        # first safely replace NULL values w/ NA to prevent dimension mis-match
-        el_list_clean <- purrr::map(el_list, ~{
-          .x[sapply(.x, is.null)] <- NA
-          .x
-        })
-        # then normally convert the list of objects
-        res <- purrr::map_df(el_list_clean, ~as.data.frame(as.list(.x)))
+        } else {
+          # Single flat object or mixed: convert to single-row data frame
+          res = as.data.frame(as.list(el_list))
+        } # end list structure condition
 
-      } else {
-        # Single flat object or mixed: convert to single-row data frame
-        res = as.data.frame(as.list(el_list))
-      } # end list structure condition
+        ## save the ID of the DP in the data frame
+        res$DPID = dp$id
 
-      ## save the ID of the DP in the data frame
-      res$DPID = dp$id
+      } # end else conditon for spatial
+
 
       # Save the results by searching for null elements
       if (is.null(accumulated_results[[elements[i]]])) {
