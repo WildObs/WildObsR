@@ -129,7 +129,7 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
             ymax = coords[[3]][[2]]
           )
         } else {
-          warning("Spatial format not recognized; skipping.")
+          # warning("Spatial format not recognized; skipping.")
           next
         }
         # save the type, either polygon (one locationName) or featureCollection (many locaitons)
