@@ -58,7 +58,7 @@
 #' @export
 extract_metadata <- function(dp_list, elements = c("contributors", "sources", "licenses", "relatedIdentifiers", "references", "project", "WildObsMetadata", "spatial", "temporal", "taxonomic")){
   # ## testing!!!
-  # elements = c("sources","contributors", "WildObsMetadata")
+  # elements = c("sources","contributors", "WildObsMetadata", "spatial")
 
   ## current supported elements
   supp_el = c("contributors", "sources", "licenses", "relatedIdentifiers", "references", "project", "WildObsMetadata", "spatial", "temporal", "taxonomic")
@@ -112,10 +112,10 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
             coords <- f$geometry$coordinates[[1]]
             data.frame(
               name = f$properties$name,
-              xmin = coords[[1]][1],
-              ymin = coords[[1]][2],
-              xmax = coords[[3]][1],
-              ymax = coords[[3]][2]
+              xmin = coords[[1]][[1]],
+              ymin = coords[[1]][[2]],
+              xmax = coords[[3]][[1]],
+              ymax = coords[[3]][[2]]
             )
           })
         } else if (!is.null(el_list$type) && el_list$type == "Polygon") {
@@ -123,10 +123,10 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
           coords <- el_list$coordinates[[1]]
           res <- data.frame(
             name = NA,
-            xmin = coords[[1]][1],
-            ymin = coords[[1]][2],
-            xmax = coords[[3]][1],
-            ymax = coords[[3]][2]
+            xmin = coords[[1]][[1]],
+            ymin = coords[[1]][[2]],
+            xmax = coords[[3]][[1]],
+            ymax = coords[[3]][[2]]
           )
         } else {
           warning("Spatial format not recognized; skipping.")
