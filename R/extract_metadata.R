@@ -109,14 +109,30 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
         if (!is.null(el_list$type) && el_list$type == "FeatureCollection") {
           # extract the coordinates of the bounding boxes and save as a dataframe
           res <- purrr::map_dfr(el_list$features, function(f) {
-            coords <- f$geometry$coordinates[[1]]
-            data.frame(
-              locationName = f$properties$name,
-              xmin = coords[[1]][[1]],
-              ymin = coords[[1]][[2]],
-              xmax = coords[[3]][[1]],
-              ymax = coords[[3]][[2]]
-            )
+            coords <- f$geometry$coordinates
+            # Handle different coordinate structures
+            if (is.array(coords)) {
+              # 3D array structure: extract lon/lat from array
+              lon <- coords[1, , 1]  # First row, all columns, first layer (longitude)
+              lat <- coords[1, , 2]  # First row, all columns, second layer (latitude)
+              data.frame(
+                locationName = f$properties$name %||% NA,
+                xmin = min(lon, na.rm = TRUE),
+                ymin = min(lat, na.rm = TRUE),
+                xmax = max(lon, na.rm = TRUE),
+                ymax = max(lat, na.rm = TRUE)
+              )
+            } else {
+              # List structure: use original indexing
+              coords_list <- coords[[1]]  # MODIFIED: changed from coords to coords_list
+              data.frame(
+                locationName = f$properties$name %||% NA,  # MODIFIED: added %||% NA
+                xmin = coords_list[[1]][[1]],  # MODIFIED: changed from coords
+                ymin = coords_list[[1]][[2]],  # MODIFIED: changed from coords
+                xmax = coords_list[[3]][[1]],  # MODIFIED: changed from coords
+                ymax = coords_list[[3]][[2]]   # MODIFIED: changed from coords
+              )
+            } # end else
           })
         } else if (!is.null(el_list$type) && el_list$type == "Polygon") {
           # this handles extraacting coordinates from only one polygon rather than a collection of many
@@ -133,7 +149,7 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
           next
         }
         # save the type, either polygon (one locationName) or featureCollection (many locaitons)
-        res$type <- el_list$type
+        # res$type <- el_list$type
         # and dont forget the id
         res$DPID <- dp$id
       }else{
@@ -160,7 +176,7 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
 
         ## save the ID of the DP in the data frame
         res$DPID = dp$id
-
+        res$type = NULL # just to be safe
       } # end else conditon for spatial
 
 
