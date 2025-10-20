@@ -415,12 +415,13 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   # if(any(proj_ids == "" | length(proj_ids) == 0)){
   if(length(proj_ids) == 0 || any(proj_ids == "")){
     # print a message
-    warning(paste("There were no matches in our database of the specific parameters provided in your function. This will return all project IDs that match the tabular data sharing preference of", paste0(tabularSharingPreference, collapse = " & ")))
-    # grab em all
-    proj_ids = metadata$id
+    warning("There were no matches in our database of the specific parameters provided in your function. \nThis will return an empty vector instead of any projectIDs.")
+    # Make it empty
+    proj_ids = "" #metadata$id
   }
 
   # return the vector
   proj_ids
 
 } # end function
+
