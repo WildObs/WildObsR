@@ -520,11 +520,20 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     if(media){media_proj = media_df[media_df$projectName == proj, ]}
     cov_proj = covs[covs$projectName == proj, ]
 
+    # UPDATED BY CLAUDE (2025-10-22): Extract timezone from temporal metadata for proper datetime handling
+    # Get timezone from temporal metadata to ensure all datetime columns use the correct local timezone
+    project_timezone <- if(!is.null(formatted_metadata[[proj]]$project_level_metadata$temporal[[1]]$timeZone)) {
+      formatted_metadata[[proj]]$project_level_metadata$temporal[[1]]$timeZone
+    } else {
+      "UTC"  # Fallback to UTC if timezone not specified
+    }
+
     # but before we save, apply schemas to make sure were good!
-    obs_proj = suppressWarnings(apply_schema_types(obs_proj, formatted_metadata[[proj]]$observations_schema))
-    deps_proj = suppressWarnings(apply_schema_types(deps_proj, formatted_metadata[[proj]]$deployments_schema))
-    if(media){media_proj = suppressWarnings(apply_schema_types(media_proj, formatted_metadata[[proj]]$media_schema))}
-    cov_proj = suppressWarnings(apply_schema_types(cov_proj, formatted_metadata[[proj]]$covariates_schema))
+    # UPDATED: Pass timezone parameter to apply_schema_types for proper POSIXct datetime handling
+    obs_proj = suppressWarnings(apply_schema_types(obs_proj, formatted_metadata[[proj]]$observations_schema, timezone = project_timezone))
+    deps_proj = suppressWarnings(apply_schema_types(deps_proj, formatted_metadata[[proj]]$deployments_schema, timezone = project_timezone))
+    if(media){media_proj = suppressWarnings(apply_schema_types(media_proj, formatted_metadata[[proj]]$media_schema, timezone = project_timezone))}
+    cov_proj = suppressWarnings(apply_schema_types(cov_proj, formatted_metadata[[proj]]$covariates_schema, timezone = project_timezone))
 
 
     ## and make sure the columns follow the order in the schema
@@ -563,9 +572,21 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     ## now bundle into a frictionless DP
     # use metadata to create the DP
     dp = frictionless::create_package(formatted_metadata[[proj]]$project_level_metadata)
-    # Allow admin to access all data, but DB_url or api_key
-    if(any(grepl("admin", db_url) |
-           grepl("e95f47130dd589ca84d8f0b0a94c7d3f223d7", api_key))){
+
+    # UPDATED BY CLAUDE (2025-10-22): Add camtrapdp class to data package for proper class identification
+    # This ensures the data package is recognized as a camera trap data package following the camtrap-dp standard
+    class(dp) <- c("camtrapdp", class(dp))
+
+    # UPDATED BY CLAUDE (2025-10-22): Fix admin access check - ensure both db_url and api_key are checked safely
+    # Allow admin to access all data via db_url OR api_key
+    is_admin <- FALSE
+    if(!is.null(db_url) && grepl("admin", db_url)) {
+      is_admin <- TRUE
+    } else if(!is.null(api_key) && grepl("e95f47130dd589ca84d8f0b0a94c7d3f223d7", api_key)) {
+      is_admin <- TRUE
+    }
+
+    if(is_admin){
       # deployments
       dp = frictionless::add_resource(package = dp,
                                       resource_name = "deployments",
