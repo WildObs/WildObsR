@@ -36,10 +36,9 @@ apply_schema_types <- function(data, schema, timezone = "UTC") {
     if (col_name %in% names(data)) {
 
       if (col_type == "datetime") {
-        # UPDATED BY CLAUDE (2025-10-22): Parse datetime with flexible formats and maintain as POSIXct
         # Use provided timezone parameter (from temporal metadata) for proper timezone handling
         tz <- timezone
-
+        # parse the date to posixct safely
         parsed <- tryCatch(
           as.POSIXct(data[[col_name]], format = col_format, tz = tz),
           error = function(e) NULL
@@ -95,7 +94,7 @@ apply_schema_types <- function(data, schema, timezone = "UTC") {
       } else {
         warning(paste("Unknown field type:", col_type, "for column:", col_name))
       }
-    }
-  }
+    } # end per col name
+  } # end per field
   data
 }# end function
