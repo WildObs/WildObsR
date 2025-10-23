@@ -4,13 +4,16 @@
 \alias{apply_schema_types}
 \title{Apply camtrapDP Schemas to Data}
 \usage{
-apply_schema_types(data, schema)
+apply_schema_types(data, schema, timezone = "UTC")
 }
 \arguments{
 \item{data}{A dataframe representing a resource (e.g., observations, deployments).}
 
 \item{schema}{A list representing the schema that defines the expected column types
 and constraints for the dataset.}
+
+\item{timezone}{A character string specifying the timezone for datetime conversions. Defaults to "UTC".
+This parameter is particularly important for camtrap data to ensure temporal alignment across deployments.}
 }
 \value{
 A dataframe with columns transformed according to the schema.
@@ -21,7 +24,7 @@ This function applies the camtrapDP schema to a frictionless data package by con
 \details{
 The function converts columns based on the \code{type} field in the schema:
 \itemize{
-\item \code{"datetime"}: Attempts to parse using multiple common formats and converts to ISO 8601.
+\item \code{"datetime"}: Attempts to parse using multiple common formats and maintains as POSIXct with specified timezone.
 \item \code{"date"}: Converts to \code{Date} class.
 \item \code{"integer"}: Converts to integer.
 \item \code{"number"}: Converts to numeric.

@@ -59,6 +59,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
   ## read in environment file with confidential DB access info
   # readRenviron("inst/config/.Renviron.local.ro") # local version
   # readRenviron("inst/config/.Renviron.prod.ro") # remote version
+  # readRenviron("inst/config/.Renviron.admin.api") # admin api key
   ### NOTE: need to provide a read-only to open/partial shared projects here!!
   # This MUST be done before going public!
 
@@ -72,6 +73,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
   # ## combine all the information into a database-url to enable access
   # db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
   # rm(USER, PASS, HOST, PORT, DATABASE)
+  #
+  # # grab the api key
+  # api_key = Sys.getenv("API_KEY")
 
   ### Determine if we will use the API key or the DB url to access data
   if(!is.null(api_key) && is.null(db_url)){
@@ -134,6 +138,76 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     metadata = mongolite::mongo(db = "wildobs_camdb", collection = "metadata", url = db_url)$find()
   } # end else use_api
 
+
+  #
+  ##
+  ### Define a chatGPT helper function to better extract spatial information
+  format_spatial_to_geojson <- function(spatial_obj) {
+    # Validate input
+    if (!is.data.frame(spatial_obj) || !"bbox" %in% names(spatial_obj))
+      return(NULL)
+
+    # extract bounding box as a data frame
+    bbox_df <- spatial_obj$bbox
+    if (!is.data.frame(bbox_df)) return(NULL)
+
+    # Prepare an empty bbox container
+    bbox_out <- list()
+
+    # Iterate over each location column (each is a bbox entry)
+    for (loc_name in names(bbox_df)) {
+      val <- bbox_df[[loc_name]][[1]]  # extract first (and only) cell value
+
+      # Skip if missing or NULL
+      if (is.null(val) || (is.character(val) && val == "NULL")) next
+
+      # --- CASE 1: already a data.frame with xmin/ymin/xmax/ymax
+      if (is.data.frame(val) && all(c("xmin", "ymin", "xmax", "ymax") %in% names(val))) {
+        bbox_out[[loc_name]] <- list(list(
+          xmin = val$xmin[1],
+          ymin = val$ymin[1],
+          xmax = val$xmax[1],
+          ymax = val$ymax[1]
+        ))
+        next
+      }
+
+      # --- CASE 2: character string like "152.0796, -27.7047, 152.0934, -27.6972"
+      if (is.character(val)) {
+        nums <- suppressWarnings(as.numeric(strsplit(val, "\\s*,\\s*")[[1]]))
+        if (length(nums) == 4 && all(is.finite(nums))) {
+          bbox_out[[loc_name]] <- list(list(
+            xmin = nums[1],
+            ymin = nums[2],
+            xmax = nums[3],
+            ymax = nums[4]
+          ))
+        }
+        next
+      }
+
+      # --- CASE 3: numeric vector already (rare case)
+      if (is.numeric(val) && length(val) == 4) {
+        bbox_out[[loc_name]] <- list(list(
+          xmin = val[1],
+          ymin = val[2],
+          xmax = val[3],
+          ymax = val[4]
+        ))
+        next
+      }
+    }
+
+    # If we collected nothing valid, return NULL
+    if (length(bbox_out) == 0) return(NULL)
+
+    # Construct final geoJSON-style list
+    list(
+      type = "polygon",
+      bbox = bbox_out
+    )
+  } # end function
+
   #
   ##
   ###
@@ -185,20 +259,23 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     ###
     #### Extract spaital ####
 
-    # first grab spatial df
-    s = as.list(meta_list$spatial)
+    # # first grab spatial df
+    # s = as.list(meta_list$spatial)
+    #
+    # # Keep only non-null bounding boxes
+    # s_clean <- purrr:::keep(s$bbox, ~ !is_empty_spatial(.x))
+    #
+    # # convert clean list (no null) into nested structure to match camtrapDP
+    # s_nested = purrr:::map(convert_df_to_list(s_clean), function(bbox) list(bbox))[[1]]
+    #
+    # # Save cleaned spatial data
+    # proj_meta$spatial = list(
+    #   type = s$type,                # Preserve type ("polygon")
+    #   bbox = s_nested[[1]]          # Store formatted bounding boxes
+    # )
 
-    # Keep only non-null bounding boxes
-    s_clean <- purrr:::keep(s$bbox, ~ !is_empty_spatial(.x))
-
-    # convert clean list (no null) into nested structure to match camtrapDP
-    s_nested = purrr:::map(convert_df_to_list(s_clean), function(bbox) list(bbox))[[1]]
-
-    # Save cleaned spatial data
-    proj_meta$spatial = list(
-      type = s$type,                # Preserve type ("polygon")
-      bbox = s_nested[[1]]          # Store formatted bounding boxes
-    )
+    ## Use new chatGPT helper function to handle geoJSON + bboxes + flat bbox
+    proj_meta$spatial <- format_spatial_to_geojson(meta_list$spatial)
 
     #
     ##
@@ -212,16 +289,34 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     t_clean = purrr::keep(t, ~ !is_empty_temporal(.x))
     # verify timezone is present
     if(is.null(t_clean$timeZone) || t_clean$timeZone == ""){
-      # if not, grab spatial information
-      bbox = proj_meta$spatial$bbox
-      # and extract mean lat
-      lat = mean(c(bbox$ymin, bbox$ymax))
-      lon = mean(c(bbox$xmin, bbox$xmax))
-      # and then calculate a new one
-      tz = lutz::tz_lookup_coords(lat,lon, method = "accurate")
+      # assume timezone is NA then
+      tz = NA
+      # grab timezone from spatial informaiton
+      if (!is.null(proj_meta$spatial) && !is.null(proj_meta$spatial$bbox)) {
+        # Extract all numeric lat/lon pairs from nested bbox list
+        bbox_vals <- unlist(proj_meta$spatial$bbox, recursive = TRUE, use.names = FALSE)
+        bbox_nums <- suppressWarnings(as.numeric(bbox_vals))
+        bbox_nums <- bbox_nums[is.finite(bbox_nums)]
+
+        ## verify there are at least 4 bbox coordinates
+        if (length(bbox_nums) >= 4) {
+          xmin <- bbox_nums[1]; ymin <- bbox_nums[2]
+          xmax <- bbox_nums[3]; ymax <- bbox_nums[4]
+          # take the average
+          lat <- mean(c(ymin, ymax), na.rm = TRUE)
+          lon <- mean(c(xmin, xmax), na.rm = TRUE)
+          # and safely feed it into coord tz look up
+          tz <- tryCatch(
+            lutz::tz_lookup_coords(lat, lon, method = "accurate"),
+            error = function(e) NA
+          )
+        } # end length 4 condition
+
+      } # end spatial check conditon
+
       # then save the Tz
       t_clean$timeZone = tz
-    }
+    } #end timeZone presence conditon
     # extract tzone
     tz = t_clean$timeZone
 
@@ -327,7 +422,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
 
   } # end per project name
   # for testing
-  # rm(b, b_tax, meta_list, proj_meta, res_list, resources, meta,
+  # rm(b, b_tax, meta_list, proj_meta, res_list, resources, meta, xmax, ymax, xmin, ymin,
   #    s_clean, s_nested, schema,t_clean, t_nested, tax, tax_list,
   #    t, i,  n, na, name, r, s, final_meta, tz, lat, lon, pattern, bbox)
 
@@ -395,7 +490,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
         filter = list(projectName = project_ids_query))
       ## Media
       media_body = list(
-        collection = "deployments",
+        collection = "media",
         filter = list(projectName = project_ids_query))
     }else{
       ## Specify deployments parameters
@@ -520,7 +615,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     if(media){media_proj = media_df[media_df$projectName == proj, ]}
     cov_proj = covs[covs$projectName == proj, ]
 
-    # UPDATED BY CLAUDE (2025-10-22): Extract timezone from temporal metadata for proper datetime handling
+    # Extract timezone from temporal metadata for proper datetime handling
     # Get timezone from temporal metadata to ensure all datetime columns use the correct local timezone
     project_timezone <- if(!is.null(formatted_metadata[[proj]]$project_level_metadata$temporal[[1]]$timeZone)) {
       formatted_metadata[[proj]]$project_level_metadata$temporal[[1]]$timeZone
@@ -573,11 +668,10 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     # use metadata to create the DP
     dp = frictionless::create_package(formatted_metadata[[proj]]$project_level_metadata)
 
-    # UPDATED BY CLAUDE (2025-10-22): Add camtrapdp class to data package for proper class identification
+    # Add camtrapdp class to data package for proper class identification
     # This ensures the data package is recognized as a camera trap data package following the camtrap-dp standard
-    class(dp) <- c("camtrapdp", class(dp))
+    class(dp) <- c("camtrapdp", class(dp)) # COME HERE!! ZDA thinks there is more to it than just this...
 
-    # UPDATED BY CLAUDE (2025-10-22): Fix admin access check - ensure both db_url and api_key are checked safely
     # Allow admin to access all data via db_url OR api_key
     is_admin <- FALSE
     if(!is.null(db_url) && grepl("admin", db_url)) {
