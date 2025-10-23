@@ -670,7 +670,8 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
 
     # Add camtrapdp class to data package for proper class identification
     # This ensures the data package is recognized as a camera trap data package following the camtrap-dp standard
-    class(dp) <- c("camtrapdp", class(dp)) # COME HERE!! ZDA thinks there is more to it than just this...
+    class(dp) <- c("camtrapdp", class(dp)) # COME HERE!! ZDA thinks there is more to it than just this, since media will need eventID (already present) and taxonomic info in observations.
+    ## ideally we can get someone from INBO to do this cleverly.
 
     # Allow admin to access all data via db_url OR api_key
     is_admin <- FALSE
