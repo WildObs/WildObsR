@@ -12,52 +12,114 @@ create_test_dp <- function(id = "test_dp_001") {
       title = "Test Data Source",
       path = "https://example.com/data"
     ),
-    licenses = list(
-      name = "CC-BY-4.0",
-      scope = "data",
-      path = "https://creativecommons.org/licenses/by/4.0/"
-    ),
+    licenses = list(list(name = "CC-BY-4.0",
+                         scope = "data",
+                         path = "https://creativecommons.org/licenses/by/4.0/"),
+                    list(name = "CC-BY-4.0",
+                         scope = "media",
+                         path = "https://creativecommons.org/licenses/by/4.0/")
+  ),
     relatedIdentifiers = list(
-      list(relationType = "IsDocumentedBy", relatedIdentifier = "doi:10.1234/example"),
-      list(relationType = "IsCitedBy", relatedIdentifier = "doi:10.5678/paper")
+      list(relationType = "IsDocumentedBy", relatedIdentifier = "doi:10.1234/example",
+           resourceTypeGeneral = "DataSet", relatedIdentifierType = "DOI"),
+      list(relationType = "IsCitedBy", relatedIdentifier = "doi:10.5678/paper",
+           resourceTypeGeneral = "JounralArticle", relatedIdentifierType = "DOI")
     ),
-    references = c(
+    references = list(
       "Author et al. (2023) Title. Journal 1:1-10",
       "Smith et al. (2024) Another Title. Journal 2:20-30"
     ),
     project = list(
       id = "project_001",
       title = "Test Camera Trap Project",
-      samplingDesign = "targeted detection"
+      acronym = "TEST",
+      description = "This is a silly description for a silly function created by Claude Code",
+      samplingDesign = "targeted detection",
+      path = "test/path/to/data",
+      captureMethod = "activityDetection",
+      individualAnimals = FALSE,
+      observationLevel = "media",
+      deploymentGroups = c("depGroup1", "depGroup2", "depGroup3")
     ),
     WildObsMetadata = list(
+      thinnedMedia = FALSE,
+      deploymentClusters = "false",
+      fundingAgency = "governmentGrant",
       tabularSharingPreference = "open",
-      metadataContact = "contact@example.com",
-      embargoMonths = 0
+      metadataSharingPreference = "open",
+      groupSizes = FALSE,
+      embargoPeriodMonths = 0,
+      desiredOutputs = "Document with all the info; co-authored pubs b/c thats academic currency",
+      DPID = "test_dp_001",
+      deploymentTags = c("predatorManagement", "bait")
     ),
-    spatial = list(
-      type = "polygon",
-      bbox = list(xmin = 145.0, xmax = 146.0, ymin = -28.0, ymax = -27.0)
-    ),
-    temporal = list(
-      study_period = list(
-        timeZone = "Australia/Brisbane",
-        start = "2023-01-01",
-        end = "2023-12-31"
+  spatial = list(
+    type = "FeatureCollection",
+    features = list(
+      list(
+        type = "Feature",
+        properties = list(name = "Barrington_Tops_NP"),
+        geometry = list(
+          type = "Polygon",
+          coordinates = list(
+            list(list(
+              c(151.3184, -32.0817),
+              c(151.4717, -32.0817),
+              c(151.4717, -31.9883),
+              c(151.3184, -31.9883),
+              c(151.3184, -32.0817)
+            ))
+          )
+        )
+      ),
+      list(
+        type = "Feature",
+        properties = list(name = "Bugan_NR"),
+        geometry = list(
+          type = "Polygon",
+          coordinates = list(
+            list(list(
+              c(152.0271, -31.6249),
+              c(152.0312, -31.6249),
+              c(152.0312, -31.6222),
+              c(152.0271, -31.6222),
+              c(152.0271, -31.6249)
+            ))
+          )
+        )
       )
+    )
+  ),
+  temporal = list(
+    depGroup1 = list(
+      start = "2022-01-18",
+      end   = "2022-04-28"
     ),
+    depGroup2 = list(
+      start = "2022-04-28",
+      end   = "2022-08-06"
+    ),
+    depGroup3 = list(
+      start = "2022-01-08",
+      end   = "2022-04-07"
+    ),
+    timeZone = "Australia/Sydney"
+  ),
     taxonomic = list(
       list(
         scientificName = "Macropus rufus",
-        vernacularNames = list(en = "Red Kangaroo"),
+        taxonID = "fake.url.to.species.authority.com",
+        vernacularNames = "Red Kangaroo",
         taxonRank = "species"
       ),
       list(
-        scientificName = "Sus scrofa",
-        vernacularNames = list(en = "Wild Pig"),
-        taxonRank = "species"
+        scientificName = "Sus",
+        taxonID = "fake.url.to.species.authority.com",
+        vernacularNames = "wild pig",
+        taxonRank = "genus"
       )
-    )
+    ),
+  bibliographicCitation = c("https://doi.org/10.15468/kjqw3f")
   )
 }
 
@@ -199,7 +261,7 @@ test_that("extract_metadata extracts licenses correctly", {
 
   result <- extract_metadata(dp, elements = "licenses")
 
-  expect_equal(nrow(result), 1)
+  expect_equal(nrow(result), 2)
   expect_true("name" %in% names(result))
   expect_equal(result$name[1], "CC-BY-4.0")
 })
@@ -232,16 +294,26 @@ test_that("extract_metadata extracts project correctly", {
 
   expect_equal(nrow(result), 1)
   expect_true("id" %in% names(result))
-  expect_true("title" %in% names(result))
+  expect_true("acronym" %in% names(result))
+  expect_true("description" %in% names(result))
+  expect_true("samplingDesign" %in% names(result))
+  expect_true("captureMethod" %in% names(result))
+  expect_true("individualAnimals" %in% names(result))
+  expect_true("observationLevel" %in% names(result))
+  expect_true("deploymentGroups" %in% names(result))
   expect_equal(result$samplingDesign[1], "targeted detection")
 })
 
 test_that("extract_metadata extracts WildObsMetadata correctly", {
-  dp <- create_test_dp()
+  dp1 <- create_test_dp()
+  dp2 <- create_test_dp()
+  # change one logical value here
+  dp2$WildObsMetadata$deploymentClusters = TRUE
+  dp_list = list(dp1, dp2)
 
-  result <- extract_metadata(dp, elements = "WildObsMetadata")
+  result <- extract_metadata(dp_list, elements = "WildObsMetadata")
 
-  expect_equal(nrow(result), 1)
+  expect_equal(nrow(result), 2)
   expect_true("tabularSharingPreference" %in% names(result))
   expect_equal(result$tabularSharingPreference[1], "open")
 })
@@ -251,10 +323,13 @@ test_that("extract_metadata extracts spatial correctly", {
 
   result <- extract_metadata(dp, elements = "spatial")
 
-  expect_equal(nrow(result), 1)
-  expect_true("type" %in% names(result))
-  # bbox should be flattened into columns
-  expect_true(any(grepl("bbox", names(result), ignore.case = TRUE)))
+  expect_equal(nrow(result), 2)
+  # ensure all bbox elements are present
+  expect_true("xmin" %in% names(result))
+  expect_true("xmax" %in% names(result))
+  expect_true("ymin" %in% names(result))
+  expect_true("ymax" %in% names(result))
+  expect_true("locationName" %in% names(result))
 })
 
 test_that("extract_metadata extracts temporal correctly", {
@@ -262,9 +337,13 @@ test_that("extract_metadata extracts temporal correctly", {
 
   result <- extract_metadata(dp, elements = "temporal")
 
-  expect_equal(nrow(result), 1)
+  expect_equal(nrow(result), 3)
   # Should have columns from the nested structure
-  expect_true(ncol(result) >= 2) # At least study_period and DPID
+  expect_true(ncol(result) >= 2) # At least deploymentGroup and DPID
+  ## make sure time elements are present
+  expect_true("start" %in% names(result))
+  expect_true("end" %in% names(result))
+  expect_true("timeZone" %in% names(result))
 })
 
 test_that("extract_metadata extracts taxonomic correctly", {
@@ -284,11 +363,13 @@ test_that("extract_metadata handles missing element in DP", {
   dp <- create_test_dp()
   dp$contributors <- NULL  # Remove contributors
 
-  result <- extract_metadata(dp, elements = c("contributors", "sources"))
+  # Capture both the warning and the output
+  expect_warning(
+    result <- extract_metadata(dp, elements = c("contributors", "sources")),
+    regexp = "missing|not found"  # optional: match specific warning text
+  )
 
   # Should only return sources since contributors is missing
-  expect_type(result, "list")
-  expect_named(result, "sources")
   expect_false("contributors" %in% names(result))
 })
 
@@ -300,14 +381,18 @@ test_that("extract_metadata handles empty element in DP", {
 
   # Should skip empty contributors
   expect_type(result, "list")
-  expect_named(result, "sources")
+  expect_true("title" %in% names(result)) # only should have source info
 })
 
 test_that("extract_metadata returns single element when only one found", {
   dp <- create_test_dp()
   dp$sources <- NULL  # Remove sources
 
-  result <- extract_metadata(dp, elements = c("contributors", "sources"))
+  # Capture both the warning and the output
+  expect_warning(
+    result <- extract_metadata(dp, elements = c("contributors", "sources")),
+    regexp = "missing|not found"  # optional: match specific warning text
+  )
 
   # Should return data frame (not list) when only one element found
   expect_s3_class(result, "data.frame")
@@ -317,7 +402,11 @@ test_that("extract_metadata returns single element when only one found", {
 test_that("extract_metadata handles all elements missing", {
   dp <- list(id = "test_dp_001")  # Minimal DP with only ID
 
-  result <- extract_metadata(dp, elements = "contributors")
+  # Capture both the warning and the output
+  expect_warning(
+    result <- extract_metadata(dp, elements = c("contributors", "sources")),
+    regexp = "missing|not found"  # optional: match specific warning text
+  )
 
   # Should return empty list (Filter removes NULL)
   expect_type(result, "list")
