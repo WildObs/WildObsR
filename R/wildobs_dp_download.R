@@ -395,7 +395,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
         filter = list(projectName = project_ids_query))
       ## Media
       media_body = list(
-        collection = "deployments",
+        collection = "media",
         filter = list(projectName = project_ids_query))
     }else{
       ## Specify deployments parameters
