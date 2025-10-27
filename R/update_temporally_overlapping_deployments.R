@@ -32,8 +32,43 @@
 #' @importFrom stats setNames
 #'
 #' @examples
-#' # Example usage:
-#' results <- update_temporally_overlapping_deployments(deps = deployments_data, obs = observations_data, media = media_data)
+#' # Minimal toy example to demonstrate how overlapping deployments are merged
+#'
+#' # Create a deployments data frame with overlapping start and end dates
+#' deps <- data.frame(
+#'   deploymentID = c("Cam01_A", "Cam01_B"),
+#'   locationID = c("Loc1", "Loc1"),
+#'   deploymentStart = as.POSIXct(c("2020-01-01", "2020-01-05")),
+#'   deploymentEnd   = as.POSIXct(c("2020-01-10", "2020-01-15")),
+#'   deploymentGroups = NA_character_
+#' )
+#'
+#' # Observations linked to those deployments
+#' obs <- data.frame(
+#'   observationID = 1:4,
+#'   deploymentID = rep(c("Cam01_A", "Cam01_B"), each = 2),
+#'   locationID = "Loc1"
+#' )
+#'
+#' # Media linked to the same deployments
+#' media <- data.frame(
+#'   mediaID = paste0("m", 1:4),
+#'   deploymentID = rep(c("Cam01_A", "Cam01_B"), each = 2)
+#' )
+#'
+#' # Run the function — overlapping deployments will be consolidated
+#' results <- update_temporally_overlapping_deployments(
+#'   deps = deps,
+#'   obs = obs,
+#'   media = media
+#' )
+#'
+#' # View updated deployments
+#' results$deployments
+#'
+#' # Check updated observation and media deployment IDs
+#' results$observations
+#' results$media
 #'
 #' @author Zachary Amir
 #'

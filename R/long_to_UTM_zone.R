@@ -8,9 +8,6 @@
 #'
 #' @author Zachary Amir & ChatGPT
 #'
-#' @examples
-#' long = c(120, 60, 21)
-#' long_to_UTM_zone(long) # output is 3 different utm zones.
 #'
 #' @keywords internal
 long_to_UTM_zone <- function(long) {

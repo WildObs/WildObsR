@@ -16,9 +16,4 @@ A data frame with "NA" character strings and NaN values converted to NA
 Converts character "NA" strings and NaN values to proper NA values,
 preparing the data frame for MongoDB insertion.
 }
-\examples{
-df <- data.frame(x = c(1, NaN, 3), y = c("a", "NA", "c"))
-mongo_clean_df(df)
-
-}
 \keyword{internal}

@@ -15,13 +15,6 @@ is_empty_spatial(x)
 \description{
 This function is used internally in the wildobs_dp_download() function to check whether a given value is NULL, entirely NA, or the string \code{"NULL"}.
 }
-\examples{
-is_empty_spatial(NULL)        # TRUE
-is_empty_spatial(NA)          # TRUE
-is_empty_spatial("NULL")      # TRUE
-is_empty_spatial("polygon")   # FALSE
-
-}
 \seealso{
 \code{\link{wildobs_dp_download}} for downloading and bundling data packages.
 }

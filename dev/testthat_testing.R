@@ -22,7 +22,7 @@ devtools::check()              # Full package check before release
 devtools::load_all()
 
 ## Test one function
-devtools::test_active_file("tests/testthat/test-matrix_generator.R")
+devtools::test_active_file("tests/testthat/test-extract_metadata.R")
 
 # Run all tests in tests/testthat/ (i.e. entire package)
 devtools::test()
