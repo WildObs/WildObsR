@@ -550,39 +550,46 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
   ##
   ###
   #### Before we save each DP, update the osbervation schema to include taxonomic info
-  # Get the existing schema
-  obs_schema <- formatted_metadata[[proj]]$observations_schema
-  # Specify the new columns added to obs from taxonomic metadata
-  new_fields <-c("taxonID", "taxonRank", "vernacularNamesEnglish")
+  ## but only if we want more than metadata
+  if(!isTRUE(metadata_only)){
+    # repeat for each project
+    for(p in 1:length(project_ids)){
+      # select one project
+      proj = project_ids[p]
+      # Get the existing schema
+      obs_schema <- formatted_metadata[[proj]]$observations_schema
+      # Specify the new columns added to obs from taxonomic metadata
+      new_fields <-c("taxonID", "taxonRank", "vernacularNamesEnglish")
 
-  # For each new field,
-  for (field in new_fields) {
-    # Create a simple placeholder field entry for the schema
-    new_field_def <- list(
-      name = field,
-      type = "string",  # default to string; can update types later
-      description = paste("Additional field automatically added during data integration:", field)
-    )
-    # Assign known metadata to recognized fields
-    if (field == "taxonID") {
-      new_field_def$type <- "string"
-      new_field_def$description <- "Unique taxonomic identifier (e.g. ALA or GBIF verified uri)."
-      new_field_def$`skos:exactMatch` <- "http://rs.tdwg.org/dwc/terms/taxonID"
-    } else if (field == "taxonRank") {
-      new_field_def$type <- "string"
-      new_field_def$description <- "Taxonomic rank of the identified organism (e.g. species, genus)."
-      new_field_def$`skos:exactMatch` <- "http://rs.tdwg.org/dwc/terms/taxonRank"
-    } else if (field == "vernacularNamesEnglish") {
-      new_field_def$type <- "string"
-      new_field_def$description <- "Common English name of the organism, if available."
-      new_field_def$`skos:exactMatch` <- "http://rs.tdwg.org/dwc/terms/vernacularName"
-    }
-    # Append to schema
-    obs_schema$fields[[length(obs_schema$fields) + 1]] <- new_field_def
-  } # end per new field
-
-  # Replace the schema in the formatted metadata
-  formatted_metadata[[proj]]$observations_schema <- obs_schema
+      # For each new field,
+      for (field in new_fields) {
+        # Create a simple placeholder field entry for the schema
+        new_field_def <- list(
+          name = field,
+          type = "string",  # default to string; can update types later
+          description = paste("Additional field automatically added during data integration:", field)
+        )
+        # Assign known metadata to recognized fields
+        if (field == "taxonID") {
+          new_field_def$type <- "string"
+          new_field_def$description <- "Unique taxonomic identifier (e.g. ALA or GBIF verified uri)."
+          new_field_def$`skos:exactMatch` <- "http://rs.tdwg.org/dwc/terms/taxonID"
+        } else if (field == "taxonRank") {
+          new_field_def$type <- "string"
+          new_field_def$description <- "Taxonomic rank of the identified organism (e.g. species, genus)."
+          new_field_def$`skos:exactMatch` <- "http://rs.tdwg.org/dwc/terms/taxonRank"
+        } else if (field == "vernacularNamesEnglish") {
+          new_field_def$type <- "string"
+          new_field_def$description <- "Common English name of the organism, if available."
+          new_field_def$`skos:exactMatch` <- "http://rs.tdwg.org/dwc/terms/vernacularName"
+        }
+        # Append to schema
+        obs_schema$fields[[length(obs_schema$fields) + 1]] <- new_field_def
+      } # end per new field
+      # Replace the schema in the formatted metadata
+      formatted_metadata[[proj]]$observations_schema <- obs_schema
+    } # end per project_id
+  } # end false metadata only condition
 
   ## save them per project
   dp_list = list()
@@ -626,6 +633,10 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     if(media){media_proj = suppressWarnings(apply_schema_types(media_proj, formatted_metadata[[proj]]$media_schema, timezone = project_timezone))}
     cov_proj = suppressWarnings(apply_schema_types(cov_proj, formatted_metadata[[proj]]$covariates_schema, timezone = project_timezone))
 
+    ## now bundle into a frictionless DP
+    # use metadata to create the DP
+    dp = frictionless::create_package(formatted_metadata[[proj]]$project_level_metadata)
+
     # Add taxonomic info to the observations to match camtrapDP data class
     taxa = WildObsR::extract_metadata(dp, "taxonomic")
     taxa$DPID = NULL # dont need the ID
@@ -664,11 +675,6 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     }
     ## re-order to match
     cov_proj = cov_proj[, col_order]
-
-
-    ## now bundle into a frictionless DP
-    # use metadata to create the DP
-    dp = frictionless::create_package(formatted_metadata[[proj]]$project_level_metadata)
 
     # Allow admin to access all data via db_url OR api_key
     is_admin <- FALSE
