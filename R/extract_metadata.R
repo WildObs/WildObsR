@@ -207,14 +207,48 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
         # Check if this is a list of objects (each element is itself a list)
         # or a single flat object (list of scalars)
         if (is.list(el_list[[1]]) && !is.data.frame(el_list[[1]])) {
-          # first safely replace NULL values w/ NA to prevent dimension mis-match
+          # STEP 1 — Clean each element in the list safely
           el_list_clean <- purrr::map(el_list, ~{
+            # Replace any NULLs with NA to keep consistent structure
             .x[sapply(.x, is.null)] <- NA
-            .x <- lapply(.x, normalize_values) # normalize values too!
+
+            # Normalize values (your custom function)
+            .x <- lapply(.x, normalize_values)
+
+            # If this element becomes empty (e.g., {}), create a 1-row NA placeholder
+            if (length(.x) == 0) {
+              return(list(dummy_placeholder = NA))
+            }
+
+            # Return cleaned element
             .x
+          }) # end el_list_clean
+
+          # STEP 2 — Handle variable-length field names safely
+          # Collect all possible field names across all list elements
+          all_fields <- unique(unlist(lapply(el_list_clean, names)))
+
+          # STEP 3 — Coerce each list element to a 1-row data frame
+          # Fill missing fields with NA so all rows have equal length
+          el_list_aligned <- purrr::map(el_list_clean, function(x) {
+            # Ensure all expected fields exist
+            missing <- setdiff(all_fields, names(x))
+            if (length(missing) > 0) x[missing] <- NA
+
+            # Convert to data.frame safely
+            tryCatch(
+              as.data.frame(as.list(x), stringsAsFactors = FALSE),
+              error = function(e) {
+                # Fallback NA-filled row if conversion fails
+                data.frame(as.list(setNames(rep(NA, length(all_fields)), all_fields)),
+                           stringsAsFactors = FALSE)
+              }
+            )
           })
-          # then normally convert the list of objects
-          res <- purrr::map_df(el_list_clean, ~as.data.frame(as.list(.x)))
+
+          # STEP 4 — Combine all rows into one data frame
+          # purrr::list_rbind is faster and safer than map_df()
+          res <- purrr::list_rbind(el_list_aligned)
         } else {
           # normalize values in the flat list directly
           el_list <- lapply(el_list, normalize_values)
