@@ -29,6 +29,7 @@ Each deploymentID is then assigned a unique \code{cellID} (temporally distinct) 
 If multiple contributors sample the same cell in the same time window, their deployments are grouped into a common code.
 }
 \examples{
+\dontrun{
 # load data
 dp = frictionless::read_package("/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/ZAmir_QLD_Wet_Tropics_2022/datapackage.json")
 # extract covariates resource
@@ -37,6 +38,7 @@ data = frictionless::read_resource(dp, "covariates")
 scales = c(1000000, 3000000) # number refer area (in square meters) covered by the cell
 ## add dataSource to the covarites
 data$source = dp$contributors[[1]]$tag
+}
 
 }
 \author{

@@ -16,9 +16,4 @@ is empty or all values are NA
 \description{
 Returns the most frequently occurring value in a vector.
 }
-\examples{
-Mode(c(1, 2, 2, 3, 3, 3))
-Mode(c("a", "b", "b", "c"))
-
-}
 \keyword{internal}

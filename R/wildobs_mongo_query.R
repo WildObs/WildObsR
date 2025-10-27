@@ -26,9 +26,9 @@
 #'     \item{minDate}{Earliest allowable date as a `Date` object.}
 #'     \item{maxDate}{Latest allowable date as a `Date` object.}
 #'   }
-#'  @param taxonomic A vector of species names in binomial nomenclature (i,e., Latin names), and all projects that detect any of the species listed will be returned.
-#'  @param samplingDesing A vector of enumerated sampling design values, and projects with the specific sampling designs will be returned. The enumerated values are:"simpleRandom", "systematicRandom", "clusteredRandom", "experimental", "targeted", & "opportunistic"
-#'  @param contributor A vector of first and last names of people associated with any projects. Regardless of their role in the project, if the name is found in the metadata, the relevant projects will be returned.
+#' @param taxonomic A vector of species names in binomial nomenclature (i,e., Latin names), and all projects that detect any of the species listed will be returned.
+#' @param samplingDesign A vector of enumerated sampling design values, and projects with the specific sampling designs will be returned. The enumerated values are:"simpleRandom", "systematicRandom", "clusteredRandom", "experimental", "targeted", & "opportunistic"
+#' @param contributors A vector of first and last names of people associated with any projects. Regardless of their role in the project, if the name is found in the metadata, the relevant projects will be returned.
 #' @param tabularSharingPreference A character vector specifying accepted sharing preferences.
 #'   Defaults to `c("open")`, but the user can also specify 'partial' for limited metadata of the project. If the user provides admin DB credentials, the user can access 'closed' data, but if admin credentials have not been provided, 'closed' data will be removed from the projects list.  Only projects with these preferences are returned.
 #' @return A character vector of project IDs matching the specified criteria.
@@ -71,7 +71,7 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
                                spatial = NULL, temporal = NULL,
                                taxonomic = NULL, samplingDesign = NULL,
                                contributors = NULL,
-                               tabularSharingPreference = c("open", "closed")){
+                               tabularSharingPreference = c("open")){
   # create an empty vector to store project IDs
   proj_ids = c()
 

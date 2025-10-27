@@ -13,14 +13,6 @@
 #' - Ensures that vector fields (e.g., `path`, `deploymentGroups`) are flattened to prevent unnecessary nested lists.
 #' - Stops execution if the input is neither a data frame nor a list containing a data frame.
 #'
-#' @examples
-#' # Example with a single-row data frame
-#' df <- data.frame(a = 1, b = "text", c = list(c(1, 2, 3)))
-#' convert_df_to_list(df)
-#'
-#' # Example with a list containing a data frame
-#' df_list <- list(data.frame(a = 1:2, b = c("x", "y")))
-#' convert_df_to_list(df_list)
 #'
 #' @importFrom purrr map
 #'
@@ -66,11 +58,6 @@ convert_df_to_list <- function(df) {
 #' @param x A value to check.
 #' @return `TRUE` if the value is NULL, entirely NA, or the string `"NULL"`, otherwise `FALSE`.
 #'
-#' @examples
-#' is_empty_spatial(NULL)        # TRUE
-#' is_empty_spatial(NA)          # TRUE
-#' is_empty_spatial("NULL")      # TRUE
-#' is_empty_spatial("polygon")   # FALSE
 #'
 #' @author Zachary Amir & ChatGPT
 #'
@@ -88,15 +75,6 @@ is_empty_spatial <- function(x) {
 #' @param x A dataframe or atomic vector representing temporal data.
 #' @return `TRUE` if the temporal data is entirely `NA`, otherwise `FALSE`.
 #'
-#' @examples
-#' df <- data.frame(start = NA, end = NA)
-#' is_empty_temporal(df)  # TRUE
-#'
-#' vec <- c(NA, NA, NA)
-#' is_empty_temporal(vec)  # TRUE
-#'
-#' df2 <- data.frame(start = "2023-01-01", end = NA)
-#' is_empty_temporal(df2)  # FALSE
 #'
 #' @author Zachary Amir & ChatGPT
 #'
@@ -119,14 +97,6 @@ is_empty_temporal = function(x) {
 #' @param x A nested list containing various data types.
 #' @return A cleaned version of the list with all `NULL`, `NA`, and empty lists removed.
 #'
-#' @examples
-#' example_list <- list(a = 1, b = NULL, c = list(d = NA, e = list()))
-#' clean_list_recursive(example_list)
-#' # Returns: list(a = 1)
-#'
-#' nested_list <- list(a = 1, b = list(c = NULL, d = list(e = NA)))
-#' clean_list_recursive(nested_list)
-#' # Returns: list(a = 1)
 #'
 #' @author Zachary Amir & ChatGPT
 #'
@@ -154,17 +124,6 @@ clean_list_recursive <- function(x) {
 #' @param fields A dataframe containing schema field information, including constraints,
 #'   descriptions, and other metadata.
 #' @return A list of formatted schema fields, with cleaned constraints and metadata.
-#'
-#' @examples
-#' fields <- data.frame(
-#'   name = c("scientificName", "individualID"),
-#'   description = c("Species name", "Identification of individual animals"),
-#'   constraints = list(list(required = TRUE, unique = FALSE), list(required = FALSE)),
-#'   type = c("string", "string"),
-#'   example = c("Wallabia bicolor", "NA"),
-#'   format = c(NA, "default")
-#' )
-#' formatted_fields <- reformat_fields(fields)
 #'
 #' @seealso \code{\link{clean_list_recursive}} for removing empty list elements.
 #'
@@ -249,9 +208,6 @@ reformat_schema <- function(schema) {
 #' @return The mode (most frequent value) in the vector, or NA if the input
 #'   is empty or all values are NA
 #'
-#' @examples
-#' Mode(c(1, 2, 2, 3, 3, 3))
-#' Mode(c("a", "b", "b", "c"))
 #'
 #' @keywords internal
 Mode <- function(x) {
@@ -280,9 +236,6 @@ Mode <- function(x) {
 #' side length = sqrt((2 * area) / (3 * sqrt(3)))
 #' apothem = (side * sqrt(3)) / 2
 #'
-#' @examples
-#' area_to_apothem(1e6)  # 1 km²
-#' area_to_apothem(c(1e6, 5e6))  # Multiple areas
 #'
 #' @keywords internal
 area_to_apothem <- function(area_m2) {
@@ -327,11 +280,6 @@ area_to_apothem <- function(area_m2) {
 #'
 #' @return A data frame with the renamed or new column
 #'
-#' @examples
-#' df <- data.frame(x = 1:3, y = 4:6)
-#' rename_or_add_column(df, "new_col", "x")
-#' rename_or_add_column(df, "blank_col", "")
-#'
 #' @keywords internal
 rename_or_add_column <- function(df, new_name, old_name) {
   if (length(old_name) == 0 || is.na(old_name) || old_name == "") {
@@ -351,10 +299,6 @@ rename_or_add_column <- function(df, new_name, old_name) {
 #'
 #' @return An integer representing the number of significant decimal places
 #'
-#' @examples
-#' get_decimal_places(12.345)
-#' get_decimal_places(10.5)
-#' get_decimal_places(5.00)
 #'
 #' @keywords internal
 get_decimal_places <- function(x) {
@@ -381,9 +325,6 @@ get_decimal_places <- function(x) {
 #'
 #' @return A data frame with "NA" character strings and NaN values converted to NA
 #'
-#' @examples
-#' df <- data.frame(x = c(1, NaN, 3), y = c("a", "NA", "c"))
-#' mongo_clean_df(df)
 #'
 #' @keywords internal
 mongo_clean_df <- function(df) {
@@ -456,12 +397,9 @@ convert_row_to_json <- function(row, date_cols, collection) {
 #' Converts a single row to a JSON string with proper MongoDB formatting
 #' for date fields.
 #'
-#' @param row A single row from a data frame (typically obtained via subsetting)
-#' @param date_cols Character vector of column names containing dates
-#' @param collection Character string specifying the collection type
-#'   (e.g., "observations")
+#' @param x A date-time or character value to be formatted.
 #'
-#' @return A character string containing the JSON representation of the row
+#' @return A list containing a MongoDB-style date (`$date`) or `NA` if the input cannot be parsed.
 #'
 #' @details
 #' This is a wrapper function that converts a row to a list, applies
@@ -506,10 +444,6 @@ mongo_format_dates <- function(x) {
 #'
 #' All output times are in UTC timezone.
 #'
-#' @examples
-#' convert_to_standard_date("2022-06-01 12:30:45")
-#' convert_to_standard_date("1654070445")  # Unix epoch
-#' convert_to_standard_date(as.POSIXct("2022-06-01"))
 #'
 #' @keywords internal
 convert_to_standard_date <- function(x) {
@@ -574,13 +508,6 @@ convert_to_standard_date <- function(x) {
 #' 4. Standardizing missing values (NA and "" treated as equivalent)
 #' 5. Sorting columns alphabetically
 #'
-#' @examples
-#' df <- data.frame(
-#'   name = c("Alice", "Bob"),
-#'   date = c("2022-06-01", "2022-07-15"),
-#'   value = c(1.234, 5.678)
-#' )
-#' canonicalize_df(df, date_cols = "date", numeric_round = 2)
 #'
 #' @keywords internal
 canonicalize_df <- function(df, date_cols, numeric_round = 2) {
@@ -634,9 +561,6 @@ canonicalize_df <- function(df, date_cols, numeric_round = 2) {
 #' hash values across data frames with the same data in different column orders.
 #' Row values are concatenated with "||" separator before hashing.
 #'
-#' @examples
-#' df <- data.frame(x = 1:3, y = c("a", "b", "c"))
-#' compute_row_hashes(df)
 #'
 #' @keywords internal
 compute_row_hashes <- function(df) {

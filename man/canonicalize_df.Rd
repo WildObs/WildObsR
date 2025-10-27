@@ -33,13 +33,4 @@ This function prepares data frames for comparison by:
 \item Sorting columns alphabetically
 }
 }
-\examples{
-df <- data.frame(
-  name = c("Alice", "Bob"),
-  date = c("2022-06-01", "2022-07-15"),
-  value = c(1.234, 5.678)
-)
-canonicalize_df(df, date_cols = "date", numeric_round = 2)
-
-}
 \keyword{internal}

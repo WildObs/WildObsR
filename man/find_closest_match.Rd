@@ -23,13 +23,6 @@ This function internally uses \code{sapply()} to apply string distance calculati
 across all species names in the \code{string} vector. The closest match for each name is determined
 using the Jaro-Winkler string distance method from the \code{stringdist} package.
 }
-\examples{
-missing_species <- c("Puma concorl", "Panthera leo", "Gorillla gorilla")
-verified_species <- c("Puma concolor", "Panthera leo", "Gorilla gorilla")
-closest_matches <- find_closest_match(missing_species, verified_species)
-print(closest_matches)
-
-}
 \author{
 Zachary Amir & ChatGPT
 }

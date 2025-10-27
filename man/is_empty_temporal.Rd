@@ -15,17 +15,6 @@ is_empty_temporal(x)
 \description{
 This function is used internally in the wildobs_dp_download() function to check whether a temporal dataset (e.g., a dataframe or vector) contains only \code{NA} values, indicating it is empty.
 }
-\examples{
-df <- data.frame(start = NA, end = NA)
-is_empty_temporal(df)  # TRUE
-
-vec <- c(NA, NA, NA)
-is_empty_temporal(vec)  # TRUE
-
-df2 <- data.frame(start = "2023-01-01", end = NA)
-is_empty_temporal(df2)  # FALSE
-
-}
 \seealso{
 \code{\link{wildobs_dp_download}} for downloading and bundling data packages.
 }

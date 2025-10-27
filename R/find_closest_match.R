@@ -16,11 +16,6 @@
 #'
 #' @author Zachary Amir & ChatGPT
 #'
-#' @examples
-#' missing_species <- c("Puma concorl", "Panthera leo", "Gorillla gorilla")
-#' verified_species <- c("Puma concolor", "Panthera leo", "Gorilla gorilla")
-#' closest_matches <- find_closest_match(missing_species, verified_species)
-#' print(closest_matches)
 #'
 #' @keywords internal
 find_closest_match <- function(string, target_strings) {

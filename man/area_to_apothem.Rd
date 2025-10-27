@@ -23,9 +23,4 @@ Calculates hexagon dimensions using standard formulas:
 side length = sqrt((2 * area) / (3 * sqrt(3)))
 apothem = (side * sqrt(3)) / 2
 }
-\examples{
-area_to_apothem(1e6)  # 1 km²
-area_to_apothem(c(1e6, 5e6))  # Multiple areas
-
-}
 \keyword{internal}

@@ -21,17 +21,10 @@
 #' }
 #'
 #' @details The GBIF raster layers that this function relies upon do not live in this R package (for now). These are maintined in the WildObs DropBox account and can be granted access with permission.
-#' @examples
-#' \dontrun{
-#' gbif_folder = "path/to/GBIF/files"
-#' gbif_overlap_result = gbif_check(dep, caps, gbif_folder)
-#' print(gbif_overlap_result)
-#' }
 #' @importFrom terra extract project rast vect
 #' @importFrom dplyr select starts_with
 #' @importFrom tidyselect all_of
 #' @author Tom Bruce
-#' @export
 gbif_check <- function(deps, obs, tif_folder) {
   # Check for Latitude and Longitude columns; if not present, use X and Y
   #This builds in flexibility based on when in the pipeline you use this function, it usually comes at the species naming phase so before coordinates are properly formatted so be cautions.

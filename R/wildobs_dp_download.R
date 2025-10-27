@@ -57,9 +57,8 @@
 wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media = FALSE) {
 
   ## read in environment file with confidential DB access info
-  # readRenviron("inst/config/.Renviron.local.ro") # local version
-  # readRenviron("inst/config/.Renviron.prod.ro") # remote version
-  # readRenviron("inst/config/.Renviron.admin.api") # admin api key
+  # readRenviron("config_private/.Renviron.prod.ro") # remote version
+  # readRenviron("config_private/.Renviron.admin.api") # admin api key
   ### NOTE: need to provide a read-only to open/partial shared projects here!!
   # This MUST be done before going public!
 

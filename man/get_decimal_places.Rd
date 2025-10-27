@@ -16,10 +16,4 @@ An integer representing the number of significant decimal places
 Extracts the number of decimal places from a numeric value, removing
 trailing zeros.
 }
-\examples{
-get_decimal_places(12.345)
-get_decimal_places(10.5)
-get_decimal_places(5.00)
-
-}
 \keyword{internal}
