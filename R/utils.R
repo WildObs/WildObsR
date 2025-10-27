@@ -573,3 +573,139 @@ compute_row_hashes <- function(df) {
   })
 }
 
+
+#' Format Spatial Bounding Boxes into GeoJSON-Style List
+#'
+#' This internal helper reformats a `spatial` object’s bounding box (`bbox`)
+#' column into a lightweight, GeoJSON-like list structure. It is used within
+#' WildObsR functions that serialize spatial metadata for database or JSON export.
+#'
+#' The function handles several possible input formats:
+#' \itemize{
+#'   \item A nested data frame already containing \code{xmin}, \code{ymin},
+#'         \code{xmax}, and \code{ymax} columns.
+#'   \item A character string of four comma-separated coordinates
+#'         (e.g., \code{"152.0796, -27.7047, 152.0934, -27.6972"}).
+#'   \item A numeric vector of length four giving bounding box coordinates.
+#' }
+#'
+#' @param spatial_obj A data frame containing a \code{bbox} column, where each
+#'   element corresponds to one or more location bounding boxes. Each entry may
+#'   be a data frame, a character string, or a numeric vector.
+#'
+#' @return A named list in simplified GeoJSON style:
+#' \preformatted{
+#' list(
+#'   type = "polygon",
+#'   bbox = list(
+#'     Location1 = list(list(xmin = ..., ymin = ..., xmax = ..., ymax = ...)),
+#'     Location2 = list(list(xmin = ..., ymin = ..., xmax = ..., ymax = ...))
+#'   )
+#' )
+#' }
+#' or \code{NULL} if no valid bounding boxes are found.
+#'
+#' @details
+#' The resulting object mimics a minimal GeoJSON \emph{Polygon} structure but
+#' preserves location-wise bounding boxes rather than coordinate rings.
+#' This internal utility is primarily used when converting spatial metadata
+#' to JSON for MongoDB insertion or validation.
+#'
+#' @examples
+#' \dontrun{
+#' # Example input mimicking a CamtrapDP-style spatial object
+#' spatial_obj <- data.frame(
+#'   bbox = I(list(data.frame(
+#'     Site_A = list(list(xmin = 152.0, ymin = -27.7, xmax = 152.1, ymax = -27.6)),
+#'     Site_B = list(list(xmin = 151.9, ymin = -27.8, xmax = 152.0, ymax = -27.7))
+#'   )))
+#' )
+#'
+#' # Format to GeoJSON-style list
+#' geojson_list <- format_spatial_to_geojson(spatial_obj)
+#' str(geojson_list)
+#' }
+#'
+#' @keywords internal
+#' @noRd
+format_spatial_to_geojson <- function(spatial_obj) {
+  #--- CASE 1: Features-based spatial object
+  if (is.data.frame(spatial_obj) && "features" %in% names(spatial_obj)) {
+    # Extract the data frame that contains all features
+    features_df <- spatial_obj$features[[1]]
+    # If there’s no geometry column, stop early
+    if (is.null(features_df) || !"geometry" %in% names(features_df))
+      return(NULL)
+
+    # extract geometry and property info
+    geometries <- features_df$geometry
+    props <- features_df$properties
+
+    # assemble GeoJSON-style list of features
+    features_out <- vector("list", nrow(features_df))
+    # Loop over each feature and reformat it into GeoJSON-style structure
+    for (i in seq_len(nrow(features_df))) {
+      features_out[[i]] <- list(
+        type = "Feature",
+        properties = as.list(props[i, , drop = FALSE]),
+        geometry = list(
+          type = geometries$type[i],
+          coordinates = geometries$coordinates[[i]]
+        )
+      )
+    } # end per nrow features
+
+    # Return the final GeoJSON-style FeatureCollection
+    return(list(
+      type = "FeatureCollection",
+      features = features_out
+    ))
+  }
+
+  # Handle the case where the spatial object only has a "bbox" element
+  # This matches your earlier schema where bounding boxes are stored per location
+  if (!is.data.frame(spatial_obj) || !"bbox" %in% names(spatial_obj))
+    return(NULL)
+  # Extract bounding box information
+  bbox_df <- spatial_obj$bbox
+  if (!is.data.frame(bbox_df)) return(NULL)
+  # Prepare an empty list to store formatted bounding boxes
+  bbox_out <- list()
+  # Loop through each column in the bbox data frame (each corresponds to a location)
+  for (loc_name in names(bbox_df)) {
+    # Extract the first element from each list cell
+    val <- bbox_df[[loc_name]][[1]]
+    # Skip if missing or explicitly NULL
+    if (is.null(val) || (is.character(val) && val == "NULL")) next
+
+    # Case 1: already a data frame with xmin, ymin, xmax, ymax
+    if (is.data.frame(val) && all(c("xmin", "ymin", "xmax", "ymax") %in% names(val))) {
+      bbox_out[[loc_name]] <- list(list(
+        xmin = val$xmin[1], ymin = val$ymin[1],
+        xmax = val$xmax[1], ymax = val$ymax[1]
+      ))
+      next
+    }
+    # Case 2: character string formatted as four comma-separated coordinates
+    if (is.character(val)) {
+      nums <- suppressWarnings(as.numeric(strsplit(val, "\\s*,\\s*")[[1]]))
+      if (length(nums) == 4 && all(is.finite(nums))) {
+        bbox_out[[loc_name]] <- list(list(
+          xmin = nums[1], ymin = nums[2], xmax = nums[3], ymax = nums[4]
+        ))
+      }
+      next
+    }
+    # Case 3: numeric vector of length 4
+    if (is.numeric(val) && length(val) == 4) {
+      bbox_out[[loc_name]] <- list(list(
+        xmin = val[1], ymin = val[2], xmax = val[3], ymax = val[4]
+      ))
+      next
+    }
+  }
+  # Return NULL if no valid bounding boxes were found
+  if (length(bbox_out) == 0) return(NULL)
+  # Construct and return a simple GeoJSON-style object
+  list(type = "polygon", bbox = bbox_out)
+}
