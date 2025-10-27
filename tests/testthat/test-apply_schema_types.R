@@ -119,9 +119,8 @@ test_that("apply_schema_types converts datetime with standard format", {
   )
 
   result <- apply_schema_types(data, schema)
-
-  expect_type(result$timestamp, "character")
-  expect_true(grepl("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}", result$timestamp[1]))
+  expect_s3_class(result$timestamp, "POSIXct")
+  expect_true(grepl("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$", as.character(result$timestamp[1])))
 })
 
 test_that("apply_schema_types handles datetime with ISO 8601 format", {
@@ -142,8 +141,8 @@ test_that("apply_schema_types handles datetime with ISO 8601 format", {
 
   result <- apply_schema_types(data, schema)
 
-  expect_type(result$timestamp, "character")
-  expect_true(grepl("T", result$timestamp[1]))
+  expect_s3_class(result$timestamp, "POSIXct")
+  expect_true(grepl("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$", as.character(result$timestamp[1])))
 })
 
 test_that("apply_schema_types tries common datetime formats when parsing fails", {
@@ -164,8 +163,8 @@ test_that("apply_schema_types tries common datetime formats when parsing fails",
 
   result <- apply_schema_types(data, schema)
 
-  expect_type(result$timestamp, "character")
-  expect_true(grepl("T", result$timestamp[1]))
+  expect_s3_class(result$timestamp, "POSIXct")
+  expect_true(grepl("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$", as.character(result$timestamp[1])))
 })
 
 test_that("apply_schema_types warns on unknown field type", {
