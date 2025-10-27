@@ -57,45 +57,52 @@
 #'     that align with the detection history matrix and are compressed to match sampling occasion windows.
 #' }
 #'
-#'  @examples
+#' @examples
 #' \dontrun{
-#' # Example usage with pre-processed camera trap data:
-#' dp <- WildObsR::wildobs_dp_download("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
+#' # Example usage with pre-processed camera trap data, accessed from WildObs:
+#'
+#' # Load the general use WildObs API key
+#' api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+#' # use WildObsR function to access data
+#' dp <- WildObsR::wildobs_dp_download(api_key = api_key, project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
+#' # extract first DP from the list
+#' dp <- dp[[1]]
 #'
 #' # Extract resources from the data package
 #' covs <- frictionless::read_resource(dp, "covariates")
 #' obs  <- frictionless::read_resource(dp, "observations")
 #' deps <- frictionless::read_resource(dp, "deployments")
 #'
-#' ## Assign spatial scales
-#' 'scales' defines the apothem (in meters) of the hexagonal cell, where the names (e.g., "1km", "10km") refer to the area covered by the cell.
-#' scales <- c("1km" = 1074.6, "10km" = 3398)
+#' # Assign spatial scales
+#' # 'scales' defines the area (in square meters) covered by the hexagonal cell
+#' scales <- c(1000000, 3000000)
 #'
-#' ## Add data source to the covariates
+#' # Add data source to the covariates
 #' covs$source <- dp$contributors[[1]]$tag
-#'
-#' ## Generate spatial hexagons based on the provided scales
+#' # Generate spatial hexagons based on the provided scales
 #' covs <- WildObsR::spatial_hexagon_generator(covs, scales)
+#'
 #' # Identify matching columns between deployments and covariates
 #' cols <- names(deps)[names(deps) %in% names(covs)]
 #' # Merge deployment information to the covariates
 #' covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
-#' ## Define columns for mode aggregation (example: 'source' and 'habitat')
+#'
+#' # Define columns for mode aggregation (example: 'source' and 'habitat')
 #' mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
-#' ## Set the method for aggregating the total number of individuals detected:
+#' # Set the method for aggregating the total number of individuals detected:
 #' individuals <- "sum"  # Alternative: "max"
-#' ## Specify observation-level covariate variables derived from deployments.
+#' # Specify observation-level covariate variables derived from deployments.
 #' # These variables capture information that varies in space and time.
 #' obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay","cameraHeight", "cameraDepth", "cameraTilt", "cameraHeading", "detectionDistance", "deploymentTags")
 #'
-#' ### now spatially resample the data
-#' resamp_data = resample_covariates_and_observations(covs, obs, individuals = "sum", mode_cols_covs, obs_covs) # this function may take a few minutes to run
+#' # now spatially resample the data, noting that this function may take a few minutes to run
+#' resamp_data = WildObsR::resample_covariates_and_observations(covs, obs, individuals = "sum", mode_cols_covs, obs_covs)
 #'
-#' ## Select the resampled observations and covs @ the 10 km scale
-#' resamp_obs = resamp_data$spatially_resampled_observations$cellID_10km
-#' resamp_covs = resamp_data$spatially_resampled_covariates$cellID_10km
+#' # Select the resampled observations and covs at the 1 km scale
+#' resamp_obs = resamp_data$spatially_resampled_observations$cellID_1km
+#' resamp_covs = resamp_data$spatially_resampled_covariates$cellID_1km
 #'
-#' ## Run the matrix generator function
+#' # Run the matrix generator function
 #' res <- matrix_generator(
 #'   obs = resamp_obs,
 #'   covs = resamp_covs,
@@ -104,13 +111,12 @@
 #'   site_covs = c("mode_habitat", "Avg_human_footprint_10km2", "locationName", "Avg_FLII_3km2"),
 #'   obs_covs = c("numberDeploymentsActiveAtDate", "cameraHeight", "featureType", "cameraModel"),
 #'   all_locationNames = TRUE,
-#'   scientificNames = c("Hypsiprymnodon moschatus", "Orthonyx spaldingii", "Uromys caudimaculatus"),
+#'   scientificNames = c("Orthonyx spaldingii", "Uromys caudimaculatus"),
 #'   type = "abundance",
 #'   individuals = "sum"
 #' )
-#'
 #' # Access the detection matrix for one species:
-#' res[["Hypsiprymnodon_moschatus"]][["detection_matrix"]]
+#' res[["Orthonyx_spaldingii"]][["detection_matrix"]]
 #' }
 #'
 #' @importFrom dplyr group_by summarise distinct select all_of

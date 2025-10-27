@@ -20,16 +20,6 @@ This function is used internally in the wildobs_dp_download() function to recurs
 \item Empty lists (\code{list()})
 }
 }
-\examples{
-example_list <- list(a = 1, b = NULL, c = list(d = NA, e = list()))
-clean_list_recursive(example_list)
-# Returns: list(a = 1)
-
-nested_list <- list(a = 1, b = list(c = NULL, d = list(e = NA)))
-clean_list_recursive(nested_list)
-# Returns: list(a = 1)
-
-}
 \seealso{
 \code{\link{wildobs_dp_download}} for downloading and bundling data packages.
 }

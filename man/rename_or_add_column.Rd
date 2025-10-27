@@ -21,10 +21,4 @@ A data frame with the renamed or new column
 Renames an existing column or creates a new column with NA values if the
 old column name is not provided.
 }
-\examples{
-df <- data.frame(x = 1:3, y = 4:6)
-rename_or_add_column(df, "new_col", "x")
-rename_or_add_column(df, "blank_col", "")
-
-}
 \keyword{internal}
