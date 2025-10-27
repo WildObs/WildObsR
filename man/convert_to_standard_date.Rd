@@ -30,10 +30,4 @@ Attempts to parse input in the following order:
 
 All output times are in UTC timezone.
 }
-\examples{
-convert_to_standard_date("2022-06-01 12:30:45")
-convert_to_standard_date("1654070445")  # Unix epoch
-convert_to_standard_date(as.POSIXct("2022-06-01"))
-
-}
 \keyword{internal}

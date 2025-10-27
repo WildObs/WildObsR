@@ -7,15 +7,10 @@
 mongo_format_dates(x)
 }
 \arguments{
-\item{row}{A single row from a data frame (typically obtained via subsetting)}
-
-\item{date_cols}{Character vector of column names containing dates}
-
-\item{collection}{Character string specifying the collection type
-(e.g., "observations")}
+\item{x}{A date-time or character value to be formatted.}
 }
 \value{
-A character string containing the JSON representation of the row
+A list containing a MongoDB-style date (\verb{$date}) or \code{NA} if the input cannot be parsed.
 }
 \description{
 Converts a single row to a JSON string with proper MongoDB formatting

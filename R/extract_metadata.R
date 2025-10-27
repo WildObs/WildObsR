@@ -88,6 +88,17 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
     elements
   )
 
+  # load a helper function to normalize values
+  normalize_values <- function(x) {
+    # if null, return NA
+    if (is.null(x)) return(NA)
+    # collapse vectors if longer than 1
+    if (length(x) > 1) x <- paste(x, collapse = ";")
+    # convert logical to character for uniformity.
+    if (is.logical(x)) x <- tolower(as.character(x))
+    x
+  }
+
   # loop thru each dp
   for(d in 1:length(dp_list)){
     # select one dp
@@ -95,6 +106,14 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
 
     # loop thru all elements
     for(i in 1:length(elements)){
+      ## first, check if the element is present in the dp
+      if(!elements[i] %in% names(dp)){
+        # if missing, let us know!
+        warning(paste("The element", elements[i], "is missing from data package",
+                    dp$id, "so this element is getting skipped."))
+        # and skip to to the next
+        next
+      }
       # extract relevant metadata list matching supplied element
       el_list = purrr::pluck(dp, elements[i])
 
@@ -106,54 +125,81 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
       ## Make a special exception for spatial information formatted as a geoJSON
       if (elements[i] == "spatial") {
         # if were extracting spatial, first check if the data is formatted as a geoJSON
-        if (!is.null(el_list$type) && el_list$type == "FeatureCollection") {
+        if (!is.null(el_list$type) && tolower(el_list$type) == "featurecollection") {
           # extract the coordinates of the bounding boxes and save as a dataframe
           res <- purrr::map_dfr(el_list$features, function(f) {
-            coords <- f$geometry$coordinates
-            # Handle different coordinate structures
-            if (is.array(coords)) {
-              # 3D array structure: extract lon/lat from array
-              lon <- coords[1, , 1]  # First row, all columns, first layer (longitude)
-              lat <- coords[1, , 2]  # First row, all columns, second layer (latitude)
-              data.frame(
-                locationName = f$properties$name %||% NA,
-                xmin = min(lon, na.rm = TRUE),
-                ymin = min(lat, na.rm = TRUE),
-                xmax = max(lon, na.rm = TRUE),
-                ymax = max(lat, na.rm = TRUE)
+            coords <- f$geometry$coordinates[[1]][[1]]
+            mat <- do.call(rbind, coords)
+            data.frame(
+              locationName = f$properties$name %||% NA,
+              xmin = min(mat[, 1], na.rm = TRUE),
+              ymin = min(mat[, 2], na.rm = TRUE),
+              xmax = max(mat[, 1], na.rm = TRUE),
+              ymax = max(mat[, 2], na.rm = TRUE)
+            )
+          }) # end map_dfr
+
+        } else if (!is.null(el_list$type) && tolower(el_list$type) == "polygon") {
+          # CASE 1: Proper GeoJSON Polygon (nested coordinates)
+          if (!is.null(el_list$coordinates)) {
+            # Safely extract coordinate pairs (handles one or two list depths)
+            coords <- tryCatch(el_list$coordinates[[1]][[1]],
+                               error = function(e) el_list$coordinates[[1]])
+            mat <- tryCatch(do.call(rbind, coords),
+                            error = function(e) NULL)
+            if (!is.null(mat) && ncol(mat) >= 2) {
+              res <- data.frame(
+                locationName = el_list$name %||% NA,  # optional if a name exists
+                xmin = min(mat[, 1], na.rm = TRUE),
+                ymin = min(mat[, 2], na.rm = TRUE),
+                xmax = max(mat[, 1], na.rm = TRUE),
+                ymax = max(mat[, 2], na.rm = TRUE)
               )
-            } else {
-              # List structure: use original indexing
-              coords_list <- coords[[1]]  # MODIFIED: changed from coords to coords_list
+            } # end true mat and ncol conditon
+          } # end not null condition for coordinates
+        } # end polygon condition
+
+          # CASE 2: Already in bbox format
+          else if (!is.null(el_list$bbox)) {
+            # Flatten all bbox entries, keeping their names
+            res <- purrr::map_dfr(names(el_list$bbox), function(nm) {
+              bbox_flat <- el_list$bbox[[nm]][[1]] %||% el_list$bbox[[nm]]
               data.frame(
-                locationName = f$properties$name %||% NA,  # MODIFIED: added %||% NA
-                xmin = coords_list[[1]][[1]],  # MODIFIED: changed from coords
-                ymin = coords_list[[1]][[2]],  # MODIFIED: changed from coords
-                xmax = coords_list[[3]][[1]],  # MODIFIED: changed from coords
-                ymax = coords_list[[3]][[2]]   # MODIFIED: changed from coords
+                locationName = nm,
+                xmin = bbox_flat$xmin %||% NA,
+                ymin = bbox_flat$ymin %||% NA,
+                xmax = bbox_flat$xmax %||% NA,
+                ymax = bbox_flat$ymax %||% NA
               )
-            } # end else
-          })
-        } else if (!is.null(el_list$type) && el_list$type == "Polygon") {
-          # this handles extraacting coordinates from only one polygon rather than a collection of many
-          coords <- el_list$coordinates[[1]]
-          res <- data.frame(
-            locationName = NA,
-            xmin = coords[[1]][[1]],
-            ymin = coords[[1]][[2]],
-            xmax = coords[[3]][[1]],
-            ymax = coords[[3]][[2]]
-          )
-        } else {
-          # warning("Spatial format not recognized; skipping.")
-          next
-        }
-        # save the type, either polygon (one locationName) or featureCollection (many locaitons)
-        # res$type <- el_list$type
+            })
+          } # end not bbox condition
         # and dont forget the id
         res$DPID <- dp$id
-      }else{
-        # now for all other sorts of elements, handle them normally
+      }
+      ## Add a special condition for temporal to accommodate timezones
+      else if (elements[i] == "temporal") {
+
+        # Extract timeZone if present
+        tz <- el_list$timeZone %||% NA
+        el_list$timeZone <- NULL  # remove before flattening
+
+        # Each remaining element should represent a deployment group
+        res <- purrr::map_dfr(names(el_list), function(nm) {
+          val <- el_list[[nm]]
+          data.frame(
+            deploymentGroup = nm,
+            start = val$start %||% NA,
+            end = val$end %||% NA
+          )
+        })
+
+        # Add timezone and DP ID
+        res$timeZone <- tz
+        res$DPID <- dp$id
+      }
+      ## but if the element is NOT temporal or spatial,
+      else{
+        # handle all other elements normally!
 
         # if nothing was found, make res null here
         if (length(el_list) == 0){ res = NULL} # end zero condition
@@ -161,24 +207,58 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
         # Check if this is a list of objects (each element is itself a list)
         # or a single flat object (list of scalars)
         if (is.list(el_list[[1]]) && !is.data.frame(el_list[[1]])) {
-          # first safely replace NULL values w/ NA to prevent dimension mis-match
+          # STEP 1 — Clean each element in the list safely
           el_list_clean <- purrr::map(el_list, ~{
+            # Replace any NULLs with NA to keep consistent structure
             .x[sapply(.x, is.null)] <- NA
-            .x
-          })
-          # then normally convert the list of objects
-          res <- purrr::map_df(el_list_clean, ~as.data.frame(as.list(.x)))
 
+            # Normalize values (your custom function)
+            .x <- lapply(.x, normalize_values)
+
+            # If this element becomes empty (e.g., {}), create a 1-row NA placeholder
+            if (length(.x) == 0) {
+              return(list(dummy_placeholder = NA))
+            }
+
+            # Return cleaned element
+            .x
+          }) # end el_list_clean
+
+          # STEP 2 — Handle variable-length field names safely
+          # Collect all possible field names across all list elements
+          all_fields <- unique(unlist(lapply(el_list_clean, names)))
+
+          # STEP 3 — Coerce each list element to a 1-row data frame
+          # Fill missing fields with NA so all rows have equal length
+          el_list_aligned <- purrr::map(el_list_clean, function(x) {
+            # Ensure all expected fields exist
+            missing <- setdiff(all_fields, names(x))
+            if (length(missing) > 0) x[missing] <- NA
+
+            # Convert to data.frame safely
+            tryCatch(
+              as.data.frame(as.list(x), stringsAsFactors = FALSE),
+              error = function(e) {
+                # Fallback NA-filled row if conversion fails
+                data.frame(as.list(setNames(rep(NA, length(all_fields)), all_fields)),
+                           stringsAsFactors = FALSE)
+              }
+            )
+          })
+
+          # STEP 4 — Combine all rows into one data frame
+          # purrr::list_rbind is faster and safer than map_df()
+          res <- purrr::list_rbind(el_list_aligned)
         } else {
+          # normalize values in the flat list directly
+          el_list <- lapply(el_list, normalize_values)
           # Single flat object or mixed: convert to single-row data frame
           res = as.data.frame(as.list(el_list))
         } # end list structure condition
 
         ## save the ID of the DP in the data frame
         res$DPID = dp$id
-        res$type = NULL # just to be safe
       } # end else conditon for spatial
-
 
       # Save the results by searching for null elements
       if (is.null(accumulated_results[[elements[i]]])) {
@@ -191,7 +271,6 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
           res
         )
       } # end else saving conditional
-
     } # end per i element
   } # end per DP
 

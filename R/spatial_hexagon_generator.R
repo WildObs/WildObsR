@@ -25,6 +25,7 @@
 #' @importFrom stringr str_match
 #'
 #' @examples
+#' \dontrun{
 #' # load data
 #' dp = frictionless::read_package("/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/ZAmir_QLD_Wet_Tropics_2022/datapackage.json")
 #' # extract covariates resource
@@ -33,6 +34,7 @@
 #' scales = c(1000000, 3000000) # number refer area (in square meters) covered by the cell
 #' ## add dataSource to the covarites
 #' data$source = dp$contributors[[1]]$tag
+#' }
 #'
 #' @author Zachary Amir
 #'

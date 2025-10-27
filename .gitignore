@@ -12,3 +12,8 @@
 # User-specific files
 .Ruserdata
 *.Rproj
+# Sensitive credentials and information
+config_private/
+.Renviron*
+# dont need claude online either
+.claude/

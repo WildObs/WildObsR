@@ -24,16 +24,6 @@ The function performs the following transformations:
 \item Stops execution if the input is neither a data frame nor a list containing a data frame.
 }
 }
-\examples{
-# Example with a single-row data frame
-df <- data.frame(a = 1, b = "text", c = list(c(1, 2, 3)))
-convert_df_to_list(df)
-
-# Example with a list containing a data frame
-df_list <- list(data.frame(a = 1:2, b = c("x", "y")))
-convert_df_to_list(df_list)
-
-}
 \seealso{
 \code{\link{wildobs_dp_download}} for downloading and bundling data packages.
 }

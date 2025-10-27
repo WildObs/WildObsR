@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: September 17th, 2025
+## last updated: October 27th, 2025
 
 # start fresh!
 rm(list = ls())
@@ -27,8 +27,8 @@ library(tidyverse)
 ### First, gather relevant information to inform the query
 
 ## read in environment file with confidential DB access info
-# readRenviron("inst/config/.Renviron.prod.admin") # remote access for admin, but authentification isnt working!
-# readRenviron("inst/config/.Renviron.prod.ro") # remote access for read-only
+# readRenviron("config_private/.Renviron.prod.admin") # remote access for admin, but authentification isnt working!
+# readRenviron("config_private/.Renviron.prod.ro") # remote access for read-only
 # Contact Zach if you want access to this file.
 
 # ## load information from enviromnet
@@ -43,7 +43,7 @@ library(tidyverse)
 # rm(USER, PASS, HOST, PORT, DATABASE)
 
 ## Instead of the DB_url, test out the new admin api key
-# readRenviron("inst/config/.Renviron.admin.api")
+# readRenviron("config_private/.Renviron.admin.api")
 # api_key = Sys.getenv("API_KEY")
 
 ## Test out general use API key
@@ -83,7 +83,7 @@ project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url,
 ## Who did we get?
 sort(project_ids)
 # for testing
-project_ids = c("QLD_Wet_Tropics_feral_cats_Bruce_2019-20_WildObsID_0007", "QLD_Simpson_Desert_Greenville_2010-15_WildObsID_0002")  # closed and partial data!
+# project_ids = c("QLD_Wet_Tropics_feral_cats_Bruce_2019-20_WildObsID_0007", "QLD_Simpson_Desert_Greenville_2010-15_WildObsID_0002")  # closed and partial data!
 
 ## clean up query info
 rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, temporal)
@@ -94,7 +94,7 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 # set media to FALSE to make a quicker download
 start = Sys.time()
 dp_list = wildobs_dp_download(api_key = api_key, #db_url = db_url,
-                              project_ids = project_ids, media = F)
+                              project_ids = project_ids, media = F, metadata_only = F)
 end = Sys.time()
 
 ## how long did this take?
