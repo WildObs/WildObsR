@@ -5,11 +5,13 @@
 #' @param data A dataframe representing a resource (e.g., observations, deployments).
 #' @param schema A list representing the schema that defines the expected column types
 #'   and constraints for the dataset.
+#' @param timezone A character string specifying the timezone for datetime conversions. Defaults to "UTC".
+#'   This parameter is particularly important for camtrap data to ensure temporal alignment across deployments.
 #' @return A dataframe with columns transformed according to the schema.
 #' @details
 #' The function converts columns based on the `type` field in the schema:
 #' \itemize{
-#'   \item \code{"datetime"}: Attempts to parse using multiple common formats and converts to ISO 8601.
+#'   \item \code{"datetime"}: Attempts to parse using multiple common formats and maintains as POSIXct with specified timezone.
 #'   \item \code{"date"}: Converts to `Date` class.
 #'   \item \code{"integer"}: Converts to integer.
 #'   \item \code{"number"}: Converts to numeric.
@@ -23,7 +25,7 @@
 #' @author Zachary Amir & ChatGPT
 #'
 #' @export
-apply_schema_types <- function(data, schema) {
+apply_schema_types <- function(data, schema, timezone = "UTC") {
   for (field in schema$fields) {
     # first, gather information about this field in particular.
     col_name <- field$name
@@ -34,9 +36,11 @@ apply_schema_types <- function(data, schema) {
     if (col_name %in% names(data)) {
 
       if (col_type == "datetime") {
-        # Parse datetime with flexible formats
+        # Use provided timezone parameter (from temporal metadata) for proper timezone handling
+        tz <- timezone
+        # parse the date to posixct safely
         parsed <- tryCatch(
-          as.POSIXct(data[[col_name]], format = col_format, tz = "UTC"),
+          as.POSIXct(data[[col_name]], format = col_format, tz = tz),
           error = function(e) NULL
         )
 
@@ -44,15 +48,16 @@ apply_schema_types <- function(data, schema) {
         if (any(is.na(parsed))) {
           common_formats <- c("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S%z")
           for (fmt in common_formats) {
-            parsed <- tryCatch(as.POSIXct(data[[col_name]], format = fmt, tz = "UTC"), error = function(e) NULL)
+            parsed <- tryCatch(as.POSIXct(data[[col_name]], format = fmt, tz = tz), error = function(e) NULL)
             if (!any(is.na(parsed))) break
           }
         }
         if (any(is.na(parsed))) {
           warning(paste("Failed to parse datetime for column:", col_name, "Please convert to common format (e.g., %Y-%m-%d %H:%M:%S)"))
         } else {
-          # Format the datetime as ISO 8601 with T separator
-          data[[col_name]] <- format(parsed, "%Y-%m-%dT%H:%M:%S%z")
+          # UPDATED: Store as POSIXct instead of converting to character string
+          # This ensures proper date-time handling with timezone information
+          data[[col_name]] <- parsed
         }
 
       } else if (col_type == "date") {
@@ -89,7 +94,7 @@ apply_schema_types <- function(data, schema) {
       } else {
         warning(paste("Unknown field type:", col_type, "for column:", col_name))
       }
-    }
-  }
+    } # end per col name
+  } # end per field
   data
 }# end function

@@ -13,14 +13,6 @@
 #' - Ensures that vector fields (e.g., `path`, `deploymentGroups`) are flattened to prevent unnecessary nested lists.
 #' - Stops execution if the input is neither a data frame nor a list containing a data frame.
 #'
-#' @examples
-#' # Example with a single-row data frame
-#' df <- data.frame(a = 1, b = "text", c = list(c(1, 2, 3)))
-#' convert_df_to_list(df)
-#'
-#' # Example with a list containing a data frame
-#' df_list <- list(data.frame(a = 1:2, b = c("x", "y")))
-#' convert_df_to_list(df_list)
 #'
 #' @importFrom purrr map
 #'
@@ -66,11 +58,6 @@ convert_df_to_list <- function(df) {
 #' @param x A value to check.
 #' @return `TRUE` if the value is NULL, entirely NA, or the string `"NULL"`, otherwise `FALSE`.
 #'
-#' @examples
-#' is_empty_spatial(NULL)        # TRUE
-#' is_empty_spatial(NA)          # TRUE
-#' is_empty_spatial("NULL")      # TRUE
-#' is_empty_spatial("polygon")   # FALSE
 #'
 #' @author Zachary Amir & ChatGPT
 #'
@@ -88,15 +75,6 @@ is_empty_spatial <- function(x) {
 #' @param x A dataframe or atomic vector representing temporal data.
 #' @return `TRUE` if the temporal data is entirely `NA`, otherwise `FALSE`.
 #'
-#' @examples
-#' df <- data.frame(start = NA, end = NA)
-#' is_empty_temporal(df)  # TRUE
-#'
-#' vec <- c(NA, NA, NA)
-#' is_empty_temporal(vec)  # TRUE
-#'
-#' df2 <- data.frame(start = "2023-01-01", end = NA)
-#' is_empty_temporal(df2)  # FALSE
 #'
 #' @author Zachary Amir & ChatGPT
 #'
@@ -119,14 +97,6 @@ is_empty_temporal = function(x) {
 #' @param x A nested list containing various data types.
 #' @return A cleaned version of the list with all `NULL`, `NA`, and empty lists removed.
 #'
-#' @examples
-#' example_list <- list(a = 1, b = NULL, c = list(d = NA, e = list()))
-#' clean_list_recursive(example_list)
-#' # Returns: list(a = 1)
-#'
-#' nested_list <- list(a = 1, b = list(c = NULL, d = list(e = NA)))
-#' clean_list_recursive(nested_list)
-#' # Returns: list(a = 1)
 #'
 #' @author Zachary Amir & ChatGPT
 #'
@@ -154,17 +124,6 @@ clean_list_recursive <- function(x) {
 #' @param fields A dataframe containing schema field information, including constraints,
 #'   descriptions, and other metadata.
 #' @return A list of formatted schema fields, with cleaned constraints and metadata.
-#'
-#' @examples
-#' fields <- data.frame(
-#'   name = c("scientificName", "individualID"),
-#'   description = c("Species name", "Identification of individual animals"),
-#'   constraints = list(list(required = TRUE, unique = FALSE), list(required = FALSE)),
-#'   type = c("string", "string"),
-#'   example = c("Wallabia bicolor", "NA"),
-#'   format = c(NA, "default")
-#' )
-#' formatted_fields <- reformat_fields(fields)
 #'
 #' @seealso \code{\link{clean_list_recursive}} for removing empty list elements.
 #'
@@ -249,9 +208,6 @@ reformat_schema <- function(schema) {
 #' @return The mode (most frequent value) in the vector, or NA if the input
 #'   is empty or all values are NA
 #'
-#' @examples
-#' Mode(c(1, 2, 2, 3, 3, 3))
-#' Mode(c("a", "b", "b", "c"))
 #'
 #' @keywords internal
 Mode <- function(x) {
@@ -280,9 +236,6 @@ Mode <- function(x) {
 #' side length = sqrt((2 * area) / (3 * sqrt(3)))
 #' apothem = (side * sqrt(3)) / 2
 #'
-#' @examples
-#' area_to_apothem(1e6)  # 1 km²
-#' area_to_apothem(c(1e6, 5e6))  # Multiple areas
 #'
 #' @keywords internal
 area_to_apothem <- function(area_m2) {
@@ -327,11 +280,6 @@ area_to_apothem <- function(area_m2) {
 #'
 #' @return A data frame with the renamed or new column
 #'
-#' @examples
-#' df <- data.frame(x = 1:3, y = 4:6)
-#' rename_or_add_column(df, "new_col", "x")
-#' rename_or_add_column(df, "blank_col", "")
-#'
 #' @keywords internal
 rename_or_add_column <- function(df, new_name, old_name) {
   if (length(old_name) == 0 || is.na(old_name) || old_name == "") {
@@ -351,10 +299,6 @@ rename_or_add_column <- function(df, new_name, old_name) {
 #'
 #' @return An integer representing the number of significant decimal places
 #'
-#' @examples
-#' get_decimal_places(12.345)
-#' get_decimal_places(10.5)
-#' get_decimal_places(5.00)
 #'
 #' @keywords internal
 get_decimal_places <- function(x) {
@@ -381,9 +325,6 @@ get_decimal_places <- function(x) {
 #'
 #' @return A data frame with "NA" character strings and NaN values converted to NA
 #'
-#' @examples
-#' df <- data.frame(x = c(1, NaN, 3), y = c("a", "NA", "c"))
-#' mongo_clean_df(df)
 #'
 #' @keywords internal
 mongo_clean_df <- function(df) {
@@ -456,12 +397,9 @@ convert_row_to_json <- function(row, date_cols, collection) {
 #' Converts a single row to a JSON string with proper MongoDB formatting
 #' for date fields.
 #'
-#' @param row A single row from a data frame (typically obtained via subsetting)
-#' @param date_cols Character vector of column names containing dates
-#' @param collection Character string specifying the collection type
-#'   (e.g., "observations")
+#' @param x A date-time or character value to be formatted.
 #'
-#' @return A character string containing the JSON representation of the row
+#' @return A list containing a MongoDB-style date (`$date`) or `NA` if the input cannot be parsed.
 #'
 #' @details
 #' This is a wrapper function that converts a row to a list, applies
@@ -506,10 +444,6 @@ mongo_format_dates <- function(x) {
 #'
 #' All output times are in UTC timezone.
 #'
-#' @examples
-#' convert_to_standard_date("2022-06-01 12:30:45")
-#' convert_to_standard_date("1654070445")  # Unix epoch
-#' convert_to_standard_date(as.POSIXct("2022-06-01"))
 #'
 #' @keywords internal
 convert_to_standard_date <- function(x) {
@@ -574,13 +508,6 @@ convert_to_standard_date <- function(x) {
 #' 4. Standardizing missing values (NA and "" treated as equivalent)
 #' 5. Sorting columns alphabetically
 #'
-#' @examples
-#' df <- data.frame(
-#'   name = c("Alice", "Bob"),
-#'   date = c("2022-06-01", "2022-07-15"),
-#'   value = c(1.234, 5.678)
-#' )
-#' canonicalize_df(df, date_cols = "date", numeric_round = 2)
 #'
 #' @keywords internal
 canonicalize_df <- function(df, date_cols, numeric_round = 2) {
@@ -634,9 +561,6 @@ canonicalize_df <- function(df, date_cols, numeric_round = 2) {
 #' hash values across data frames with the same data in different column orders.
 #' Row values are concatenated with "||" separator before hashing.
 #'
-#' @examples
-#' df <- data.frame(x = 1:3, y = c("a", "b", "c"))
-#' compute_row_hashes(df)
 #'
 #' @keywords internal
 compute_row_hashes <- function(df) {
@@ -649,3 +573,139 @@ compute_row_hashes <- function(df) {
   })
 }
 
+
+#' Format Spatial Bounding Boxes into GeoJSON-Style List
+#'
+#' This internal helper reformats a `spatial` object’s bounding box (`bbox`)
+#' column into a lightweight, GeoJSON-like list structure. It is used within
+#' WildObsR functions that serialize spatial metadata for database or JSON export.
+#'
+#' The function handles several possible input formats:
+#' \itemize{
+#'   \item A nested data frame already containing \code{xmin}, \code{ymin},
+#'         \code{xmax}, and \code{ymax} columns.
+#'   \item A character string of four comma-separated coordinates
+#'         (e.g., \code{"152.0796, -27.7047, 152.0934, -27.6972"}).
+#'   \item A numeric vector of length four giving bounding box coordinates.
+#' }
+#'
+#' @param spatial_obj A data frame containing a \code{bbox} column, where each
+#'   element corresponds to one or more location bounding boxes. Each entry may
+#'   be a data frame, a character string, or a numeric vector.
+#'
+#' @return A named list in simplified GeoJSON style:
+#' \preformatted{
+#' list(
+#'   type = "polygon",
+#'   bbox = list(
+#'     Location1 = list(list(xmin = ..., ymin = ..., xmax = ..., ymax = ...)),
+#'     Location2 = list(list(xmin = ..., ymin = ..., xmax = ..., ymax = ...))
+#'   )
+#' )
+#' }
+#' or \code{NULL} if no valid bounding boxes are found.
+#'
+#' @details
+#' The resulting object mimics a minimal GeoJSON \emph{Polygon} structure but
+#' preserves location-wise bounding boxes rather than coordinate rings.
+#' This internal utility is primarily used when converting spatial metadata
+#' to JSON for MongoDB insertion or validation.
+#'
+#' @examples
+#' \dontrun{
+#' # Example input mimicking a CamtrapDP-style spatial object
+#' spatial_obj <- data.frame(
+#'   bbox = I(list(data.frame(
+#'     Site_A = list(list(xmin = 152.0, ymin = -27.7, xmax = 152.1, ymax = -27.6)),
+#'     Site_B = list(list(xmin = 151.9, ymin = -27.8, xmax = 152.0, ymax = -27.7))
+#'   )))
+#' )
+#'
+#' # Format to GeoJSON-style list
+#' geojson_list <- format_spatial_to_geojson(spatial_obj)
+#' str(geojson_list)
+#' }
+#'
+#' @keywords internal
+#' @noRd
+format_spatial_to_geojson <- function(spatial_obj) {
+  #--- CASE 1: Features-based spatial object
+  if (is.data.frame(spatial_obj) && "features" %in% names(spatial_obj)) {
+    # Extract the data frame that contains all features
+    features_df <- spatial_obj$features[[1]]
+    # If there’s no geometry column, stop early
+    if (is.null(features_df) || !"geometry" %in% names(features_df))
+      return(NULL)
+
+    # extract geometry and property info
+    geometries <- features_df$geometry
+    props <- features_df$properties
+
+    # assemble GeoJSON-style list of features
+    features_out <- vector("list", nrow(features_df))
+    # Loop over each feature and reformat it into GeoJSON-style structure
+    for (i in seq_len(nrow(features_df))) {
+      features_out[[i]] <- list(
+        type = "Feature",
+        properties = as.list(props[i, , drop = FALSE]),
+        geometry = list(
+          type = geometries$type[i],
+          coordinates = geometries$coordinates[[i]]
+        )
+      )
+    } # end per nrow features
+
+    # Return the final GeoJSON-style FeatureCollection
+    return(list(
+      type = "FeatureCollection",
+      features = features_out
+    ))
+  }
+
+  # Handle the case where the spatial object only has a "bbox" element
+  # This matches your earlier schema where bounding boxes are stored per location
+  if (!is.data.frame(spatial_obj) || !"bbox" %in% names(spatial_obj))
+    return(NULL)
+  # Extract bounding box information
+  bbox_df <- spatial_obj$bbox
+  if (!is.data.frame(bbox_df)) return(NULL)
+  # Prepare an empty list to store formatted bounding boxes
+  bbox_out <- list()
+  # Loop through each column in the bbox data frame (each corresponds to a location)
+  for (loc_name in names(bbox_df)) {
+    # Extract the first element from each list cell
+    val <- bbox_df[[loc_name]][[1]]
+    # Skip if missing or explicitly NULL
+    if (is.null(val) || (is.character(val) && val == "NULL")) next
+
+    # Case 1: already a data frame with xmin, ymin, xmax, ymax
+    if (is.data.frame(val) && all(c("xmin", "ymin", "xmax", "ymax") %in% names(val))) {
+      bbox_out[[loc_name]] <- list(list(
+        xmin = val$xmin[1], ymin = val$ymin[1],
+        xmax = val$xmax[1], ymax = val$ymax[1]
+      ))
+      next
+    }
+    # Case 2: character string formatted as four comma-separated coordinates
+    if (is.character(val)) {
+      nums <- suppressWarnings(as.numeric(strsplit(val, "\\s*,\\s*")[[1]]))
+      if (length(nums) == 4 && all(is.finite(nums))) {
+        bbox_out[[loc_name]] <- list(list(
+          xmin = nums[1], ymin = nums[2], xmax = nums[3], ymax = nums[4]
+        ))
+      }
+      next
+    }
+    # Case 3: numeric vector of length 4
+    if (is.numeric(val) && length(val) == 4) {
+      bbox_out[[loc_name]] <- list(list(
+        xmin = val[1], ymin = val[2], xmax = val[3], ymax = val[4]
+      ))
+      next
+    }
+  }
+  # Return NULL if no valid bounding boxes were found
+  if (length(bbox_out) == 0) return(NULL)
+  # Construct and return a simple GeoJSON-style object
+  list(type = "polygon", bbox = bbox_out)
+}

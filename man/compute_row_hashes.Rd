@@ -22,9 +22,4 @@ Columns are sorted alphabetically before hashing to ensure consistent
 hash values across data frames with the same data in different column orders.
 Row values are concatenated with "||" separator before hashing.
 }
-\examples{
-df <- data.frame(x = 1:3, y = c("a", "b", "c"))
-compute_row_hashes(df)
-
-}
 \keyword{internal}
