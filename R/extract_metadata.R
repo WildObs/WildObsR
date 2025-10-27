@@ -58,7 +58,7 @@
 #' @export
 extract_metadata <- function(dp_list, elements = c("contributors", "sources", "licenses", "relatedIdentifiers", "references", "project", "WildObsMetadata", "spatial", "temporal", "taxonomic")){
   # ## testing!!!
-  # elements = c("sources","contributors", "WildObsMetadata")
+  # elements = c("sources","contributors", "WildObsMetadata", "spatial")
 
   ## current supported elements
   supp_el = c("contributors", "sources", "licenses", "relatedIdentifiers", "references", "project", "WildObsMetadata", "spatial", "temporal", "taxonomic")
