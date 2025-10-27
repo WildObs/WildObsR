@@ -13,6 +13,7 @@
 #'  Defaults to `NULL`, in which case the function expects a valid `db_url` to connect directly to MongoDB.
 #' @param project_ids A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.
 #' @param media A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.
+#' @param metadata_only Logical; if TRUE, only metadata will be retrieved from each data package, without downloading the associated data resources. This can significantly improve speed when only project-level information is required. Defaults to FALSE, in which case all data (metadata and tabular resources) are downloaded.
 #' @return A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/). Note that only data with an 'open' data sharing agreement will return tabular data, while data shared with a  'partial' data sharing agreement will return only the project-level metadata.
 #' @details
 #' The function performs the following steps:
@@ -54,7 +55,7 @@
 #' @author Zachary Amir
 #'
 #' @export
-wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media = FALSE) {
+wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media = FALSE, metadata_only = FALSE) {
 
   ## read in environment file with confidential DB access info
   # readRenviron("config_private/.Renviron.prod.ro") # remote version
@@ -137,76 +138,6 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     metadata = mongolite::mongo(db = "wildobs_camdb", collection = "metadata", url = db_url)$find()
   } # end else use_api
 
-
-  #
-  ##
-  ### Define a chatGPT helper function to better extract spatial information
-  format_spatial_to_geojson <- function(spatial_obj) {
-    # Validate input
-    if (!is.data.frame(spatial_obj) || !"bbox" %in% names(spatial_obj))
-      return(NULL)
-
-    # extract bounding box as a data frame
-    bbox_df <- spatial_obj$bbox
-    if (!is.data.frame(bbox_df)) return(NULL)
-
-    # Prepare an empty bbox container
-    bbox_out <- list()
-
-    # Iterate over each location column (each is a bbox entry)
-    for (loc_name in names(bbox_df)) {
-      val <- bbox_df[[loc_name]][[1]]  # extract first (and only) cell value
-
-      # Skip if missing or NULL
-      if (is.null(val) || (is.character(val) && val == "NULL")) next
-
-      # --- CASE 1: already a data.frame with xmin/ymin/xmax/ymax
-      if (is.data.frame(val) && all(c("xmin", "ymin", "xmax", "ymax") %in% names(val))) {
-        bbox_out[[loc_name]] <- list(list(
-          xmin = val$xmin[1],
-          ymin = val$ymin[1],
-          xmax = val$xmax[1],
-          ymax = val$ymax[1]
-        ))
-        next
-      }
-
-      # --- CASE 2: character string like "152.0796, -27.7047, 152.0934, -27.6972"
-      if (is.character(val)) {
-        nums <- suppressWarnings(as.numeric(strsplit(val, "\\s*,\\s*")[[1]]))
-        if (length(nums) == 4 && all(is.finite(nums))) {
-          bbox_out[[loc_name]] <- list(list(
-            xmin = nums[1],
-            ymin = nums[2],
-            xmax = nums[3],
-            ymax = nums[4]
-          ))
-        }
-        next
-      }
-
-      # --- CASE 3: numeric vector already (rare case)
-      if (is.numeric(val) && length(val) == 4) {
-        bbox_out[[loc_name]] <- list(list(
-          xmin = val[1],
-          ymin = val[2],
-          xmax = val[3],
-          ymax = val[4]
-        ))
-        next
-      }
-    }
-
-    # If we collected nothing valid, return NULL
-    if (length(bbox_out) == 0) return(NULL)
-
-    # Construct final geoJSON-style list
-    list(
-      type = "polygon",
-      bbox = bbox_out
-    )
-  } # end function
-
   #
   ##
   ###
@@ -274,7 +205,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     # )
 
     ## Use new chatGPT helper function to handle geoJSON + bboxes + flat bbox
-    proj_meta$spatial <- format_spatial_to_geojson(meta_list$spatial)
+    proj_meta$spatial <- WildObsR:::format_spatial_to_geojson(meta_list$spatial)
 
     #
     ##
@@ -421,9 +352,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
 
   } # end per project name
   # for testing
-  # rm(b, b_tax, meta_list, proj_meta, res_list, resources, meta, xmax, ymax, xmin, ymin,
-  #    s_clean, s_nested, schema,t_clean, t_nested, tax, tax_list,
-  #    t, i,  n, na, name, r, s, final_meta, tz, lat, lon, pattern, bbox)
+  # rm(b, b_tax, meta_list, proj_meta, res_list, resources,
+  #   schema,t_clean, t_nested, tax, tax_list, meta,
+  #    t, i,  n, na, name, r, s, final_meta, tz)
 
 
   #
@@ -514,73 +445,80 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
           projectName = list(`$in` = project_ids_query)))
     } # end else proj_id = 1 condition
 
-    ## Use httr2 functions to create a query for the url for each resource
-    # deployments
-    dep_req <- httr2::request(url) |>
-      # Ensure the endpoint is GET-only
-      httr2::req_method("GET") |>
-      # assign headers
-      httr2::req_headers("X-API-Key" = api_key) |>
-      # put collection + filter in JSON body
-      httr2::req_body_json(dep_body)
-    # observations
-    obs_req <- httr2::request(url) |>
-      # Ensure the endpoint is GET-only
-      httr2::req_method("GET") |>
-      # assign headers
-      httr2::req_headers("X-API-Key" = api_key) |>
-      # put collection + filter in JSON body
-      httr2::req_body_json(obs_body)
-    # Covariates
-    cov_req <- httr2::request(url) |>
-      # Ensure the endpoint is GET-only
-      httr2::req_method("GET") |>
-      # assign headers
-      httr2::req_headers("X-API-Key" = api_key) |>
-      # put collection + filter in JSON body
-      httr2::req_body_json(cov_body)
-    # media
-    media_req <- httr2::request(url) |>
-      # Ensure the endpoint is GET-only
-      httr2::req_method("GET") |>
-      # assign headers
-      httr2::req_headers("X-API-Key" = api_key) |>
-      # put collection + filter in JSON body
-      httr2::req_body_json(media_body)
+    ### Add a condition to query metadata only or full records
+    if(!isTRUE(metadata_only)){
+      ## Use httr2 functions to create a query for the url for each resource
+      # deployments
+      dep_req <- httr2::request(url) |>
+        # Ensure the endpoint is GET-only
+        httr2::req_method("GET") |>
+        # assign headers
+        httr2::req_headers("X-API-Key" = api_key) |>
+        # put collection + filter in JSON body
+        httr2::req_body_json(dep_body)
+      # observations
+      obs_req <- httr2::request(url) |>
+        # Ensure the endpoint is GET-only
+        httr2::req_method("GET") |>
+        # assign headers
+        httr2::req_headers("X-API-Key" = api_key) |>
+        # put collection + filter in JSON body
+        httr2::req_body_json(obs_body)
+      # Covariates
+      cov_req <- httr2::request(url) |>
+        # Ensure the endpoint is GET-only
+        httr2::req_method("GET") |>
+        # assign headers
+        httr2::req_headers("X-API-Key" = api_key) |>
+        # put collection + filter in JSON body
+        httr2::req_body_json(cov_body)
+      # media
+      media_req <- httr2::request(url) |>
+        # Ensure the endpoint is GET-only
+        httr2::req_method("GET") |>
+        # assign headers
+        httr2::req_headers("X-API-Key" = api_key) |>
+        # put collection + filter in JSON body
+        httr2::req_body_json(media_body)
 
-    ## Now preform requests to access the data for each resource
-    # deployments
-    dep_resp <- httr2::req_perform(dep_req)
-    # extract the body text string and then convert from JSON
-    data_dep <- jsonlite::fromJSON(httr2::resp_body_string(dep_resp, encoding = "UTF-8"),
-                                   simplifyVector = TRUE)
-    # then grab the data.frame from the API data
-    deps = data_dep[[1]][[2]]
+      ## Now preform requests to access the data for each resource
+      # deployments
+      dep_resp <- httr2::req_perform(dep_req)
+      # extract the body text string and then convert from JSON
+      data_dep <- jsonlite::fromJSON(httr2::resp_body_string(dep_resp, encoding = "UTF-8"),
+                                     simplifyVector = TRUE)
+      # then grab the data.frame from the API data
+      deps = data_dep[[1]][[2]]
 
-    # observations
-    obs_resp <- httr2::req_perform(obs_req)
-    # extract the body text string and then convert from JSON
-    data_obs <- jsonlite::fromJSON(httr2::resp_body_string(obs_resp, encoding = "UTF-8"),
-                                   simplifyVector = TRUE)
-    # then grab the data.frame from the API data
-    obs = data_obs[[1]][[2]]
-    # covariates
-    cov_resp <- httr2::req_perform(cov_req)
-    # extract the body text string and then convert from JSON
-    data_cov <- jsonlite::fromJSON(httr2::resp_body_string(cov_resp, encoding = "UTF-8"),
-                                   simplifyVector = TRUE)
-    # then grab the data.frame from the API data
-    covs = data_cov[[1]][[2]]
-    # media, but only if true!
-    if(media){
-      # make the request
-      media_resp = httr2::req_perform(media_req)
-      # extract the body
-      data_media <- jsonlite::fromJSON(httr2::resp_body_string(media_resp, encoding = "UTF-8"),
-                                       simplifyVector = TRUE)
-      # take data.frame
-      media_df = data_media[[1]][[2]]
+      # observations
+      obs_resp <- httr2::req_perform(obs_req)
+      # extract the body text string and then convert from JSON
+      data_obs <- jsonlite::fromJSON(httr2::resp_body_string(obs_resp, encoding = "UTF-8"),
+                                     simplifyVector = TRUE)
+      # then grab the data.frame from the API data
+      obs = data_obs[[1]][[2]]
+      # covariates
+      cov_resp <- httr2::req_perform(cov_req)
+      # extract the body text string and then convert from JSON
+      data_cov <- jsonlite::fromJSON(httr2::resp_body_string(cov_resp, encoding = "UTF-8"),
+                                     simplifyVector = TRUE)
+      # then grab the data.frame from the API data
+      covs = data_cov[[1]][[2]]
+      # media, but only if true!
+      if(media){
+        # make the request
+        media_resp = httr2::req_perform(media_req)
+        # extract the body
+        data_media <- jsonlite::fromJSON(httr2::resp_body_string(media_resp, encoding = "UTF-8"),
+                                         simplifyVector = TRUE)
+        # take data.frame
+        media_df = data_media[[1]][[2]]
       } # end media condition
+
+    }else {
+      # but give us a reminder if were only accessing metadata
+      message("metadata_only = TRUE → skipping data resource downloads for speed.")
+    } # end elsemetadata_only condition
 
   }else{
     ## if not using API, stick with the old method
@@ -591,15 +529,60 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
       jsonlite::toJSON(list(projectName = list("$in" = project_ids_query)), auto_unbox = TRUE) # Multiple IDs
     }
 
-    # grab observations
-    obs = mongolite::mongo(db = "wildobs_camdb", collection = "observations", url = db_url)$find(query) # filtering w/ query
-    # deployments
-    deps = mongolite::mongo(db = "wildobs_camdb", collection = "deployments", url = db_url)$find(query)
-    # media, but only if specified
-    if(media){media_df = mongolite::mongo(db = "wildobs_camdb", collection = "media", url = db_url)$find(query)}
-    # covariate
-    covs = mongolite::mongo(db = "wildobs_camdb", collection = "covariates", url = db_url)$find(query)
+    ### add a condition for metadata only
+    if(!isTRUE(metadata_only)){
+      # grab observations
+      obs = mongolite::mongo(db = "wildobs_camdb", collection = "observations", url = db_url)$find(query) # filtering w/ query
+      # deployments
+      deps = mongolite::mongo(db = "wildobs_camdb", collection = "deployments", url = db_url)$find(query)
+      # media, but only if specified
+      if(media){media_df = mongolite::mongo(db = "wildobs_camdb", collection = "media", url = db_url)$find(query)}
+      # covariate
+      covs = mongolite::mongo(db = "wildobs_camdb", collection = "covariates", url = db_url)$find(query)
+
+    } else {
+      message("metadata_only = TRUE → skipping data resource downloads for speed.")
+    }# end else metadata_only condition
+
   }# end else use api
+
+  #
+  ##
+  ###
+  #### Before we save each DP, update the osbervation schema to include taxonomic info
+  # Get the existing schema
+  obs_schema <- formatted_metadata[[proj]]$observations_schema
+  # Specify the new columns added to obs from taxonomic metadata
+  new_fields <-c("taxonID", "taxonRank", "vernacularNamesEnglish")
+
+  # For each new field,
+  for (field in new_fields) {
+    # Create a simple placeholder field entry for the schema
+    new_field_def <- list(
+      name = field,
+      type = "string",  # default to string; can update types later
+      description = paste("Additional field automatically added during data integration:", field)
+    )
+    # Assign known metadata to recognized fields
+    if (field == "taxonID") {
+      new_field_def$type <- "string"
+      new_field_def$description <- "Unique taxonomic identifier (e.g. ALA or GBIF verified uri)."
+      new_field_def$`skos:exactMatch` <- "http://rs.tdwg.org/dwc/terms/taxonID"
+    } else if (field == "taxonRank") {
+      new_field_def$type <- "string"
+      new_field_def$description <- "Taxonomic rank of the identified organism (e.g. species, genus)."
+      new_field_def$`skos:exactMatch` <- "http://rs.tdwg.org/dwc/terms/taxonRank"
+    } else if (field == "vernacularNamesEnglish") {
+      new_field_def$type <- "string"
+      new_field_def$description <- "Common English name of the organism, if available."
+      new_field_def$`skos:exactMatch` <- "http://rs.tdwg.org/dwc/terms/vernacularName"
+    }
+    # Append to schema
+    obs_schema$fields[[length(obs_schema$fields) + 1]] <- new_field_def
+  } # end per new field
+
+  # Replace the schema in the formatted metadata
+  formatted_metadata[[proj]]$observations_schema <- obs_schema
 
   ## save them per project
   dp_list = list()
@@ -607,6 +590,19 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
 
     # select one project
     proj = project_ids[p]
+
+    ## before we get busy, check if we only want metadata,
+    if (isTRUE(metadata_only)) {
+      # if so, construct a metadata-only package with no data resources
+      dp <- frictionless::create_package(formatted_metadata[[proj]]$project_level_metadata)
+      # add camtrapDP to the classes
+      class(dp) <- c("camtrapdp", class(dp))
+      # save back in the loop
+      dp_list[[p]] <- dp
+      names(dp_list)[[p]] <- proj
+      # and skip the rest of this loop
+      next
+    }
 
     # subset for specific project
     obs_proj = obs[obs$projectName == proj, ]
@@ -621,6 +617,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     } else {
       "UTC"  # Fallback to UTC if timezone not specified
     }
+    if(is.na(project_timezone)){project_timezone = "UTC"} # default to UTC if NA is provided.
 
     # but before we save, apply schemas to make sure were good!
     # UPDATED: Pass timezone parameter to apply_schema_types for proper POSIXct datetime handling
@@ -628,6 +625,12 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     deps_proj = suppressWarnings(apply_schema_types(deps_proj, formatted_metadata[[proj]]$deployments_schema, timezone = project_timezone))
     if(media){media_proj = suppressWarnings(apply_schema_types(media_proj, formatted_metadata[[proj]]$media_schema, timezone = project_timezone))}
     cov_proj = suppressWarnings(apply_schema_types(cov_proj, formatted_metadata[[proj]]$covariates_schema, timezone = project_timezone))
+
+    # Add taxonomic info to the observations to match camtrapDP data class
+    taxa = WildObsR::extract_metadata(dp, "taxonomic")
+    taxa$DPID = NULL # dont need the ID
+    # and merge it with the observations
+    obs_proj = dplyr::left_join(obs_proj, taxa, by = "scientificName")
 
 
     ## and make sure the columns follow the order in the schema
@@ -666,11 +669,6 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     ## now bundle into a frictionless DP
     # use metadata to create the DP
     dp = frictionless::create_package(formatted_metadata[[proj]]$project_level_metadata)
-
-    # Add camtrapdp class to data package for proper class identification
-    # This ensures the data package is recognized as a camera trap data package following the camtrap-dp standard
-    class(dp) <- c("camtrapdp", class(dp)) # COME HERE!! ZDA thinks there is more to it than just this, since media will need eventID (already present) and taxonomic info in observations.
-    ## ideally we can get someone from INBO to do this cleverly.
 
     # Allow admin to access all data via db_url OR api_key
     is_admin <- FALSE
@@ -732,6 +730,21 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
 
       } # end open data sharing condition
     } # end admin condition
+
+    ## finally, add a new 'data' slot in the data package (which is redundant from resources...)
+    ## to allow the data to be recognized by camtrap DP
+    dp$data <- list(
+      deployments  = deps_proj,
+      observations = obs_proj,
+      covariates   = cov_proj,
+      media        = if (exists("media_proj")){
+        media_proj
+      }else{
+        data.frame() # give em an empty DF if they need something!
+      } # end else media conditon
+    )
+    ## finally, add camtrapDP to the class for recognition
+    class(dp) <- c("camtrapdp", class(dp))
 
     ## save in a list
     dp_list[[p]] = dp
