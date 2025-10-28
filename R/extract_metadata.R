@@ -155,13 +155,10 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
                 xmax = max(mat[, 1], na.rm = TRUE),
                 ymax = max(mat[, 2], na.rm = TRUE)
               )
-            } # end true mat and ncol conditon
-          } # end not null condition for coordinates
-        } # end polygon condition
-
-          # CASE 2: Already in bbox format
-          else if (!is.null(el_list$bbox)) {
-            # Flatten all bbox entries, keeping their names
+            } # end null mat and cols
+          }else if(!is.null(el_list$bbox)){
+            # if coordinates are missing, then
+            # flatten all bbox entries, keeping their names
             res <- purrr::map_dfr(names(el_list$bbox), function(nm) {
               bbox_flat <- el_list$bbox[[nm]][[1]] %||% el_list$bbox[[nm]]
               data.frame(
@@ -171,11 +168,12 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
                 xmax = bbox_flat$xmax %||% NA,
                 ymax = bbox_flat$ymax %||% NA
               )
-            })
-          } # end not bbox condition
+            }) # end map_dfr
+          }# end else not null condition for bbox
+        } # end null coordinates  condition
         # and dont forget the id
         res$DPID <- dp$id
-      }
+      } # end spatial conditon
       ## Add a special condition for temporal to accommodate timezones
       else if (elements[i] == "temporal") {
 
