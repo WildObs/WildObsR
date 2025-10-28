@@ -629,8 +629,11 @@ compute_row_hashes <- function(df) {
 #' @keywords internal
 #' @noRd
 format_spatial_to_geojson <- function(spatial_obj) {
+  # Return NULL if not a data.frame
+  if (!is.data.frame(spatial_obj)) return(NULL)
+
   #--- CASE 1: Features-based spatial object
-  if (is.data.frame(spatial_obj) && "features" %in% names(spatial_obj)) {
+  if ("features" %in% names(spatial_obj)) {
     # Extract the data frame that contains all features
     features_df <- spatial_obj$features[[1]]
     # If there’s no geometry column, stop early
@@ -664,8 +667,7 @@ format_spatial_to_geojson <- function(spatial_obj) {
 
   # Handle the case where the spatial object only has a "bbox" element
   # This matches your earlier schema where bounding boxes are stored per location
-  if (!is.data.frame(spatial_obj) || !"bbox" %in% names(spatial_obj))
-    return(NULL)
+  if ("bbox" %in% names(spatial_obj))
   # Extract bounding box information
   bbox_df <- spatial_obj$bbox
   if (!is.data.frame(bbox_df)) return(NULL)
