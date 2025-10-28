@@ -27,7 +27,7 @@ Defaults to \code{NULL}, in which case the function expects a valid \code{db_url
 
 \item{media}{A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.}
 
-\item{metadata_only}{Logical; if TRUE, only metadata will be retrieved from each data package, without downloading the associated data resources. This can significantly improve speed when only project-level information is required. Defaults to FALSE, in which case all data (metadata and tabular resources) are downloaded.}
+\item{metadata_only}{Logical; if TRUE, only metadata will be retrieved from each data package, without downloading the associated data resources. This can significantly improve speed when only project-level information is required. Defaults to FALSE, in which case all data (metadata and tabular resources) are downloaded. Note: this only applies for data with 'open' data sharing agreements, since 'partial' will be returned with metadata-only.}
 }
 \value{
 A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about \href{https://camtrap-dp.tdwg.org/}{camtrapDP, click here}, and to learn more about \href{https://specs.frictionlessdata.io/data-package/}{Frictionless Data Packages, click here}. Note that only data with an 'open' data sharing agreement will return tabular data, while data shared with a  'partial' data sharing agreement will return only the project-level metadata.

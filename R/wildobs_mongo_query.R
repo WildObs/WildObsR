@@ -76,10 +76,10 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   proj_ids = c()
 
   ## read in environment file with confidential DB access info
-  # readRenviron("inst/config/.Renviron.local.ro") # local version
-  # readRenviron("inst/config/.Renviron.prod.ro") # remote version
+  # readRenviron("config_private/.Renviron.prod.ro") # remote DB, read only
+  # readRenviron("config_private/.Renviron.admin.api") # admin api key
 
-  # ## load information from enviromnet
+  # ## load information from environment
   # HOST <- Sys.getenv("HOST")
   # PORT <- Sys.getenv("PORT")
   # DATABASE <- Sys.getenv("DATABASE")
@@ -89,6 +89,9 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   # ## combine all the information into a database-url to enable access
   # db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
   # rm(USER, PASS, HOST, PORT, DATABASE)
+  #
+  # # Extract api_key
+  # api_key <- Sys.getenv("API_KEY")
 
   ### Determine if we will use the API key or the DB url to access data
   if(!is.null(api_key) && is.null(db_url)){
@@ -224,26 +227,13 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ##
   ### Spatial query ----
 
-  # for testing
-  # spatial = list(xmin = 145.0, xmax = 147.0, ymin = -16.0,  ymax = -20.0)
+  # # for testing
+  # spatial = list(xmin = 112.9, ymin = -43.7, xmax = 153.6, ymax = -9.1) # all of AUS
 
   ## Make sure there is spatial information!
   if(exists("spatial", inherits = FALSE) && !is.null(spatial) && length(spatial) > 0){
-    # Extract the bounding box data frame
-    bbox_df <- metadata$spatial$bbox %>%
-      tidyr::pivot_longer(cols = everything(), names_to = "locationName", values_to = "bbox") %>%
-      dplyr::mutate(row_id = rep(seq_len(nrow(metadata)), each = ncol(metadata$spatial$bbox))) %>%  # Track original row ID
-      dplyr::filter(purrr::map_lgl(bbox, ~ !is.null(.x) && !all(is.na(.x)))) %>%  # Remove NULL or all-NA values
-      dplyr::mutate(
-        xmin = purrr::map_dbl(bbox, ~ .x$xmin[1]),
-        ymin = purrr::map_dbl(bbox, ~ .x$ymin[1]),
-        xmax = purrr::map_dbl(bbox, ~ .x$xmax[1]),
-        ymax = purrr::map_dbl(bbox, ~ .x$ymax[1])
-      ) %>%
-      dplyr::select(locationName, row_id, xmin, ymin, xmax, ymax)  # Keep only relevant columns
-
-    # grab relevant project IDs
-    bbox_df <- bbox_df %>% dplyr::mutate(id = metadata$id[row_id])
+    # Extract the bounding box data frame using custom utils.R function
+    bbox_df <- WildObsR:::extract_spatial_bboxes(metadata) # handles flexible spatial data formats.
 
     # Filter bbox_df to remove any non-overlapping boxes from the spatial extent
     bbox_df_filtered <- bbox_df[
