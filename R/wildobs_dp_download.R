@@ -13,7 +13,7 @@
 #'  Defaults to `NULL`, in which case the function expects a valid `db_url` to connect directly to MongoDB.
 #' @param project_ids A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.
 #' @param media A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.
-#' @param metadata_only Logical; if TRUE, only metadata will be retrieved from each data package, without downloading the associated data resources. This can significantly improve speed when only project-level information is required. Defaults to FALSE, in which case all data (metadata and tabular resources) are downloaded.
+#' @param metadata_only Logical; if TRUE, only metadata will be retrieved from each data package, without downloading the associated data resources. This can significantly improve speed when only project-level information is required. Defaults to FALSE, in which case all data (metadata and tabular resources) are downloaded. Note: this only applies for data with 'open' data sharing agreements, since 'partial' will be returned with metadata-only.
 #' @return A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/). Note that only data with an 'open' data sharing agreement will return tabular data, while data shared with a  'partial' data sharing agreement will return only the project-level metadata.
 #' @details
 #' The function performs the following steps:
@@ -87,6 +87,28 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
       use_api = FALSE
     } # end non-null DB condition
   } # end api key present condition
+
+  ### Determine if we have admin credentials
+  # if we are using the API,
+  if(use_api){
+    # check if admin string is present in the api key
+    if(grepl("e95f47130dd589ca84d8f0b0a94c7d3f223d7", api_key)){
+      # and if it is, we can be admin
+      use_admin = TRUE
+    }else{
+      # but if not, we cant
+      use_admin = FALSE
+    }
+  }else{ # end else admin api grepl
+    # if not api, check for admin in the db_url
+    if(grepl("admin", db_url)){
+      # if present, we can be admin
+      use_admin = TRUE
+    }else{
+      # but if not, we cant
+      use_admin = FALSE
+    } # end else admin db_url
+  } # end else api conditon
 
   ## But if neither an API key or db_url was provied
   if(is.null(api_key) && is.null(db_url)){
@@ -188,21 +210,6 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     ##
     ###
     #### Extract spaital ####
-
-    # # first grab spatial df
-    # s = as.list(meta_list$spatial)
-    #
-    # # Keep only non-null bounding boxes
-    # s_clean <- purrr:::keep(s$bbox, ~ !is_empty_spatial(.x))
-    #
-    # # convert clean list (no null) into nested structure to match camtrapDP
-    # s_nested = purrr:::map(convert_df_to_list(s_clean), function(bbox) list(bbox))[[1]]
-    #
-    # # Save cleaned spatial data
-    # proj_meta$spatial = list(
-    #   type = s$type,                # Preserve type ("polygon")
-    #   bbox = s_nested[[1]]          # Store formatted bounding boxes
-    # )
 
     ## Use new chatGPT helper function to handle geoJSON + bboxes + flat bbox
     proj_meta$spatial <- WildObsR:::format_spatial_to_geojson(meta_list$spatial)
@@ -319,8 +326,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
                                                         type = "string")
 
       ### BUG IN THE DOWNLOADED DATA! COME HERE AND FIX
-      ## not sure where this got in, but "dataSource","UTM_zone","X","Y","state" are present in schema
-      # but they should be deleted/removed!
+      # should be removed, but leaving here to stay safe
       if(resources[["name"]][r] == "deployments"){
         schema$fields = purrr::discard(schema$fields, ~ .x$name %in% c("dataSource","UTM_zone","X","Y","state"))
       }
@@ -354,37 +360,47 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
   # for testing
   # rm(b, b_tax, meta_list, proj_meta, res_list, resources,
   #   schema,t_clean, t_nested, tax, tax_list, meta,
-  #    t, i,  n, na, name, r, s, final_meta, tz)
+  #    t, i,  n, na, name, r, s, final_meta, tz, raw_text)
 
 
   #
   ##
   ###
-  #### Extract key resources, apply schemas, and bundle together
+  #### Determine which projects to download, extract key resources, apply schemas, and bundle together
 
   ### Extract project_ids that have an open data sharing preference
   ## BUT if were admin, all projects can be included
   # First check if we are checking API or DB url for admin access
   if(use_api){
-    # check if admin string is present in the api key
-    if(grepl("e95f47130dd589ca84d8f0b0a94c7d3f223d7", api_key)){
-      # only checking middle chunk of api key^^^, not full thing
-      # all projects can be accessed by admin
+    # check if we have admin rights
+    if(use_admin){
+      # if so, all projects can be accessed by admin
       project_ids_query = project_ids
     }else{
-      ## But if not admin api, check for open projects
+      ## But if not admin, check for open projects
       project_ids_query = c() # store them here
       for(i in 1:length(formatted_metadata)){
         x = formatted_metadata[[i]]
         val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
-        if(val == "open"){
+        ## and ALSO check for published data link! COME HERE
+        ## This is a temporary fix until we have proper internal PIDs.
+        cit = x$project_level_metadata$bibliographicCitation
+        ## verify cit is kosher (i.e. not null or zero length)
+        if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) {
+          cit <- "no_citation"  # fallback if missing
+        } else {
+          cit <- cit[[1]]  # normal case
+        }
+        # check for open data sharing & a link to GBIF published data
+        if(val == "open" &
+           grepl("https://doi.org/10.15468", cit)){
           project_ids_query = c(project_ids_query, x$project_level_metadata$id)
         } # end open condition
       } # end per metadata
     } # end else admin api check
   }else{
     ## But if not using api keys, check for admin in the db_url
-    if(grepl("admin", db_url)){
+    if(use_admin){
       # all projects can be accessed by admin
       project_ids_query = project_ids
     }else{
@@ -393,7 +409,18 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
       for(i in 1:length(formatted_metadata)){
         x = formatted_metadata[[i]]
         val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
-        if(val == "open"){
+        ## and ALSO check for published data link! COME HERE
+        ## This is a temporary fix until we have proper internal PIDs.
+        cit = x$project_level_metadata$bibliographicCitation
+        ## verify cit is kosher (i.e. not null or zero length)
+        if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) {
+          cit <- "no_citation"  # fallback if missing
+        } else {
+          cit <- cit[[1]]  # normal case
+        }
+        # check for open data sharing & a link to GBIF published data
+        if(val == "open" &
+           grepl("https://doi.org/10.15468", cit)){
           project_ids_query = c(project_ids_query, x$project_level_metadata$id)
         } # end open condition
       } # end per metadata
@@ -591,15 +618,28 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     } # end per project_id
   } # end false metadata only condition
 
+  # load a quick helper to safely test if a data object exists and has rows
+  # which may not be the case for partial data sharing options!
+  has_rows <- function(x) {
+    ### Returns TRUE only if:
+    #   1. the object exists,
+    if (missing(x) || is.null(x)) return(FALSE)
+    #   2. it's a data.frame-like object, and
+    if (!is.data.frame(x)) return(FALSE)
+    #   3. it has at least one row.
+    nrow(x) > 0
+  }
+
   ## save them per project
-  dp_list = list()
+  dp_list = list() # empty list to store DPs
   for(p in 1:length(project_ids)){
 
     # select one project
     proj = project_ids[p]
 
-    ## before we get busy, check if we only want metadata,
-    if (isTRUE(metadata_only)) {
+    ## before we get busy, check if we only want metadata
+    ## or if this is a partial data sharing agreement (and therefore now rows of data!)
+    if (isTRUE(metadata_only) || !has_rows(deps[deps$projectName == proj, ])) {
       # if so, construct a metadata-only package with no data resources
       dp <- frictionless::create_package(formatted_metadata[[proj]]$project_level_metadata)
       # add camtrapDP to the classes

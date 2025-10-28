@@ -709,3 +709,195 @@ format_spatial_to_geojson <- function(spatial_obj) {
   # Construct and return a simple GeoJSON-style object
   list(type = "polygon", bbox = bbox_out)
 }
+
+
+#' Extract bounding boxes from spatial metadata
+#'
+#' This internal helper function extracts and normalizes bounding boxes
+#' from the `spatial` slot of the metadata collection returned by MongoDB
+#' This function supports both the flat spatial bounding boxes (`spatial$bbox`)
+#' and the nested geoJSON-style (`spatial$features`) formats.
+#'
+#' The output is a standardized data frame containing one row per
+#' locationName with the corresponding bounding box coordinates and project ID.
+#'
+#' @param metadata A list-like dataframe returned by MongoDB when reading the
+#' metadata collection into R
+#'   Must include a `spatial` element with either:
+#'   \itemize{
+#'     \item `spatial$bbox` — a data frame of bounding boxes in legacy format.
+#'     \item `spatial$features` — a list of GeoJSON-style features with
+#'       `geometry$coordinates` entries.
+#'   }
+#'
+#' @return A tibble (data frame) with columns:
+#'   \describe{
+#'     \item{locationName}{Character string indicating the name of the location.}
+#'     \item{xmin, ymin, xmax, ymax}{Numeric bounding box coordinates.}
+#'     \item{id}{Character string identifying the data package ID associated with each row.}
+#'   }
+#'
+#' @details
+#' The function automatically detects whether the metadata object uses
+#' the flat bbox or nested geoJSON spatial format.
+#' If both are present, results are merged and duplicates removed.
+#'
+#' Invalid, empty, or malformed bounding boxes are skipped with NA values returned.
+#'
+#' @importFrom tibble tibble
+#' @importFrom purrr map map_dbl map_chr map_lgl imap_dfr
+#' @importFrom dplyr mutate filter select distinct bind_rows row_number
+#' @importFrom tidyr pivot_longer
+#'
+#' @keywords internal
+extract_spatial_bboxes <- function(metadata) {
+  # ---- required namespaces ----
+  requireNamespace("tibble")
+  requireNamespace("purrr")
+  requireNamespace("dplyr")
+  requireNamespace("tidyr")
+
+  # ---- helper to compute bbox from coordinate list ----
+  parse_coords_to_bbox <- function(coords) {
+    if (is.null(coords)) return(NULL)
+    if (is.list(coords)) coords <- unlist(coords, use.names = FALSE)
+    coords <- suppressWarnings(as.numeric(coords))
+    if (length(coords) < 4 || any(!is.finite(coords))) return(NULL)
+    half <- length(coords) / 2
+    if (half %% 1 != 0) return(NULL)
+    xs <- coords[seq_len(half)]
+    ys <- coords[(half + 1):length(coords)]
+    list(
+      xmin = min(xs, na.rm = TRUE),
+      xmax = max(xs, na.rm = TRUE),
+      ymin = min(ys, na.rm = TRUE),
+      ymax = max(ys, na.rm = TRUE)
+    )
+  }
+
+  # helper: safely turn a bbox cell into xmin/ymin/xmax/ymax
+  parse_old_bbox <- function(cell) {
+    # already a data.frame with named cols
+    if (is.data.frame(cell) && all(c("xmin","ymin","xmax","ymax") %in% names(cell))) {
+      return(list(
+        xmin = as.numeric(cell$xmin[1]),
+        ymin = as.numeric(cell$ymin[1]),
+        xmax = as.numeric(cell$xmax[1]),
+        ymax = as.numeric(cell$ymax[1])
+      ))
+    }
+    # named list with xmin/ymin/xmax/ymax
+    if (is.list(cell) && all(c("xmin","ymin","xmax","ymax") %in% names(cell))) {
+      return(list(
+        xmin = as.numeric(cell[["xmin"]][1]),
+        ymin = as.numeric(cell[["ymin"]][1]),
+        xmax = as.numeric(cell[["xmax"]][1]),
+        ymax = as.numeric(cell[["ymax"]][1])
+      ))
+    }
+    # character like "152.08, -27.70, 152.09, -27.69"
+    if (is.character(cell) && length(cell) == 1L) {
+      nums <- suppressWarnings(as.numeric(strsplit(cell, "\\s*,\\s*")[[1]]))
+      if (length(nums) == 4 && all(is.finite(nums))) {
+        return(list(xmin = nums[1], ymin = nums[2], xmax = nums[3], ymax = nums[4]))
+      }
+    }
+    # numeric vector c(xmin, ymin, xmax, ymax)
+    if (is.numeric(cell) && length(cell) == 4L) {
+      return(list(xmin = cell[1], ymin = cell[2], xmax = cell[3], ymax = cell[4]))
+    }
+    # anything else -> NULL (to be filtered out)
+    NULL
+  }
+
+
+  # ---- 1. OLD FORMAT: metadata$spatial$bbox ----
+  out_old <- tibble::tibble()
+  # check if the bbox is saved as its own dataframe
+  if (is.data.frame(metadata$spatial$bbox)) {
+    # keep the row id BEFORE pivoting so we can map back to metadata$id
+    out_old <- metadata$spatial$bbox |>
+      dplyr::mutate(row_id = dplyr::row_number()) |>
+      tidyr::pivot_longer(
+        cols = -row_id,
+        names_to = "locationName",
+        values_to = "bbox"
+      )
+    # drop NULL / empty cells
+    out_old = dplyr::filter(out_old, purrr::map_lgl(bbox, ~ !is.null(.x)))
+    # parse each cell into xmin/ymin/xmax/ymax
+    out_old = dplyr::mutate(out_old, parsed = purrr::map(bbox, parse_old_bbox))
+    # keep only successfully parsed cells
+    out_old = dplyr::filter(out_old, purrr::map_lgl(parsed, ~ !is.null(.x)))
+    # expand parsed list-cols into numeric columns
+    out_old = dplyr::mutate(out_old,
+                            xmin = purrr::map_dbl(parsed, "xmin"),
+                            ymin = purrr::map_dbl(parsed, "ymin"),
+                            xmax = purrr::map_dbl(parsed, "xmax"),
+                            ymax = purrr::map_dbl(parsed, "ymax")
+    )
+    # attach the correct project id using the preserved row_id
+    out_old <- dplyr::mutate(
+      out_old,
+      id = if ("id" %in% names(metadata)) {
+        # Match each bbox row to its project ID via row_id
+        purrr::map_chr(row_id, ~ {
+          if (!is.na(.x) && .x <= length(metadata$id)) metadata$id[[.x]] else NA_character_
+        })
+      } else {
+        # but default to NA if not availible
+        NA_character_
+      }
+    )
+    # Now thin to the relevant columns
+    out_old = dplyr::select(out_old, locationName, xmin, ymin, xmax, ymax, id)
+  }
+
+  # ---- 2. NEW FORMAT: metadata$spatial$features ----
+  out_new <- tibble::tibble()
+  if (is.list(metadata$spatial$features)) {
+    out_new <- purrr::imap_dfr(metadata$spatial$features, function(feature_set, idx) {
+
+      if (is.null(feature_set) || !is.data.frame(feature_set)) return(tibble::tibble())
+      if (!"geometry" %in% names(feature_set)) return(tibble::tibble())
+
+      rows <- vector("list", nrow(feature_set))
+
+      for (i in seq_len(nrow(feature_set))) {
+        coords <- NULL
+        if (is.data.frame(feature_set$geometry) &&
+            "coordinates" %in% names(feature_set$geometry)) {
+          coords <- feature_set$geometry$coordinates[[i]]
+        }
+        bbox <- parse_coords_to_bbox(coords)
+        if (is.null(bbox)) next
+
+        loc_name <- NA_character_
+        if ("properties" %in% names(feature_set) &&
+            "name" %in% names(feature_set$properties)) {
+          loc_name <- feature_set$properties$name[i]
+        } else if ("name" %in% names(feature_set)) {
+          loc_name <- feature_set$name[i]
+        }
+
+        rows[[i]] <- tibble::tibble(
+          locationName = loc_name,
+          xmin = bbox$xmin,
+          ymin = bbox$ymin,
+          xmax = bbox$xmax,
+          ymax = bbox$ymax,
+          id   = metadata$id[[idx]]
+        )
+      }
+
+      rows <- rows[!vapply(rows, is.null, logical(1))]
+      if (length(rows) == 0) return(tibble::tibble())
+      do.call(dplyr::bind_rows, rows)
+    })
+  }
+
+  # ---- 3. Combine both results ----
+  out_combined <- dplyr::bind_rows(out_old, out_new)
+  out_combined <- dplyr::distinct(out_combined)
+  out_combined
+}
