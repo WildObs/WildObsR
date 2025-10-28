@@ -775,6 +775,42 @@ extract_spatial_bboxes <- function(metadata) {
     )
   }
 
+  # helper: safely turn a bbox cell into xmin/ymin/xmax/ymax
+  parse_old_bbox <- function(cell) {
+    # already a data.frame with named cols
+    if (is.data.frame(cell) && all(c("xmin","ymin","xmax","ymax") %in% names(cell))) {
+      return(list(
+        xmin = as.numeric(cell$xmin[1]),
+        ymin = as.numeric(cell$ymin[1]),
+        xmax = as.numeric(cell$xmax[1]),
+        ymax = as.numeric(cell$ymax[1])
+      ))
+    }
+    # named list with xmin/ymin/xmax/ymax
+    if (is.list(cell) && all(c("xmin","ymin","xmax","ymax") %in% names(cell))) {
+      return(list(
+        xmin = as.numeric(cell[["xmin"]][1]),
+        ymin = as.numeric(cell[["ymin"]][1]),
+        xmax = as.numeric(cell[["xmax"]][1]),
+        ymax = as.numeric(cell[["ymax"]][1])
+      ))
+    }
+    # character like "152.08, -27.70, 152.09, -27.69"
+    if (is.character(cell) && length(cell) == 1L) {
+      nums <- suppressWarnings(as.numeric(strsplit(cell, "\\s*,\\s*")[[1]]))
+      if (length(nums) == 4 && all(is.finite(nums))) {
+        return(list(xmin = nums[1], ymin = nums[2], xmax = nums[3], ymax = nums[4]))
+      }
+    }
+    # numeric vector c(xmin, ymin, xmax, ymax)
+    if (is.numeric(cell) && length(cell) == 4L) {
+      return(list(xmin = cell[1], ymin = cell[2], xmax = cell[3], ymax = cell[4]))
+    }
+    # anything else -> NULL (to be filtered out)
+    NULL
+  }
+
+
   # ---- 1. OLD FORMAT: metadata$spatial$bbox ----
   out_old <- tibble::tibble()
   # check if the bbox is saved as its own dataframe
