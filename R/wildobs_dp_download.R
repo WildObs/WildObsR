@@ -135,7 +135,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     # Send a GET request using the URL, API key, and only query for the metadata
     response <- httr::GET(
       "https://camdbapi.wildobs.org.au/find", # hard code API url
-      add_headers("X-API-Key" = api_key),
+      httr::add_headers("X-API-Key" = api_key),
       query =     list(
         collection = "metadata"
       )
