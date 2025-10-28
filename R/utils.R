@@ -636,41 +636,42 @@ format_spatial_to_geojson <- function(spatial_obj) {
   if ("features" %in% names(spatial_obj)) {
     # Extract the data frame that contains all features
     features_df <- spatial_obj$features[[1]]
-    # If there’s no geometry column, stop early
-    if (is.null(features_df) || !"geometry" %in% names(features_df))
-      return(NULL)
+    # If missing or invalid geometry → fall back to bbox instead of returning NULL
+    if (!is.null(features_df) && "geometry" %in% names(features_df)){
+      # extract geometry and property info
+      geometries <- features_df$geometry
+      props <- features_df$properties
 
-    # extract geometry and property info
-    geometries <- features_df$geometry
-    props <- features_df$properties
-
-    # assemble GeoJSON-style list of features
-    features_out <- vector("list", nrow(features_df))
-    # Loop over each feature and reformat it into GeoJSON-style structure
-    for (i in seq_len(nrow(features_df))) {
-      features_out[[i]] <- list(
-        type = "Feature",
-        properties = as.list(props[i, , drop = FALSE]),
-        geometry = list(
-          type = geometries$type[i],
-          coordinates = geometries$coordinates[[i]]
+      # assemble GeoJSON-style list of features
+      features_out <- vector("list", nrow(features_df))
+      # Loop over each feature and reformat it into GeoJSON-style structure
+      for (i in seq_len(nrow(features_df))) {
+        features_out[[i]] <- list(
+          type = "Feature",
+          properties = as.list(props[i, , drop = FALSE]),
+          geometry = list(
+            type = geometries$type[i],
+            coordinates = geometries$coordinates[[i]]
+          )
         )
-      )
-    } # end per nrow features
-
-    # Return the final GeoJSON-style FeatureCollection
-    return(list(
-      type = "FeatureCollection",
-      features = features_out
-    ))
-  }
+      } # end per nrow features
+      # Return the final GeoJSON-style FeatureCollection
+      return(list(
+        type = "FeatureCollection",
+        features = features_out
+      ))
+    } # end null and geom condition
+  }# end feature search condition
 
   # Handle the case where the spatial object only has a "bbox" element
   # This matches your earlier schema where bounding boxes are stored per location
-  if ("bbox" %in% names(spatial_obj))
-  # Extract bounding box information
+  # check that bbox is in the names
+  if (!"bbox" %in% names(spatial_obj)) return(NULL)
+  # if so, return the DF
   bbox_df <- spatial_obj$bbox
+  # but make sure its a DF and return NULL if not
   if (!is.data.frame(bbox_df)) return(NULL)
+
   # Prepare an empty list to store formatted bounding boxes
   bbox_out <- list()
   # Loop through each column in the bbox data frame (each corresponds to a location)

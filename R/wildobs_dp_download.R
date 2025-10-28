@@ -191,10 +191,10 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
                                                   "references","id","project","WildObsMetadata")]
 
     # use custom function where needed
-    proj_meta$contributors = convert_df_to_list(proj_meta$contributors)
-    proj_meta$licenses = convert_df_to_list(proj_meta$licenses)
-    proj_meta$project = convert_df_to_list(proj_meta$project)
-    proj_meta$WildObsMetadata = convert_df_to_list(proj_meta$WildObsMetadata)
+    proj_meta$contributors = WildObsR:::convert_df_to_list(proj_meta$contributors)
+    proj_meta$licenses = WildObsR:::convert_df_to_list(proj_meta$licenses)
+    proj_meta$project = WildObsR:::convert_df_to_list(proj_meta$project)
+    proj_meta$WildObsMetadata = WildObsR:::convert_df_to_list(proj_meta$WildObsMetadata)
 
     ## apply a few quick fixes to unlist or list things
     proj_meta$keywords = unlist(proj_meta$keywords)
