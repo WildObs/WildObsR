@@ -427,6 +427,15 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     } # end else admin condition
   } # end use api
 
+  ### BEFORE accessing any data, check if we can return anything anyway!
+  if(is.null(project_ids_query)){
+    # convert metadata to TRUE
+    metadata_only = TRUE
+    # and let the user know about this
+    message("You have requested data that is unpublished without admin credentials. \nThis will produce metadata only, not any spreadsheets.")
+  }
+
+
   ### Construct an API query or DB_url query and download the data
   if(use_api){
     ## assign the API URL
