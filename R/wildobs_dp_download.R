@@ -446,9 +446,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
         collection = "covariates",
         filter = list(projectName = project_ids_query))
       ## Media
-      media_body = list(
-        collection = "media",
-        filter = list(projectName = project_ids_query))
+      # media_body = list(
+      #   collection = "media",
+      #   filter = list(projectName = project_ids_query)) # save this for batches
     }else{
       ## Specify deployments parameters
       dep_body <- list(
@@ -465,11 +465,11 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
         collection = "covariates",
         filter = list(
           projectName = list(`$in` = project_ids_query)))
-      ## Media
-      media_body <- list(
-        collection = "media",
-        filter = list(
-          projectName = list(`$in` = project_ids_query)))
+      # ## Media
+      # media_body <- list(
+      #   collection = "media",
+      #   filter = list(
+      #     projectName = list(`$in` = project_ids_query))) ## Save this for batch uploads
     } # end else proj_id = 1 condition
 
     ### Add a condition to query metadata only or full records
@@ -504,9 +504,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
         # Ensure the endpoint is GET-only
         httr2::req_method("GET") |>
         # assign headers
-        httr2::req_headers("X-API-Key" = api_key) |>
-        # put collection + filter in JSON body
-        httr2::req_body_json(media_body)
+        httr2::req_headers("X-API-Key" = api_key) #|>
+        # # put collection + filter in JSON body
+        # httr2::req_body_json(media_body) ## save this one for batch uplaods
 
       ## Now preform requests to access the data for each resource
       # deployments
@@ -533,13 +533,87 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
       covs = data_cov[[1]][[2]]
       # media, but only if true!
       if(media){
-        # make the request
-        media_resp = httr2::req_perform(media_req)
-        # extract the body
-        data_media <- jsonlite::fromJSON(httr2::resp_body_string(media_resp, encoding = "UTF-8"),
-                                         simplifyVector = TRUE)
-        # take data.frame
-        media_df = data_media[[1]][[2]]
+
+        ### Establish batch uploads for API b/c media requires too much bandwidth
+        batch_size = 5000 # can explore values here, maybe allow users to toggle?
+
+        ## give us an update about accessing media in batches
+        message("Downloading media data over API connection in ", batch_size, " row batches...")
+        # create a last_id vector to track what was the last mediaID pulled
+        last_id <- NULL
+        # store all media here
+        all_media <- list()
+
+        ## Repeat the following code until the batch upload is completed
+        repeat {
+          # check if there are multiple projects
+          if(length(project_ids_query) == 1){
+            # but if just one, specify that as one
+            filt <- list(projectName = project_ids_query)
+          }else{
+            # buf there are multiple, save as an array
+            filt <- list(projectName = list(`$in` = project_ids_query))
+          } # end else project length conditon
+
+          # if the last_id isnt null
+          if (!is.null(last_id)) {
+            # save the new last mediaID
+            filt$mediaID <- list(`$gt` = last_id)
+          } # end null last_id
+
+          # Build a new request body w/ the updated filter
+          media_body <- list(
+            collection = "media",
+            filter = filt,
+            sort = list(mediaID = 1),
+            limit = batch_size
+          )
+
+          # Add pagination info to the existing media request
+          this_req <- media_req |>
+            httr2::req_body_json(media_body) # This is pulling the same rows each time!!
+
+          # Try the request safely
+          media_resp <- try(httr2::req_perform(this_req), silent = TRUE)
+
+          # If it failed, print a warning and stop
+          if (inherits(media_resp, "try-error")) {
+            warning(paste("Request failed at batch starting from mediaID:", last_id))
+            break
+          }
+
+          # Convert the response JSON to a dataframe
+          data_media <- jsonlite::fromJSON(
+            httr2::resp_body_string(media_resp, encoding = "UTF-8"),
+            simplifyVector = TRUE
+          )
+
+          # Extract the actual media table from the nested list
+          media_part <- data_media[[1]][[2]]
+
+          # Stop if this batch is empty (means we reached the end)
+          if (length(media_part) == 0) break
+
+          # Store the batch back in the list
+          all_media[[length(all_media) + 1]] <- media_part
+
+          # Update last_id for next iteration
+          last_id <- tail(sort(media_part$mediaID), 1)
+
+          # Compute cumulative progress
+          total_rows <- sum(vapply(all_media, nrow, integer(1)))
+          # batch_rows <- nrow(media_part)
+          # and let us know about it
+          message("Fetched batch ", length(all_media),
+                  ": ", total_rows, " total rows so far...")
+
+        } # end per repeat
+
+        # Combine all batches into one dataframe
+        media_df <- dplyr::distinct(dplyr::bind_rows(all_media))
+        # let us know its all been said and done.
+        message("Finished! Total media records downloaded: ", nrow(media_df))
+
       } # end media condition
 
     }else {
