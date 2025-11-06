@@ -11,30 +11,9 @@
 [![Codecov test coverage](https://codecov.io/gh/WildObs/WildObsR/graph/badge.svg)](https://app.codecov.io/gh/WildObs/WildObsR)
 <!-- badges: end -->
 
-> Professional tools for camera trap data management and analysis in R
+> Professional tools for camera trap data access, management, and analysis in R
 
-WildObsR provides a comprehensive suite of functions for processing, standardizing, and analyzing wildlife camera trap data. Built to support the [Camera Trap Data Package (Camtrap DP)](https://camtrap-dp.tdwg.org/) data standard and [Frictionless Data](https://specs.frictionlessdata.io/data-package/) specifications, this package streamlines workflows from raw observations to publication-ready analyses.
-
----
-
-## Key Features
-
-### Data Access & Management
-- **MongoDB Integration**: Query and download camera trap data from WildObs internal database via API
-- **Schema Validation**: Enforce data quality with Camtrap DP schema checking and type coercion
-- **Flexible Filtering**: Query projects by spatial bounds, temporal ranges, species, contributors, and sampling design
-
-### Spatial Analysis
-- **Location Enrichment**: Automatically assign protected area names using [CAPAD](https://www.dcceew.gov.au/environment/land/nrs/science/capad), bioregions using [IBRA](https://www.dcceew.gov.au/environment/land/nrs/science/ibra), and Australian states using [ozmaps](https://mdsumner.github.io/ozmaps/)
-- **UTM Conversion**: Generate UTM coordinates with automatic zone detection
-- **Spatial Buffers**: Create location buffers and identify overlapping camera deployments
-- **Coordinate Precision**: Handle coordinate rounding for data privacy
-
-### Data Processing
-- **Temporal Wrangling**: Detect and resolve overlapping deployments, spatially resample observations and deployments to custom spatial scales
-- **Taxonomic Validation**: Fuzzy matching for species names, taxonomy extraction from `taxize` objects
-- **Survey Generation**: Create spatially and temporally defined camera deployment and surveys from camtrap DP data.
-- **Matrix Generation**: Build detection/non-detection matrices, and site- and observation-level covariates for occupancy & abundance modeling formatted for the [`unmarked` R library](https://rbchan.github.io/unmarked/)
+WildObsR provides a suite of functions for standardizing, accessing, and analyzing wildlife camera trap data. This R package is built to support the [Camera Trap Data Package (Camtrap DP)](https://camtrap-dp.tdwg.org/) data standard, built around the [Frictionless Data Package ](https://specs.frictionlessdata.io/data-package/) specifications to ensure camera trap data remains [Findable, Accessible, Interoperable, & Reusable (FAIR)](https://ardc.edu.au/resource-hub/making-data-fair/).
 
 ---
 
@@ -48,9 +27,26 @@ devtools::install_github("WildObs/WildObsR")
 
 ---
 
+## Key Features
+
+### Data Access & Management
+- **MongoDB Integration**: Query and download camera trap data from WildObs' internal database via API
+- **Flexible Filtering**: Query projects by spatial bounds, temporal ranges, species, contributors, and sampling design
+- **Schema Validation**: Enforce data quality with Camtrap DP schema checking and type coercion
+
+### Data Processing
+- **Spatial Resampling**: Spatially resample observations and deployments to custom spatial buffers to aggregate camera data for hierarchical analyses. 
+- **Matrix Generation**: Build detection/non-detection matrices, and site- and observation-level covariates for occupancy & abundance modeling formatted for the [`unmarked` R library](https://rbchan.github.io/unmarked/)
+
+### Spatio-temporal Enhancement
+- **Location Enrichment**: Automatically assign protected area names using the [Collaborative Australian Protected Areas Database (CAPAD)](https://www.dcceew.gov.au/environment/land/nrs/science/capad), bioregions using the [Interim Biogeographic Regionalisation for Australia (IBRA)](https://www.dcceew.gov.au/environment/land/nrs/science/ibra), and Australian states using [ozmaps](https://mdsumner.github.io/ozmaps/)
+- **Spatial & Temporal Buffers**: Create buffers of any size around camera deployments and identify spatially and resolve temporally overlapping deployments.
+
+---
+
 ## Quick Start
 
-### Query WildObs Database
+### Query WildObs database
 
 ```r
 library(WildObsR)
@@ -58,7 +54,7 @@ library(WildObsR)
 # Use general API key
 api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
 
-# Query projects in Queensland
+# Query projects in Queensland from 2020-2024
 spatial_query <- list(xmin = 145.0, xmax = 154.0, ymin = -29.0, ymax = -10.0)
 temporal_query <- list(minDate = as.Date("2020-01-01"),
                        maxDate = as.Date("2024-12-31"))
@@ -67,15 +63,15 @@ project_ids <- wildobs_mongo_query(
   api_key = api_key,
   spatial = spatial_query,
   temporal = temporal_query,
-  taxonomic = c("Phascolarctos cinereus"),  # Koalas
-  tabularSharingPreference = "open"
+  tabularSharingPreference = c("open", "partial")
 )
 
 # Download data packages
 dp_list <- wildobs_dp_download(
   api_key = api_key,
   project_ids = project_ids,
-  media = FALSE  # Set TRUE to include media files
+  media = FALSE,              # Set TRUE to include media files for a slower download
+  metadata_only = FALSE       # Set TRUE to access metadata only for a quick download
 )
 
 # Access deployments
@@ -84,22 +80,55 @@ deployments <- frictionless::read_resource(dp_list[[1]], "deployments")
 observations <- frictionless::read_resource(dp_list[[1]] "observations")
 ```
 
-### Enrich Location Data
+### Spatially resample data 
 
 ```r
-# Add Australian state information
-deps <- AUS_state_locator(deployments)
+# Assign spatial scales
+# 'scales' defines the area (in square meters) covered by a hexagonal cell
+scales <- c(1000000, 3000000) # 1 km and 3 km 
 
-# Add IBRA bioregions
-deps <- ibra_classification(deps,
-                            lat_col = "latitude",
-                            long_col = "longitude")
+# Generate spatial hexagons based on the provided scales
+deployments <- WildObsR::spatial_hexagon_generator(deployments, scales)
 
-# Add protected area names
-deps <- locationName_verification_CAPAD(deps)
+# Define columns for mode aggregation (example: 'source' and 'habitat')
+mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
 
-# Generate UTM coordinates
-deps <- UTM_coord_generator(deps)
+# Set the method for aggregating the total number of individuals detected:
+individuals <- "sum"  # Alternative: "max"
+
+# Specify observation-level covariate variables derived from deployments.
+# These variables capture information that varies in space and time.
+obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay","cameraHeight", "cameraDepth", "cameraTilt", "cameraHeading", "detectionDistance", "deploymentTags")
+
+# now spatially resample the data, noting that this function may take a few minutes to run
+resamp_data = WildObsR::resample_covariates_and_observations(covs, obs, 
+individuals = "sum", mode_cols_covs, obs_covs)
+
+# Select the resampled observations and covs at the 1 km scale
+resamp_obs = resamp_data$spatially_resampled_observations$cellID_1km
+resamp_covs = resamp_data$spatially_resampled_covariates$cellID_1km
+
+```
+
+### Create abundance and/or occupancy matricies for hierarchical modeling
+
+```r
+# Run the matrix generator function on the spatially resampled observations and deployments
+res <- matrix_generator(
+  obs = resamp_obs,
+  covs = resamp_covs,      
+  dur = 110,                  # maximum duration of a survey 
+  w = 3,                      # sampling occasion window, as the numeber of days to collapse
+  site_covs = c("Avg_human_footprint_10km2", "Avg_FLII_3km2", "locationName"),  # site covariates 
+  obs_covs = c("numberDeploymentsActiveAtDate", "cameraHeight", "featureType"), # observation covariates
+  all_locationNames = TRUE,   # include all data, even where species was not detected
+  scientificNames = c("Orthonyx spaldingii", "Uromys caudimaculatus"), # species to create matricies 
+  type = "abundance",         # abundance or occupancy?
+  individuals = "sum",        # sum or maximum number of individuals per cell
+)
+# Access the detection matrix for one species:
+res[["Orthonyx_spaldingii"]][["detection_matrix"]]
+
 ```
 
 ---
@@ -108,29 +137,27 @@ deps <- UTM_coord_generator(deps)
 
 | Category | Functions |
 |----------|-----------|
-| **Data Access** | `wildobs_mongo_query()`, `wildobs_dp_download()` |
+| **Data Access** | `wildobs_mongo_query()`, `wildobs_dp_download()`, `extract_metadata()` |
 | **Spatial** | `AUS_state_locator()`, `ibra_classification()`, `locationName_buffer_CAPAD()`
-| **Data Wrangling** | `survey_and_deployment_generator()`, `matrix_generator()`, `resample_covariates_and_observations()` |
-| **Quality Control** | `check_schema()`, `apply_schema_types()`, `verify_col_match()` |
-| **Taxonomy** | `update_common_to_binomial()`, `extract_classif()` |
+| **Data Wrangling** | `survey_and_deployment_generator()`, `resample_covariates_and_observations()`, `matrix_generator()` |
+| **Quality Control** | `check_schema()`, `apply_schema_types()` |
 
 ---
 
 ## Data Standards
 
-WildObsR adheres to community standards for reproducible wildlife research:
+WildObsR adheres to community standards for open and reproducible camera trapping research:
 
 - **[Camera Trap Data Package (Camtrap DP)](https://camtrap-dp.tdwg.org/)**: TDWG standard for camera trap data exchange
 - **[Frictionless Data Package](https://specs.frictionlessdata.io/data-package/)**: Specification for self-describing data
 - **[Darwin Core](https://dwc.tdwg.org/)**: Biodiversity data standard for taxonomic and occurrence information
 
 Data packages downloaded from WildObs include:
-- **Project metadata**: Contributors, licenses, spatial/temporal coverage, taxonomic scope
-- **Schemas**: Field definitions, types, constraints for validation
-- **Deployments**: Camera locations, setup dates, habitat covariates
-- **Observations**: Species detections with timestamps and classifications
-- **Media**: Image/video metadata (optional)
-- **Covariates**: Environmental values derived from shape files for each coordinate (*e.g.*, elevation)
+- **Project metadata**: Contributors, licenses, sampling methodology, spatial/temporal coverage, & taxonomic scope. Metadata also contains schemas with definitions, types, constraints for all data fields. 
+- **Deployments**: Camera deployments, locations, setup dates, habitat covariates, as indicated by `deploymentID`.
+- **Observations**: Independent detections of species, as indicated by `observationID`.
+- **Media**: All media (*i.e.*, images and or video) with filePaths to accessible images, as indicated by `mediaID`. 
+- **Covariates**: Environmental values derived from shape files for each coordinate (*e.g.*, elevation), as indicated by `deploymentID`.
 
 ---
 
@@ -141,8 +168,6 @@ Location enrichment functions utilize authoritative Australian spatial datasets:
 - **[CAPAD (2022)](https://www.environment.gov.au/land/native-vegetation/capad)**: Collaborative Australian Protected Areas Database
 - **[IBRA7](https://www.dcceew.gov.au/environment/land/nrs/science/ibra)**: Interim Biogeographic Regionalisation for Australia
 - **Australian State Boundaries**: Official administrative boundaries
-
-**Note**: Spatial functions require local copies of shapefiles. Default paths assume Dropbox storage at `~/Dropbox/ECL spatial layers repository/`. Adjust `capad_file_path` and `ibra_file_path` parameters for custom locations.
 
 ---
 
@@ -208,7 +233,7 @@ testthat::test_file("tests/testthat/test-matrix_generator.R")
 devtools::check()
 ```
 
-Current test coverage: 114+ tests across spatial, data wrangling, and database functions.
+Current test coverage: 120+ tests across spatial, data wrangling, and database functions.
 
 ---
 
@@ -217,9 +242,8 @@ Current test coverage: 114+ tests across spatial, data wrangling, and database f
 If you use WildObsR in your research, please cite:
 
 ```
-Amir, Z., Bruce, T., & Contributors. (2024). WildObsR: Professional tools for camera trap
-data management and analysis in R. R package version 0.1.0.
-https://github.com/ecological-conservancy/WildObsR
+Amir, Z., Bruce, T., & Contributors. (2024). WildObsR: Professional tools for camera trap data access, management, and analysis in R. R package version 0.1.0.
+https://github.com/WildObs/WildObsR
 ```
 
 ---
