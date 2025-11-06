@@ -50,11 +50,11 @@ library(tidyverse)
 api_key = "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
 
 ## Define a temporal range to query
-temporal = list(minDate = as.Date("2010-01-01"),
-            maxDate = as.Date("2023-12-01")) # data from 2021-2023
+temporal = list(minDate = as.Date("2000-01-01"),
+            maxDate = as.Date("2026-12-01")) #
 
 ## Define a spatial bounding box to query
-spatial = list(xmin = 137.995, xmax = 153.552, ymin = -28.999, ymax = -9.142)
+spatial = list()# list(xmin = 137.995, xmax = 153.552, ymin = -28.999, ymax = -9.142)
 
 ## Define taxonomic query
 taxonomic = c() #c("Casuarius casuarius")
@@ -77,8 +77,6 @@ project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url,
                                   contributors = contributors,
                                   tabularSharingPreference = tabularSharingPreference
                                   )
-## OR, can access all open data when not querying
-# project_ids = wildobs_mongo_query(db_url = db_url)
 
 ## Who did we get?
 sort(project_ids)
@@ -94,11 +92,12 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 # set media to FALSE to make a quicker download
 start = Sys.time()
 dp_list = wildobs_dp_download(api_key = api_key, #db_url = db_url,
-                              project_ids = project_ids, media = F, metadata_only = F)
+                              project_ids = project_ids, media = F,
+                              metadata_only = T)
 end = Sys.time()
 
 ## how long did this take?
-end-start # 5 min now
+end-start # 10 seconds for metadata only
 
 # inspect class to make sure its a DP
 class(dp_list[[1]])
@@ -106,6 +105,28 @@ class(dp_list[[1]])
 length(dp_list) == length(project_ids) # MUST BE T
 # check if we have data resources
 frictionless::resources(dp_list[[1]]) # no media, but the rest is there!
+
+#
+##
+### Extract metadata across all projects per project, safely
+# working example for contributors:
+cont_table = extract_metadata(dp_list, "contributors")
+glimpse(cont_table)
+anyNA(cont_table$title) #MUST BE F
+# tbh, all should be F, but
+
+# works for single dp too and/or multiple DPs
+cont_table_1 = extract_metadata(dp_list[[3]], c("contributors", "relatedIdentifiers"))
+cont_table_1$contributors
+cont_table_1$relatedIdentifiers
+
+## Need to extract metadata per project safely b/c trouble w/ sources, project, WildObsMetadata, and spatial, so inspect those
+# verify problems and tweak function in the background.
+check = extract_metadata(dp_list, "sources") # working now!
+check = extract_metadata(dp_list, "project") # working now!
+check = extract_metadata(dp_list, "WildObsMetadata") # working now!
+check = extract_metadata(dp_list, "spatial") # working now!
+
 
 #
 ##
