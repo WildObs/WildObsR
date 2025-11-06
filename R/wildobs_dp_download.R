@@ -77,6 +77,12 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
   # # grab the api key
   # api_key = Sys.getenv("API_KEY")
 
+  ## Begin by checking if API key or db_url was provied
+  if(is.null(api_key) && is.null(db_url)){
+    # stop the function and tell them to get more info!
+    stop("You have not provided an API key or a database URL to access MongoDB.\nPlease provide an appropriate API key or URL if you want to access the database. \nIf you do not know how to access an appropriate API key or database URL, please contact the WildObs team at wildobs-support@qcif.edu.au")
+  } # end double null condition
+
   ### Determine if we will use the API key or the DB url to access data
   if(!is.null(api_key) && is.null(db_url)){
     # if API key is supplied and db url is still null, use the API
@@ -109,12 +115,6 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
       use_admin = FALSE
     } # end else admin db_url
   } # end else api conditon
-
-  ## But if neither an API key or db_url was provied
-  if(is.null(api_key) && is.null(db_url)){
-    # stop the function and tell them to get more info!
-    stop("You have not provided an API key or a database URL to access MongoDB.\nPlease provide an appropriate API key or URL if you want to access the database. \nIf you do not know how to access an appropriate API key or database URL, please contact the WildObs team at wildobs-support@qcif.edu.au")
-  } # end double null condition
 
   # inspect the DB url that was provided to make sure its legit if we are NOT using an API
   if(use_api == FALSE){
