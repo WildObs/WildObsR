@@ -128,15 +128,36 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
         if (!is.null(el_list$type) && tolower(el_list$type) == "featurecollection") {
           # extract the coordinates of the bounding boxes and save as a dataframe
           res <- purrr::map_dfr(el_list$features, function(f) {
-            coords <- f$geometry$coordinates[[1]][[1]]
-            mat <- do.call(rbind, coords)
+            coords <- f$geometry$coordinates
+            # Handle both 3D matrix and list cases gracefully
+            if (is.array(coords) && length(dim(coords)) == 3) {
+              lon <- coords[1, , 1]  # row 1, all columns, layer 1
+              lat <- coords[1, , 2]  # row 1, all columns, layer 2
+            } else if (is.list(coords)) {
+              # fall back to list structure
+              mat <- do.call(rbind, coords[[1]][[1]])
+              lon <- mat[, 1]
+              lat <- mat[, 2]
+            } else {
+              stop("Unexpected coordinate structure")
+            }
+            ## save into a dataframe
             data.frame(
               locationName = f$properties$name %||% NA,
-              xmin = min(mat[, 1], na.rm = TRUE),
-              ymin = min(mat[, 2], na.rm = TRUE),
-              xmax = max(mat[, 1], na.rm = TRUE),
-              ymax = max(mat[, 2], na.rm = TRUE)
+              xmin = min(lon, na.rm = TRUE),
+              ymin = min(lat, na.rm = TRUE),
+              xmax = max(lon, na.rm = TRUE),
+              ymax = max(lat, na.rm = TRUE)
             )
+
+            # mat <- do.call(rbind, coords)
+            # data.frame(
+            #   locationName = f$properties$name %||% NA,
+            #   xmin = min(mat[, 1], na.rm = TRUE),
+            #   ymin = min(mat[, 2], na.rm = TRUE),
+            #   xmax = max(mat[, 1], na.rm = TRUE),
+            #   ymax = max(mat[, 2], na.rm = TRUE)
+            # )
           }) # end map_dfr
 
         } else if (!is.null(el_list$type) && tolower(el_list$type) == "polygon") {
@@ -207,8 +228,14 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
         if (is.list(el_list[[1]]) && !is.data.frame(el_list[[1]])) {
           # STEP 1 — Clean each element in the list safely
           el_list_clean <- purrr::map(el_list, ~{
-            # Replace any NULLs with NA to keep consistent structure
-            .x[sapply(.x, is.null)] <- NA
+            # Replace any NULLs and emtpy lists with NA to keep consistent structure
+            .x <- lapply(.x, function(y) {
+              if (is.null(y) || (is.list(y) && length(y) == 0) || length(y) == 0) {
+                return(NA)
+              } else {
+                return(y)
+              }
+            })
 
             # Normalize values (your custom function)
             .x <- lapply(.x, normalize_values)
@@ -229,6 +256,7 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
           # STEP 3 — Coerce each list element to a 1-row data frame
           # Fill missing fields with NA so all rows have equal length
           el_list_aligned <- purrr::map(el_list_clean, function(x) {
+
             # Ensure all expected fields exist
             missing <- setdiff(all_fields, names(x))
             if (length(missing) > 0) x[missing] <- NA
@@ -248,6 +276,20 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
           # purrr::list_rbind is faster and safer than map_df()
           res <- purrr::list_rbind(el_list_aligned)
         } else {
+          ## before proceeding, just make totally sure each element is flat (i.e., not a nested list)
+          el_list <- lapply(el_list, function(x) {
+            # If element is a list but not a data.frame, try to flatten
+            if (is.list(x) && !is.data.frame(x)) {
+              # Repeatedly unlist one level until it's atomic or NULL
+              while (is.list(x) && length(x) == 1 && !is.data.frame(x[[1]])) {
+                x <- x[[1]]
+              }
+            }
+            # Replace completely empty or NULL with NA
+            if (is.null(x) || length(x) == 0) x <- NA
+            return(x)
+          })
+
           # normalize values in the flat list directly
           el_list <- lapply(el_list, normalize_values)
           # Single flat object or mixed: convert to single-row data frame
