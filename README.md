@@ -49,7 +49,9 @@ devtools::install_github("WildObs/WildObsR")
 ### Query WildObs database
 
 ```r
-library(WildObsR)
+# Load libraries 
+library(WildObsR)   
+library(frictionless)  ## For working with data packages 
 
 # Use general API key
 api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
@@ -75,9 +77,13 @@ dp_list <- wildobs_dp_download(
 )
 
 # Access deployments
-deployments <- frictionless::read_resource(dp_list[[1]], "deployments")
+deployments  <- frictionless::read_resource(dp_list[[1]], "deployments")
 # Access observations
 observations <- frictionless::read_resource(dp_list[[1]] "observations")
+
+# Access metadata 
+contributors <- extract_metadata(dp_list, "contributors")
+projects     <- extract_metadata(dp_list, "project")
 ```
 
 ### Spatially resample data 
@@ -128,6 +134,78 @@ res <- matrix_generator(
 )
 # Access the detection matrix for one species:
 res[["Orthonyx_spaldingii"]][["detection_matrix"]]
+
+```
+
+### Interoperability 
+
+We have ensured that our data integrates with the [camtrapdp R package](https://inbo.github.io/camtrapdp/), [camtraptor R package](https://inbo.github.io/camtraptor/), and [camtrapR R package](https://jniedballa.github.io/camtrapR/index.html). In particular, we highlight in the code below how to use WildObs data in the [camtrapR::surveyDashboard()](https://jniedballa.github.io/camtrapR/reference/surveyDashboard.html) tool, which to loads an interactive application to explore and analyze camera trap data.  
+
+```r
+## load a few more libraries 
+library(camtrapR)      ## For visualizing and analyzing camtrap data
+library(dplyr)         ## For data wrangling functions 
+
+## Select one data package from the downloaded list of data packages
+dp = dp_list[[1]]
+
+# extract resources from your data package
+obs =  frictionless::read_resource(dp, "observations")
+deps = frictionless::read_resource(dp, "deployments")
+covs = frictionless::read_resource(dp, "covariates")
+
+#
+##
+### Make a few minor data transformations to suit the application
+
+## merge deployment and covariates based on several shared columns to create one table per deployment
+covs = merge(deps, covs, by = names(covs)[names(covs) %in% names(deps)])
+
+## add locationID to obs
+add = dplyr::distinct(dplyr::select(covs, deploymentID, locationID))
+obs = merge(obs, add, by = "deploymentID")
+rm(add)
+
+## Properly format the date-times to a suitable format for the app 
+# for covariates
+covs <- covs %>%
+  mutate(
+    deploymentStart = format(deploymentStart, "%Y-%m-%d %H:%M:%S"),
+    deploymentEnd   = format(deploymentEnd, "%Y-%m-%d %H:%M:%S")
+  )
+# and observations 
+obs <- obs %>%
+  mutate(
+    observationStart = format(observationStart, "%Y-%m-%d %H:%M:%S"),
+    observationEnd   = format(observationEnd, "%Y-%m-%d %H:%M:%S")
+  )
+
+#
+##
+### Specific data thinning applications 
+
+# We don't need to feed all data to the app! less is more and lots of information can be overwhelming. 
+# There are lots of different data thinning options to explore, here is one example:
+
+# subset observations to only include animal detections (i.e., no humans, blanks, etc.)
+obs = obs[obs$observationType == "animal", ]
+
+#
+##
+### Load the interactive application
+
+### Load dashboard to visualize and analyze data 
+camtrapR::surveyDashboard(CTtable = covs,                                   ## info about camera traps 
+                          recordTable = obs,                                ## info about observations 
+                          stationCol = "locationID",                        ## Where are cameras in space?
+                          cameraCol = "deploymentID",                       ## What denotes individual cameras?
+                          xcol = "longitude", ycol = "latitude", crs = "epsg:4326",      # where are cams in space?
+                          setupCol = "deploymentStart", retrievalCol = "deploymentEnd",  # Start and end date-times
+                          hasProblems = FALSE,                              ## Any date-time problems?
+                          CTdateFormat = "ymd HMS",                         ## Date-time format
+                          camerasIndependent = TRUE,                        ## Are deployments in the same locationID independent?
+                          speciesCol = "scientificName",                    ## Which column has species?
+                          recordDateTimeCol = "observationStart")           ## Which column denotes when a species is detected?
 
 ```
 
