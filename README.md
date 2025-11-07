@@ -209,7 +209,6 @@ camtrapR::surveyDashboard(CTtable = covs,                                   ## i
 
 ```
 
-
 ---
 
 ## Core Functions
