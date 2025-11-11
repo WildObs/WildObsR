@@ -93,11 +93,11 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 start = Sys.time()
 dp_list = wildobs_dp_download(api_key = api_key, #db_url = db_url,
                               project_ids = project_ids, media = F,
-                              metadata_only = T)
+                              metadata_only = F)
 end = Sys.time()
 
 ## how long did this take?
-end-start # 10 seconds for metadata only
+end-start # 10 seconds for metadata only, 1.5 min for full dat w/ general API
 
 # inspect class to make sure its a DP
 class(dp_list[[1]])
@@ -159,19 +159,26 @@ covs = do.call(rbind, covs)
 # inspect
 table(deps$projectName)
 
-# ### b/c there is so much data in Taggart, remove a few Dgs for speed
-# sample_dg = sample(unique(covs$deploymentGroups[grepl("Taggart", covs$deploymentGroups)]), 7) # remove 7 at random
-# covs = covs[! covs$deploymentGroups %in% sample_dg, ]
-# deps = deps[deps$deploymentGroups %in% covs$deploymentGroups, ]
-# rm(sample_dg)
-
 ## check that its safe to merge
 verify_col_match(deps, covs, "deploymentID") # all g!
 
-## merge the two based on shared cols
+## merge both deps and covs based on shared cols
 covs = merge(deps, covs, by = names(covs)[names(covs) %in% names(deps)])
 # dont need deps anymore
 rm(deps)
+
+## check that ibra_classifications work w/ internal data
+# remove existing values from covs
+table(covs[, names(covs)[grepl("IBRA", names(covs))]])
+
+check = ibra_classification(covs, "latitude", "longitude")
+
+check = data(ibra)
+
+ibra
+
+##### Occupancy/Abundance modelling functions #####
+
 
 # and dont forget to thin obs to the relevant deploymentIDs now that we have excluded some
 obs = obs[obs$deploymentID %in% covs$deploymentID, ]
@@ -179,6 +186,8 @@ obs = obs[obs$deploymentID %in% covs$deploymentID, ]
 ## format datetimes
 covs$deploymentEnd = as.POSIXct(covs$deploymentEnd, format = "%Y-%m-%dT%H:%M:%S%z")
 covs$deploymentStart = as.POSIXct(covs$deploymentStart, format = "%Y-%m-%dT%H:%M:%S%z")
+
+
 
 # inspect deploymentTags
 unique(covs$deploymentTags) # fix one typo
@@ -240,18 +249,21 @@ sp = c("Felis catus", # common in both sources
 ##
 ### Import species traits information to contextualize these critters
 
-# set wd to where external data file lives.
-wd = "/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_tools/"
-# list availible files
-ver_files = list.files(wd)
-ver_files = ver_files[grepl("taxonomy", ver_files)] # only want species data
-# Extract the date parts of the filenames and convert to integers
-dates <- as.numeric(gsub("verified_taxonomy_(\\d{8})", "\\1", ver_files))
-# Order the filenames based on the extracted dates (from most recent to least recent)
-ver_file <- ver_files[order(dates, decreasing = TRUE)]
-# Import the most recent file
-taxa_dp = frictionless::read_package(paste(wd, ver_file[1], "/datapackage.json", sep = ""))
-rm(ver_file, ver_files, dates)
+# # set wd to where external data file lives.
+# wd = "/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_tools/"
+# # list availible files
+# ver_files = list.files(wd)
+# ver_files = ver_files[grepl("taxonomy", ver_files)] # only want species data
+# # Extract the date parts of the filenames and convert to integers
+# dates <- as.numeric(gsub("verified_taxonomy_(\\d{8})", "\\1", ver_files))
+# # Order the filenames based on the extracted dates (from most recent to least recent)
+# ver_file <- ver_files[order(dates, decreasing = TRUE)]
+# # Import the most recent file
+# taxa_dp = frictionless::read_package(paste(wd, ver_file[1], "/datapackage.json", sep = ""))
+# rm(ver_file, ver_files, dates)
+
+## load the data internally
+taxa_dp = data(taxonomy_dp)
 
 ### Extract the species traits from the DP
 frictionless::resources(taxa_dp) # two options
@@ -503,4 +515,3 @@ casso_abund_umf = unmarked::unmarkedFramePCount(y = matrix_list_abund$Casuarius_
 ## test the mod
 abund_m1 = unmarked::pcount(~numberDeploymentsActiveAtDate + trailStatus ~ Avg_precipitation_3km + locationName, casso_abund_umf)
 summary(abund_m1)
-
