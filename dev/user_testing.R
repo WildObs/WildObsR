@@ -81,8 +81,7 @@ project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url,
 ## Who did we get?
 sort(project_ids)
 # for testing
-# project_ids = c("QLD_Wet_Tropics_feral_cats_Bruce_2019-20_WildObsID_0007", "QLD_Simpson_Desert_Greenville_2010-15_WildObsID_0002")  # closed and partial data!
-
+project_ids = c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",  "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010", "NSW-VIC_Upper_Murray_fire_landscapes_Linley_2021-22_WildObsID_0009" )
 ## clean up query info
 rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, temporal)
 
