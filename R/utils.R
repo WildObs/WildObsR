@@ -244,7 +244,7 @@ area_to_apothem <- function(area_m2) {
   }
 
   # Step 1: Calculate side length from area
-  side <- sqrt((2 * area_m2) / (3 * sqrt(3)))
+  side <- sqrt((2 / (3 * sqrt(3))) * area_m2)
 
   # Step 2: Calculate apothem from side length
   apothem <- (side * sqrt(3)) / 2
@@ -252,8 +252,8 @@ area_to_apothem <- function(area_m2) {
   # Step 3: Create user-friendly names
   # Name the vector based on whether area is divisible by 1000^2 (i.e., km2)
   name_labels <- ifelse(
-    area_m2 %% 1e6 == 0,
-    paste0(area_m2 / 1e6, "km2"),
+    abs(area_m2 %% 1e6) < 1e-6,
+    paste0(formatC(area_m2 / 1e6, format = "f", drop0trailing = TRUE), "km2"),
     paste0(area_m2, "m2")
   )
   # save the names

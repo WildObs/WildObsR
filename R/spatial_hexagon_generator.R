@@ -1,21 +1,49 @@
 #' Generate spatially distinct sampling units
 #'
-#' This function generates spatially distinct hexagonal sampling units to group nearby camera trap deployment.
-#' It accounts for spatial and temporal overlap between deployments across different contributors to ensure that sampling units are truly independent.
+#' This function generates spatially distinct hexagonal sampling units to group nearby
+#' camera trap deployments. It ensures that sampling units are spatially and temporally
+#' independent across multiple contributors and surveys.
 #'
 #' @details
-#' The function works by overlaying a hexagonal grid of scales determined by the user to group deploymentIDs per `locationName`.
-#' Each deploymentID is then assigned a unique `cellID` (temporally distinct) and `polygon` ID (spatially distinct) across all provided scales.
-#' If multiple contributors sample the same cell in the same time window, their deployments are grouped into a common code.
+#' The function overlays one or more hexagonal grids at user-specified *spatial scales*
+#' and assigns each camera deployment (`deploymentID`) to its corresponding hexagonal cell.
+#' Each scale value defines the **area** of a single hexagon (not its edge length), expressed
+#' in **square meters (m²)**. Internally, these area values are converted into the corresponding
+#' apothem distance (distance from the hexagon's center to the midpoint of a side) using the
+#' geometric relationship:
 #'
+#' \deqn{A = \frac{3 \sqrt{3}}{2} s^2}
+#' \deqn{a = \frac{\sqrt{3}}{2} s}
 #'
-#' @param data A dataframe of covariates that includes at minimum: `deploymentID`, `locationName`,`deploymentGroups`, `source`, `latitude`, and `longitude`. These columns are found in WildObs' camtrapDP-formatted Frictionless Data Packages.
-#' @param scales A numeric vector representing the area of hexagonal grid cells in **square meters (m²)**.
-#' Values smaller than 1e6 (1 km²) are allowed. Scale names will be auto-generated using appropriate m² or km² units.
+#' where *A* is the hexagon area, *s* is the side length, and *a* is the apothem (used to
+#' set the grid spacing). This means:
+#' \itemize{
+#'   \item A value of **1000000** (1e6) corresponds to hexagons with an area of **1 km²**.
+#'   \item A value of **25000000** (25e6) corresponds to hexagons with an area of **25 km²**.
+#'   \item Smaller values (e.g., 100,000 = 0.1 km²) produce finer grids.
+#' }
 #'
-#' @return A dataframe including the original data plus additional columns for each scale:
-#' - `polygon_<scale>`: spatially distinct cell assignments.
-#' - `cellID_<scale>`: temporally and spatially distinct cell assignments (appending contributor info).
+#' Each deployment is assigned two identifiers per scale:
+#' \describe{
+#'   \item{`polygon_<scale>`}{Spatially distinct hexagon cell ID (independent of time).}
+#'   \item{`cellID_<scale>`}{Spatially and temporally distinct hexagon cell ID, incorporating survey year and data source}
+#' }
+#'
+#' If multiple data sources sample the same hexagon in overlapping time windows, their
+#' deployments are grouped and flagged with a combined contributor code.
+#'
+#' @param data A dataframe of covariates that includes, at minimum, the following columns:
+#'   `deploymentID`, `locationName`, `deploymentGroups`, `source`, `latitude`, and `longitude`.
+#'   These fields are part of WildObs camtrapDP-formatted Frictionless Data Packages.
+#' @param scales A numeric vector specifying the **areas of hexagonal grid cells in square meters (m²)**.
+#'   Values smaller than 1e6 (1 km²) are allowed. The function automatically labels each scale
+#'   as either m² or km² for readability.
+#'
+#' @return A dataframe containing the original input data plus:
+#' \itemize{
+#'   \item One column per scale named `polygon_<scale>` (spatial hexagon ID).
+#'   \item One column per scale named `cellID_<scale>` (spatial + temporal hexagon ID).
+#' }
 #'
 #' @importFrom magrittr %>%
 #' @importFrom sf st_as_sf st_transform st_make_grid st_sf st_join st_set_geometry
@@ -25,15 +53,47 @@
 #' @importFrom stringr str_match
 #'
 #' @examples
-#' \dontrun{
-#' # load data
-#' dp = frictionless::read_package("/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_clean/Step 4 DataPackages/ZAmir_QLD_Wet_Tropics_2022/datapackage.json")
-#' # extract covariates resource
-#' data = frictionless::read_resource(dp, "covariates")
-#' ## assign spatial scales
-#' scales = c(1000000, 3000000) # number refer area (in square meters) covered by the cell
-#' ## add dataSource to the covarites
-#' data$source = dp$contributors[[1]]$tag
+#' # Create example camera-trap metadata
+#' \donttest{
+#' set.seed(42)
+#'
+#' # Simulate 12 camera deployments across 3 sites and 2 contributors
+#' data <- tibble::tibble(
+#'   deploymentID = paste0("cam_", 1:12),
+#'   locationName = rep(c("Site_A", "Site_B", "Site_C"), each = 4),
+#'   source = rep(c("UQ_team", "CSIRO_team"), length.out = 12),
+#'
+#'   # Cluster each site around distinct centers (approx Wet Tropics, QLD)
+#'   latitude = c(
+#'     rnorm(4, mean = -17.10, sd = 0.01),   # Site_A: tight cluster
+#'     rnorm(4, mean = -17.25, sd = 0.005),  # Site_B: tighter cluster
+#'     rnorm(4, mean = -16.95, sd = 0.03)    # Site_C: more spread out
+#'   ),
+#'   longitude = c(
+#'     rnorm(4, mean = 145.65, sd = 0.01),   # Site_A
+#'     rnorm(4, mean = 145.50, sd = 0.005),  # Site_B
+#'     rnorm(4, mean = 145.75, sd = 0.03)    # Site_C
+#'   ),
+#'
+#'   # Random deployment dates over two months
+#'   deploymentStart = as.POSIXct("2023-07-01") + runif(12, 0, 30) * 86400,
+#'   deploymentEnd   = as.POSIXct("2023-09-01") + runif(12, 0, 30) * 86400
+#' )
+#'
+#' # Simulate a column that identifies unique survey events
+#' data$deploymentGroups <- paste0(data$locationName, "_", format(data$deploymentStart, "%Y"))
+#'
+#' # --- Define grid scales ---
+#' # The values represent hexagon *areas* in square meters.
+#' # 1e6 = 1 km² hexagons; 25e6 = 25 km² hexagons.
+#' scales <- c(1e6, 25e6)
+#'
+#' # --- Generate hexagonal sampling units ---
+#' hex_data <- spatial_hexagon_generator(data, scales)
+#'
+#' # Inspect new columns (polygon_ and cellID_ per scale)
+#' dplyr::select(hex_data, deploymentID, starts_with("polygon"), starts_with("cellID")) %>%
+#'   head()
 #' }
 #'
 #' @author Zachary Amir
