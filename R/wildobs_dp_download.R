@@ -14,7 +14,7 @@
 #' @param project_ids A character vector of project IDs to retrieve from MongoDB, which is generated from from a query to WildObs' MongoDB.
 #' @param media A logical (TRUE/FALSE) value to include the media resource in your data package download. This is the largest spreadsheet and significantly slows down the download process, so this value defaults to FALSE.
 #' @param metadata_only Logical; if TRUE, only metadata will be retrieved from each data package, without downloading the associated data resources. This can significantly improve speed when only project-level information is required. Defaults to FALSE, in which case all data (metadata and tabular resources) are downloaded. Note: this only applies for data with 'open' data sharing agreements, since 'partial' will be returned with metadata-only.
-#' @return A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/). Note that only data with an 'open' data sharing agreement will return tabular data, while data shared with a  'partial' data sharing agreement will return only the project-level metadata.
+#' @return A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about [camtrapDP, click here](https://camtrap-dp.tdwg.org/), and to learn more about [Frictionless Data Packages, click here](https://specs.frictionlessdata.io/data-package/). Note that only data with an 'open' data sharing agreement will return tabular data, while data shared with a  'partial' data sharing agreement will return only the project-level metadata. Furthermore, any species listed as threatened under the Australian Federal Government's Environment Protection and Biodiversity Conservation Act 1999 will have their locaiton data obscured.
 #' @details
 #' The function performs the following steps:
 #' 1. Connects to MongoDB using read-only credentials.
@@ -779,6 +779,46 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     # and merge it with the observations
     obs_proj = dplyr::left_join(obs_proj, taxa, by = "scientificName")
 
+    #
+    ##
+    ###
+    #### Obscure sensitive species information using EPBC classifications
+    # load the internal taxonomy dp
+    # dp = taxonomy_dp
+    utils::data("taxonomy_dp", envir = environment())
+    dp <- get("taxonomy_dp", envir = environment())
+    traits = frictionless::read_resource(dp, "species_traits")
+    # thin to species & listings only
+    traits = dplyr::select(traits, binomial_verified, epbc_category)
+
+    # only obscure species information IF this is NOT admin credentials
+    if(!use_admin){
+      # thin traits down to species that match in the dataset
+      traits_sub = traits[which(traits$binomial_verified %in% taxa$scientificName), ]
+      # thin traits_sub to anything w/ a listing
+      traits_sub = traits_sub[which(traits_sub$epbc_category != "not_listed"), ]
+      # make sure we actually have data left!
+      if(nrow(traits_sub) > 0){
+        # then check for each of these species and make corrections
+        for(s in 1:nrow(traits_sub)){
+          # select one sp
+          sp = traits_sub$binomial_verified[s]
+          ## obscure observations
+          obs_proj$observationID[which(obs_proj$scientificName == sp)] = paste("obscured_for",
+                                                                               traits_sub$epbc_category[which(traits_sub$binomial_verified == sp)],
+                                                                               "species", sep = "_")
+          obs_proj$eventID[which(obs_proj$scientificName == sp)] = paste("obscured_for",
+                                                                         traits_sub$epbc_category[which(traits_sub$binomial_verified == sp)],
+                                                                         "species", sep = "_")
+          obs_proj$mediaID[which(obs_proj$scientificName == sp)] = paste("obscured_for",
+                                                                         traits_sub$epbc_category[which(traits_sub$binomial_verified == sp)],
+                                                                         "species", sep = "_")
+          obs_proj$deploymentID[which(obs_proj$scientificName == sp)] = paste("obscured_for",
+                                                                              traits_sub$epbc_category[which(traits_sub$binomial_verified == sp)],
+                                                                              "species", sep = "_")
+        } # end per threatened species
+      } # end nrow condition
+    } # end admin conditon
 
     ## and make sure the columns follow the order in the schema
     # observations
