@@ -13,13 +13,19 @@ AUS_state_locator(deps)
 A data frame with the original deployment data, along with an additional \code{state} column that contains the abbreviated Australian state or territory code (e.g., "NSW", "QLD").
 }
 \description{
-This function uses the \code{ozmaps} library to determine the Australian state in which each camera deployment is located, based on the average coordinates (latitude and longitude) for each deployment.
-It assigns state codes (e.g., "NSW", "QLD") to the input data based on the geographic location of the deployments.
+This function uses the \code{ozmaps} library to determine the Australian state in
+which each camera deployment is located, based on the average coordinates
+(latitude and longitude) for each deployment.
+It assigns state codes (e.g., "NSW", "QLD") to the input data based on the
+geographic location of the deployments.
 }
 \details{
-The function expects the deployment data to have columns for latitude and longitude, either named \code{Latitude}/\code{Longitude} or \code{latitude}/\code{longitude}.
-It calculates the average coordinates for each deployment and uses the \code{ozmaps} package to intersect these with Australian state boundaries.
-If any deployments cannot be matched to a state, an error will be thrown.
+The function expects the deployment data to have columns for latitude and
+longitude, either named \code{Latitude}/\code{Longitude} or \code{latitude}/\code{longitude}.
+It calculates the average coordinates for each deployment and uses the \code{ozmaps}
+package to intersect these with Australian state boundaries.
+If any deployments cannot be matched to a state, the function will search for
+the nearest state and assign it that value (e.g., coordinates near coast)
 }
 \examples{
 # Example data
