@@ -1,12 +1,18 @@
 #' Determine Australian State from Coordinates
 #'
-#' This function uses the `ozmaps` library to determine the Australian state in which each camera deployment is located, based on the average coordinates (latitude and longitude) for each deployment.
-#' It assigns state codes (e.g., "NSW", "QLD") to the input data based on the geographic location of the deployments.
+#' This function uses the `ozmaps` library to determine the Australian state in
+#' which each camera deployment is located, based on the average coordinates
+#' (latitude and longitude) for each deployment.
+#' It assigns state codes (e.g., "NSW", "QLD") to the input data based on the
+#' geographic location of the deployments.
 #'
 #' @details
-#' The function expects the deployment data to have columns for latitude and longitude, either named `Latitude`/`Longitude` or `latitude`/`longitude`.
-#' It calculates the average coordinates for each deployment and uses the `ozmaps` package to intersect these with Australian state boundaries.
-#' If any deployments cannot be matched to a state, an error will be thrown.
+#' The function expects the deployment data to have columns for latitude and
+#' longitude, either named `Latitude`/`Longitude` or `latitude`/`longitude`.
+#' It calculates the average coordinates for each deployment and uses the `ozmaps`
+#' package to intersect these with Australian state boundaries.
+#' If any deployments cannot be matched to a state, the function will search for
+#' the nearest state and assign it that value (e.g., coordinates near coast)
 #'
 #' @param deps A data frame containing camera deployment data. This must include columns for `deploymentID`, `Latitude` or `latitude`, and `Longitude` or `longitude`.
 #'
@@ -98,8 +104,32 @@ AUS_state_locator = function (deps){
   # then intersect avg coords and states
   states = sf::st_intersection(avg_land, aus)
 
+  # Find missing deployments
+  missing_deps <- setdiff(avg_land$deploymentID, states$deploymentID)
+
+  ## if there are missing deployments
+  if(length(missing_deps) > 0) {
+    # Get the missing points
+    missing_points <- avg_land[avg_land$deploymentID %in% missing_deps, ]
+
+    # Find nearest state for each missing point
+    nearest_states <- sf::st_nearest_feature(missing_points, aus)
+
+    # Create dataframe for missing points
+    missing_states <- data.frame(
+      deploymentID = missing_points$deploymentID,
+      NAME = aus$NAME[nearest_states]
+    )
+
+    # Combine with successful intersections
+    states <- rbind(
+      sf::st_drop_geometry(states[, c("deploymentID", "NAME")]),
+      missing_states
+    )
+  } # end missing deps condition
+
   ## clean up the states dataframe
-  states$geometry = NULL
+  states$geometry = NULL # ensure no geom is left!
   states$state[states$NAME == "New South Wales"] = "NSW"
   states$state[states$NAME == "Queensland"] = "QLD"
   states$state[states$NAME == "South Australia"] = "SA"
