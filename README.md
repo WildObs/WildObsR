@@ -76,12 +76,12 @@ dp_list <- wildobs_dp_download(
   metadata_only = FALSE       # Set TRUE to access metadata only for a quick download
 )
 
-# Access deployments
-deployments  <- frictionless::read_resource(dp_list[[1]], "deployments")
-# Access observations
-observations <- frictionless::read_resource(dp_list[[1]] "observations")
+# Access deployments from one DP
+deployments  <- frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "deployments")
+# Access observations from one DP
+observations <- frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "observations")
 
-# Access metadata 
+# Access metadata from several DPs
 contributors <- extract_metadata(dp_list, "contributors")
 projects     <- extract_metadata(dp_list, "project")
 ```
