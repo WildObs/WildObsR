@@ -15,6 +15,7 @@ A data frame with the following columns:
 \item{AdultBodyMass_g}{Mean adult body mass (grams) for mammals and birds, from \code{traitdata::pantheria()} or \code{traitdata::australian_birds()}.}
 \item{bodyMass_source}{DOI of the source body mass dataset.}
 \item{epbc_category}{EPBC Act threat status category for Australian fauna. One of: "conservation_dependent", "critically_endangered", "endangered", "extinct", "extinct_in_the_wild", "vulnerable", or "not_listed".}
+\item{epbc_location}{The state level acronym where the EPBC Act threat status category is applicable, with several states concatenated together as needed, or NA values if not applicable.}
 }
 }
 \source{
@@ -23,6 +24,7 @@ Data were compiled and verified against:
 \item HomeRange Database (\doi{10.6084/m9.figshare.16698184})
 \item Pantheria Database (\doi{10.1890/08-1494.1})
 \item Australian Birds Trait Database (\doi{10.1038/s41597-022-01372-2})
+\item Environmental Protection and Biodiversity Conservation Act 1999 (\url{https://www.legislation.gov.au/Series/C2004A00485})
 }
 
 Home range data from HomeRange package;
@@ -39,7 +41,6 @@ This dataset provides cross-referenced trait data to facilitate consistent ecolo
 \details{
 A data.frame of species-level traits for verified taxa. Each row corresponds to a verified species.
 
-This dataset forms trait backbone of the WildObsR package.
 Species trait data helps enable comparative and functional ecological
 analyses and is used to obscure threatend species location information.
 }
