@@ -63,6 +63,7 @@
 #' @importFrom purrr map keep
 #' @importFrom lutz tz_lookup_coords
 #' @importFrom httr2 req_perform req_body_json req_method request
+#' @importFrom stringr str_detect regex
 #'
 #' @author Zachary Amir
 #'
@@ -795,12 +796,11 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     ##
     ###
     #### Obscure sensitive species information using EPBC classifications
-    # load the internal taxonomy dp
-    # dp = taxonomy_dp
+    ## load the species traits data
     utils::data("species_traits", envir = environment())
     species_traits <- get("species_traits", envir = environment())
     # thin to species & listings only
-    traits = dplyr::select(species_traits, binomial_verified, epbc_category)
+    traits = dplyr::select(species_traits, binomial_verified, epbc_category, epbc_location)
 
     # only obscure species information IF this is NOT admin credentials
     if(!use_admin){
@@ -808,24 +808,40 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
       traits_sub = traits[which(traits$binomial_verified %in% taxa$scientificName), ]
       # thin traits_sub to anything w/ a listing
       traits_sub = traits_sub[which(traits_sub$epbc_category != "not_listed"), ]
+
+      ## Now ensure we are only retaining threats for species in the correct state
+      # but first add state to the deployments
+      deps_proj2 = suppressWarnings(WildObsR::AUS_state_locator(deps_proj)) # known warning re: inconsistent geom, thats fine.
+      # grab the specific state(s)
+      target_state = unique(deps_proj2$state)
+      # collapse multiple states together w/ boundaries (\\b), if present
+      pattern <- paste0("\\b(", paste(target_state, collapse = "|"), ")\\b")
+      # further filter traits to those with matching states
+      traits_matched <- traits_sub %>%
+        filter(stringr::str_detect(epbc_location, stringr::regex(pattern, ignore_case = TRUE)))
+
+      ## finally, make sure there is only one binomial_verified (duplicates can happen from sub-species listings!)
+      traits_matched <- traits_matched %>%
+        distinct(binomial_verified, .keep_all = TRUE)
+
       # make sure we actually have data left!
-      if(nrow(traits_sub) > 0){
+      if(nrow(traits_matched) > 0){
         # then check for each of these species and make corrections
-        for(s in 1:nrow(traits_sub)){
+        for(s in 1:nrow(traits_matched)){
           # select one sp
-          sp = traits_sub$binomial_verified[s]
+          sp = traits_matched$binomial_verified[s]
           ## obscure observations
           obs_proj$observationID[which(obs_proj$scientificName == sp)] = paste("obscured_for",
-                                                                               traits_sub$epbc_category[which(traits_sub$binomial_verified == sp)],
+                                                                               traits_matched$epbc_category[which(traits_matched$binomial_verified == sp)],
                                                                                "species", sep = "_")
           obs_proj$eventID[which(obs_proj$scientificName == sp)] = paste("obscured_for",
-                                                                         traits_sub$epbc_category[which(traits_sub$binomial_verified == sp)],
+                                                                         traits_matched$epbc_category[which(traits_matched$binomial_verified == sp)],
                                                                          "species", sep = "_")
           obs_proj$mediaID[which(obs_proj$scientificName == sp)] = paste("obscured_for",
-                                                                         traits_sub$epbc_category[which(traits_sub$binomial_verified == sp)],
+                                                                         traits_matched$epbc_category[which(traits_matched$binomial_verified == sp)],
                                                                          "species", sep = "_")
           obs_proj$deploymentID[which(obs_proj$scientificName == sp)] = paste("obscured_for",
-                                                                              traits_sub$epbc_category[which(traits_sub$binomial_verified == sp)],
+                                                                              traits_matched$epbc_category[which(traits_matched$binomial_verified == sp)],
                                                                               "species", sep = "_")
         } # end per threatened species
       } # end nrow condition
