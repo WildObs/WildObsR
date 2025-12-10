@@ -62,7 +62,9 @@
 #' @importFrom jsonlite toJSON
 #' @importFrom purrr map keep
 #' @importFrom lutz tz_lookup_coords
+#' @importFrom httr POST
 #' @importFrom httr2 req_perform req_body_json req_method request
+#' @importFrom curl curl_fetch_memory handle_setopt handle_setheaders new_handle
 #' @importFrom stringr str_detect regex
 #'
 #' @author Zachary Amir
@@ -145,8 +147,8 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
 
   ## Access the metadata from the DB, but do it via API key, or not
   if(use_api){
-    # Send a GET request using the URL, API key, and only query for the metadata
-    response <- httr::GET(
+    # Send a POST request using the URL, API key, and only query for the metadata
+    response <-  httr::POST(#httr::GET(
       "https://camdbapi.wildobs.org.au/find", # hard code API url
       httr::add_headers("X-API-Key" = api_key),
       query =     list(
@@ -467,10 +469,6 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
       cov_body = list(
         collection = "covariates",
         filter = list(projectName = project_ids_query))
-      ## Media
-      # media_body = list(
-      #   collection = "media",
-      #   filter = list(projectName = project_ids_query)) # save this for batches
     }else{
       ## Specify deployments parameters
       dep_body <- list(
@@ -487,72 +485,52 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
         collection = "covariates",
         filter = list(
           projectName = list(`$in` = project_ids_query)))
-      # ## Media
-      # media_body <- list(
-      #   collection = "media",
-      #   filter = list(
-      #     projectName = list(`$in` = project_ids_query))) ## Save this for batch uploads
     } # end else proj_id = 1 condition
+
+    ## compile all bodies in a list
+    bodies = list("deployments" = dep_body,
+                  "observations" = obs_body,
+                  "covariates" = cov_body)
 
     ### Add a condition to query metadata only or full records
     if(!isTRUE(metadata_only)){
-      ## Use httr2 functions to create a query for the url for each resource
-      # deployments
-      dep_req <- httr2::request(url) |>
-        # Ensure the endpoint is GET-only
-        httr2::req_method("GET") |>
-        # assign headers
-        httr2::req_headers("X-API-Key" = api_key) |>
-        # put collection + filter in JSON body
-        httr2::req_body_json(dep_body)
-      # observations
-      obs_req <- httr2::request(url) |>
-        # Ensure the endpoint is GET-only
-        httr2::req_method("GET") |>
-        # assign headers
-        httr2::req_headers("X-API-Key" = api_key) |>
-        # put collection + filter in JSON body
-        httr2::req_body_json(obs_body)
-      # Covariates
-      cov_req <- httr2::request(url) |>
-        # Ensure the endpoint is GET-only
-        httr2::req_method("GET") |>
-        # assign headers
-        httr2::req_headers("X-API-Key" = api_key) |>
-        # put collection + filter in JSON body
-        httr2::req_body_json(cov_body)
-      # media
-      media_req <- httr2::request(url) |>
-        # Ensure the endpoint is GET-only
-        httr2::req_method("GET") |>
-        # assign headers
-        httr2::req_headers("X-API-Key" = api_key) #|>
-        # # put collection + filter in JSON body
-        # httr2::req_body_json(media_body) ## save this one for batch uplaods
+      ## repeat for each data resource EXCEPT media
+      for(ht in 1:length(bodies)){
+        ### Instead of httr2, use curl package
+        # Create a new curl "handle", which is like a container that will hold all the settings for your API request
+        h_dep <- curl::new_handle()
+        # Add HTTP headers to the handle, which are metadata that tells the server:
+        # 1. The API key for authentication, and
+        # 2. What type of data were querying (JSON format)
+        curl::handle_setheaders(h_dep,
+                                "X-API-Key" = api_key,
+                                "Content-Type" = "application/json"
+        )
+        # Configure the request options for the handle:
+        # 1. customrequest = "POST" tells it to use POST method (not GET)
+        # 2. postfields = the actual data to send in the request body
+        #    - jsonlite::toJSON() converts your R list (dep_body) into JSON text
+        #    - auto_unbox = TRUE prevents single values from becoming arrays in JSON
+        curl::handle_setopt(h_dep,
+                            customrequest = "POST",
+                            postfields = jsonlite::toJSON(bodies[[ht]], auto_unbox = TRUE)
+        )
+        # Actually send the HTTP request to the API and store the raw response in memory
+        resp_raw <- curl::curl_fetch_memory(url, handle = h_dep)
+        # Convert the raw response into usable R data:
+        # 1. dep_resp_raw$content is raw bytes
+        # 2. rawToChar() converts those bytes into readable text (JSON string)
+        # 3. jsonlite::fromJSON() converts that JSON text into an R list/data frame
+        data <- jsonlite::fromJSON(rawToChar(resp_raw$content))
+        # then grab the data.frame from the API data
+        dat = data[[1]][[2]]
+        # and save the object as the relevant name
+        if(names(bodies)[ht] == "deployments"){  deps = dat}
+        if(names(bodies)[ht] == "observations"){ obs = dat}
+        if(names(bodies)[ht] == "covariates"){   covs = dat}
 
-      ## Now preform requests to access the data for each resource
-      # deployments
-      dep_resp <- httr2::req_perform(dep_req)
-      # extract the body text string and then convert from JSON
-      data_dep <- jsonlite::fromJSON(httr2::resp_body_string(dep_resp, encoding = "UTF-8"),
-                                     simplifyVector = TRUE)
-      # then grab the data.frame from the API data
-      deps = data_dep[[1]][[2]]
+      } # end per bodies
 
-      # observations
-      obs_resp <- httr2::req_perform(obs_req)
-      # extract the body text string and then convert from JSON
-      data_obs <- jsonlite::fromJSON(httr2::resp_body_string(obs_resp, encoding = "UTF-8"),
-                                     simplifyVector = TRUE)
-      # then grab the data.frame from the API data
-      obs = data_obs[[1]][[2]]
-      # covariates
-      cov_resp <- httr2::req_perform(cov_req)
-      # extract the body text string and then convert from JSON
-      data_cov <- jsonlite::fromJSON(httr2::resp_body_string(cov_resp, encoding = "UTF-8"),
-                                     simplifyVector = TRUE)
-      # then grab the data.frame from the API data
-      covs = data_cov[[1]][[2]]
       # media, but only if true!
       if(media){
 
@@ -591,24 +569,31 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
             limit = batch_size
           )
 
-          # Add pagination info to the existing media request
-          this_req <- media_req |>
-            httr2::req_body_json(media_body) # This is pulling the same rows each time!!
+          ### Use curl to make the request (same pattern as other resources)
+          # Create a new curl handle for this batch
+          h_media <- curl::new_handle()
+          # Add HTTP headers (API key and content type)
+          curl::handle_setheaders(h_media,
+                                  "X-API-Key" = api_key,
+                                  "Content-Type" = "application/json"
+          )
+          # Configure POST request with the media_body data
+          curl::handle_setopt(h_media,
+                              customrequest = "POST",
+                              postfields = jsonlite::toJSON(media_body, auto_unbox = TRUE)
+          )
 
           # Try the request safely
-          media_resp <- try(httr2::req_perform(this_req), silent = TRUE)
+          media_resp_raw <- try(curl::curl_fetch_memory(url, handle = h_media), silent = TRUE)
 
           # If it failed, print a warning and stop
-          if (inherits(media_resp, "try-error")) {
+          if (inherits(media_resp_raw, "try-error")) {
             warning(paste("Request failed at batch starting from mediaID:", last_id))
             break
           }
 
-          # Convert the response JSON to a dataframe
-          data_media <- jsonlite::fromJSON(
-            httr2::resp_body_string(media_resp, encoding = "UTF-8"),
-            simplifyVector = TRUE
-          )
+          # Convert the raw response into a dataframe using jsonlite
+          data_media <- jsonlite::fromJSON(rawToChar(media_resp_raw$content))
 
           # Extract the actual media table from the nested list
           media_part <- data_media[[1]][[2]]
