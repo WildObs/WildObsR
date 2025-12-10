@@ -62,7 +62,7 @@
 #' - [mongolite::mongo()] for database queries
 #' @importFrom magrittr %>%
 #' @importFrom lubridate add_with_rollback
-#' @importFrom httr status_code content GET add_headers
+#' @importFrom httr status_code content POST add_headers
 #' @importFrom jsonlite fromJSON
 #' @importFrom mongolite mongo
 #'
@@ -127,7 +127,7 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## Access the metadata from the DB, but do it via API key, or not
   if(use_api){
     # Send a GET request using the URL, API key, and only query for the metadata
-    response <- httr::GET(
+    response <- httr::POST( #httr::GET(
       "https://camdbapi.wildobs.org.au/find", # hard code API url
       httr::add_headers("X-API-Key" = api_key),
       query =     list(
@@ -346,6 +346,8 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
       t = purrr::map_dfr(cont[i], as.data.frame)
       # and add the id
       t$id = metadata$id[i]
+      # thin to CRITICAL columns
+      t = dplyr::select(t, title, email, path, id)
       # save in the list
       cont_df[[i]] = t
     } # end per length taxa
