@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: October 27th, 2025
+## last updated: Dec 10th, 2025
 
 # start fresh!
 rm(list = ls())
@@ -50,8 +50,7 @@ library(tidyverse)
 api_key = "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
 
 ## Define a temporal range to query
-temporal = list(minDate = as.Date("2000-01-01"),
-            maxDate = as.Date("2026-12-01")) #
+temporal = list() #list(minDate = as.Date("2000-01-01"), maxDate = as.Date("2026-12-01")) #
 
 ## Define a spatial bounding box to query
 spatial = list()# list(xmin = 137.995, xmax = 153.552, ymin = -28.999, ymax = -9.142)
@@ -60,13 +59,14 @@ spatial = list()# list(xmin = 137.995, xmax = 153.552, ymin = -28.999, ymax = -9
 taxonomic = c() #c("Casuarius casuarius")
 
 ## Define sampling design query
-samplingDesign = c() # dont care right now
+samplingDesign <- c("simpleRandom", "opportunistic", "systematicRandom")
 
 ## Define contributor query only want data from WildObsR team
-contributors = c() #c("Zachry Amir", "Tom Bruce")
+# contributors = c() #c("Zachry Amir", "Tom Bruce")
+contributors <- c("Emma Spencer")
 
 ## Define sharing status
-tabularSharingPreference = c("open", "partial", "closed")
+tabularSharingPreference = c("open")# (, "partial", "closed")
 
 ## Gather relevant project_ids using the mongo query function
 project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url,
@@ -81,7 +81,7 @@ project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url,
 ## Who did we get?
 sort(project_ids)
 # for testing
-project_ids = c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",  "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010", "NSW-VIC_Upper_Murray_fire_landscapes_Linley_2021-22_WildObsID_0009" )
+project_ids = c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001", "NSW-VIC_Upper_Murray_fire_landscapes_Linley_2021-22_WildObsID_0009" )
 ## clean up query info
 rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, temporal)
 
@@ -91,12 +91,13 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 # set media to FALSE to make a quicker download
 start = Sys.time()
 dp_list = wildobs_dp_download(api_key = api_key, #db_url = db_url,
-                              project_ids = project_ids, media = F,
+                              project_ids = project_ids, media = T,
                               metadata_only = F)
 end = Sys.time()
 
 ## how long did this take?
 end-start # 10 seconds for metadata only, 1.5 min for full dat w/ general API
+# almost 10 min for 2 DPs w/ full media.
 
 # inspect class to make sure its a DP
 class(dp_list[[1]])
