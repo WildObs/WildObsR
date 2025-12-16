@@ -178,6 +178,12 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
       } # end else admin api key check
     } # end use api
 
+  ## quick band-aid, IDK how this got in the DB but an Issue has been created on camDB GitHub
+  ## COME HERE AND DELETE WHEN FIXED!
+  if(any(grepl("pending development of collaborative research agreement", metadata$WildObsMetadata$tabularSharingPreference))){
+    metadata$WildObsMetadata$tabularSharingPreference[which(grepl("pending development of collaborative research agreement", metadata$WildObsMetadata$tabularSharingPreference))] = "closed"
+  }
+
   ## and immediately thin metadata to include the specific sharing preferences
   metadata = metadata[metadata$WildObsMetadata$tabularSharingPreference %in% tabularSharingPreference, ]
 
