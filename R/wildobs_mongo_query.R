@@ -192,10 +192,12 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ### Create a true/false column in the metadata to determine if the embargo period has passed
   # First, convert unknown embargo periods based on sharing preference
   # open data has no embargo
-  metadata$WildObsMetadata$embargoPeriodMonths[metadata$WildObsMetadata$embargoPeriodMonths == "unknown" &
+  metadata$WildObsMetadata$embargoPeriodMonths[metadata$WildObsMetadata$embargoPeriodMonths == "unknown" |
+                                                 is.na(metadata$WildObsMetadata$embargoPeriodMonths) &
                                                  metadata$WildObsMetadata$tabularSharingPreference == "open"] = 0
   # closed and partial has longest embargo
-  metadata$WildObsMetadata$embargoPeriodMonths[metadata$WildObsMetadata$embargoPeriodMonths == "unknown" &
+  metadata$WildObsMetadata$embargoPeriodMonths[metadata$WildObsMetadata$embargoPeriodMonths == "unknown" |
+                                                 is.na(metadata$WildObsMetadata$embargoPeriodMonths) &
                                                  metadata$WildObsMetadata$tabularSharingPreference %in% c("partial", "closed")] = 48
 
   #now calculate when the date the emabrgo is done
