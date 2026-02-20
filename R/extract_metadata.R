@@ -1,8 +1,12 @@
 #' Extract Metadata Elements from Data Packages
 #'
-#' Extracts specified metadata elements from one or more Camera Trap Data Packages (camtrap DP) and returns them as tidy data frames. Handles flexible list structures and automatically replaces NULL values with NA to ensure consistent data types.
+#' Extracts specified metadata elements from one or more Camera Trap Data Packages
+#' (camtrap DP) and returns them as tidy data frames. Handles flexible list
+#' structures and automatically replaces NULL values with NA to ensure
+#' consistent data types.
 #'
-#' @param dp_list A single data package (list) or a list of data packages to extract metadata from. Each data package should be a named list with an \code{id} field.
+#' @param dp_list A single data package (list) or a list of data packages to
+#' extract metadata from. Each data package should be a named list with an \code{id} field.
 #' @param elements A character vector specifying which metadata elements to extract.
 #'   Supported elements are: \code{"contributors"}, \code{"sources"},
 #'   \code{"licenses"}, \code{"relatedIdentifiers"}, \code{"references"},
@@ -10,11 +14,17 @@
 #'   \code{"taxonomic"}.
 #'
 #' @return
-#' If a single element is requested: A data frame with one row per record (or one row for flat objects) and columns for each field in that element. Includes a \code{DPID} column with the source data package ID.
+#' If a single element is requested: A data frame with one row per record
+#' (or one row for flat objects) and columns for each field in that element.
+#' Includes a \code{DPID} column with the source data package ID.
 #'
-#' If multiple elements are requested: A named list of data frames, one for each requested element. Each data frame includes a \code{DPID} column to distinguish different data packages
+#' If multiple elements are requested: A named list of data frames, one for
+#' each requested element. Each data frame includes a \code{DPID} column to
+#' distinguish different data packages
 #'
-#' When multiple data packages are provided, results are accumulated across all DPs using \code{dplyr::bind_rows()}, so each data frame in the result contains records from all input data packages.
+#' When multiple data packages are provided, results are accumulated across all
+#' DPs using \code{dplyr::bind_rows()}, so each data frame in the result
+#' contains records from all input data packages.
 #'
 #' @details
 #' This function is designed for extracting and standardizing metadata from camtrap DP
@@ -26,8 +36,12 @@
 #'   \item Multiple data packages (rows combined via \code{dplyr::bind_rows()})
 #' }
 #'
-#' Before using this function, it is recommended to validate your data packages using
-#' a QAQC function to ensure consistency in data types and structure across packages.
+#' @section Spatial data:
+#' The \code{"spatial"} element returns a dataframe of bounding box coordinates
+#' (locationName, xmin, ymin, xmax, ymax) for convenient inspection. Users who
+#' need the full GeoJSON geometry for spatial analysis or mapping can access it
+#' directly via \code{dp$spatial} and convert to an sf object using
+#' \code{geojson_list_to_sf(dp$spatial)}.
 #'
 #' @examples
 #' \dontrun{
@@ -128,70 +142,50 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
         if (!is.null(el_list$type) && tolower(el_list$type) == "featurecollection") {
           # extract the coordinates of the bounding boxes and save as a dataframe
           res <- purrr::map_dfr(el_list$features, function(f) {
+            ## grab coordinates and then infer structure
             coords <- f$geometry$coordinates
-            # Handle both 3D matrix and list cases gracefully
-            if (is.array(coords) && length(dim(coords)) == 3) {
-              lon <- coords[1, , 1]  # row 1, all columns, layer 1
-              lat <- coords[1, , 2]  # row 1, all columns, layer 2
+
+            # Structure depends on how the dp was read from JSON:
+            # - 3D array [1, n_points, 2]: fromJSON() with simplifyVector = TRUE (default)
+            # - Nested list: fromJSON() with simplifyVector = FALSE
+            if (is.array(coords)) {
+              # coords[1, , 1] = all longitudes, coords[1, , 2] = all latitudes
+              lon <- coords[1, , 1]
+              lat <- coords[1, , 2]
             } else if (is.list(coords)) {
-              # fall back to list structure
-              mat <- do.call(rbind, coords[[1]][[1]])
-              lon <- mat[, 1]
-              lat <- mat[, 2]
+              # coords[[1]] = outer ring, each element = [lon, lat] pair
+              ring <- coords[[1]]
+              lon  <- sapply(ring, `[[`, 1)
+              lat  <- sapply(ring, `[[`, 2)
             } else {
-              stop("Unexpected coordinate structure")
+              stop(paste("Unexpected coordinate structure for feature:",
+                         f$properties$name %||% "unknown"))
             }
             ## save into a dataframe
             data.frame(
-              locationName = f$properties$name %||% NA,
+              locationName = f$properties$name %||% NA_character_,
               xmin = min(lon, na.rm = TRUE),
               ymin = min(lat, na.rm = TRUE),
               xmax = max(lon, na.rm = TRUE),
               ymax = max(lat, na.rm = TRUE)
             )
-
-            # mat <- do.call(rbind, coords)
-            # data.frame(
-            #   locationName = f$properties$name %||% NA,
-            #   xmin = min(mat[, 1], na.rm = TRUE),
-            #   ymin = min(mat[, 2], na.rm = TRUE),
-            #   xmax = max(mat[, 1], na.rm = TRUE),
-            #   ymax = max(mat[, 2], na.rm = TRUE)
-            # )
           }) # end map_dfr
-
-        } else if (!is.null(el_list$type) && tolower(el_list$type) == "polygon") {
-          # CASE 1: Proper GeoJSON Polygon (nested coordinates)
-          if (!is.null(el_list$coordinates)) {
-            # Safely extract coordinate pairs (handles one or two list depths)
-            coords <- tryCatch(el_list$coordinates[[1]][[1]],
-                               error = function(e) el_list$coordinates[[1]])
-            mat <- tryCatch(do.call(rbind, coords),
-                            error = function(e) NULL)
-            if (!is.null(mat) && ncol(mat) >= 2) {
-              res <- data.frame(
-                locationName = el_list$name %||% NA,  # optional if a name exists
-                xmin = min(mat[, 1], na.rm = TRUE),
-                ymin = min(mat[, 2], na.rm = TRUE),
-                xmax = max(mat[, 1], na.rm = TRUE),
-                ymax = max(mat[, 2], na.rm = TRUE)
-              )
-            } # end null mat and cols
-          }else if(!is.null(el_list$bbox)){
-            # if coordinates are missing, then
-            # flatten all bbox entries, keeping their names
-            res <- purrr::map_dfr(names(el_list$bbox), function(nm) {
-              bbox_flat <- el_list$bbox[[nm]][[1]] %||% el_list$bbox[[nm]]
-              data.frame(
-                locationName = nm,
-                xmin = bbox_flat$xmin %||% NA,
-                ymin = bbox_flat$ymin %||% NA,
-                xmax = bbox_flat$xmax %||% NA,
-                ymax = bbox_flat$ymax %||% NA
-              )
-            }) # end map_dfr
-          }# end else not null condition for bbox
-        } # end null coordinates  condition
+          # Anything reaching here is either NULL spatial, or a legacy format
+          # that should have been corrected by the QAQC pipeline before reaching users
+        } else {
+          # warn the users and return an empty DF
+          warning(paste0(
+            "Spatial data for ", dp$id, " is not a GeoJSON FeatureCollection. ",
+            "Expected $type = 'FeatureCollection' but got: '", el_list$type %||% "NULL", "'. ",
+            "Re-running the QAQC pipeline should resolve this."
+          ))
+          res <- data.frame(
+            locationName = NA_character_,
+            xmin = NA_real_, ymin = NA_real_,
+            xmax = NA_real_, ymax = NA_real_,
+            stringsAsFactors = FALSE
+          )
+        } # end else
         # and dont forget the id
         res$DPID <- dp$id
       } # end spatial conditon
