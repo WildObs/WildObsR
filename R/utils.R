@@ -904,3 +904,10 @@ extract_spatial_bboxes <- function(metadata) {
   out_combined <- dplyr::distinct(out_combined)
   out_combined
 }
+
+
+# Helper: Convert dp$spatial (GeoJSON-shaped list) back to sf for mapping
+geojson_list_to_sf <- function(geojson_list) {
+  geojson_string <- jsonlite::toJSON(geojson_list, auto_unbox = TRUE)
+  geojsonsf::geojson_sf(geojson_string)
+}
