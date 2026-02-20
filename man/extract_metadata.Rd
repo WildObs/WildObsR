@@ -11,7 +11,8 @@ extract_metadata(
 )
 }
 \arguments{
-\item{dp_list}{A single data package (list) or a list of data packages to extract metadata from. Each data package should be a named list with an \code{id} field.}
+\item{dp_list}{A single data package (list) or a list of data packages to
+extract metadata from. Each data package should be a named list with an \code{id} field.}
 
 \item{elements}{A character vector specifying which metadata elements to extract.
 Supported elements are: \code{"contributors"}, \code{"sources"},
@@ -20,14 +21,23 @@ Supported elements are: \code{"contributors"}, \code{"sources"},
 \code{"taxonomic"}.}
 }
 \value{
-If a single element is requested: A data frame with one row per record (or one row for flat objects) and columns for each field in that element. Includes a \code{DPID} column with the source data package ID.
+If a single element is requested: A data frame with one row per record
+(or one row for flat objects) and columns for each field in that element.
+Includes a \code{DPID} column with the source data package ID.
 
-If multiple elements are requested: A named list of data frames, one for each requested element. Each data frame includes a \code{DPID} column to distinguish different data packages
+If multiple elements are requested: A named list of data frames, one for
+each requested element. Each data frame includes a \code{DPID} column to
+distinguish different data packages
 
-When multiple data packages are provided, results are accumulated across all DPs using \code{dplyr::bind_rows()}, so each data frame in the result contains records from all input data packages.
+When multiple data packages are provided, results are accumulated across all
+DPs using \code{dplyr::bind_rows()}, so each data frame in the result
+contains records from all input data packages.
 }
 \description{
-Extracts specified metadata elements from one or more Camera Trap Data Packages (camtrap DP) and returns them as tidy data frames. Handles flexible list structures and automatically replaces NULL values with NA to ensure consistent data types.
+Extracts specified metadata elements from one or more Camera Trap Data Packages
+(camtrap DP) and returns them as tidy data frames. Handles flexible list
+structures and automatically replaces NULL values with NA to ensure
+consistent data types.
 }
 \details{
 This function is designed for extracting and standardizing metadata from camtrap DP
@@ -38,10 +48,16 @@ packages. It handles:
 \item NULL values (replaced with NA for consistency)
 \item Multiple data packages (rows combined via \code{dplyr::bind_rows()})
 }
-
-Before using this function, it is recommended to validate your data packages using
-a QAQC function to ensure consistency in data types and structure across packages.
 }
+\section{Spatial data}{
+
+The \code{"spatial"} element returns a dataframe of bounding box coordinates
+(locationName, xmin, ymin, xmax, ymax) for convenient inspection. Users who
+need the full GeoJSON geometry for spatial analysis or mapping can access it
+directly via \code{dp$spatial} and convert to an sf object using
+\code{geojson_list_to_sf(dp$spatial)}.
+}
+
 \examples{
 \dontrun{
 # Load a single data package
