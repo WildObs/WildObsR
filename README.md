@@ -54,7 +54,7 @@ library(WildObsR)
 library(frictionless)  ## For working with data packages 
 
 # Use general API key
-api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+wildobsr_api_key = data(wildobsr_api_key)
 
 # Query projects in Queensland from 2020-2024
 spatial_query <- list(xmin = 145.0, xmax = 154.0, ymin = -29.0, ymax = -10.0)
@@ -62,7 +62,7 @@ temporal_query <- list(minDate = as.Date("2020-01-01"),
                        maxDate = as.Date("2024-12-31"))
 
 project_ids <- wildobs_mongo_query(
-  api_key = api_key,
+  api_key = wildobsr_api_key,
   spatial = spatial_query,
   temporal = temporal_query,
   tabularSharingPreference = c("open", "partial")
@@ -70,7 +70,7 @@ project_ids <- wildobs_mongo_query(
 
 # Download data packages
 dp_list <- wildobs_dp_download(
-  api_key = api_key,
+  api_key = wildobsr_api_key,
   project_ids = project_ids,
   media = FALSE,              # Set TRUE to include media files for a slower download
   metadata_only = FALSE       # Set TRUE to access metadata only for a quick download
