@@ -53,8 +53,8 @@ devtools::install_github("WildObs/WildObsR")
 library(WildObsR)   
 library(frictionless)  ## For working with data packages 
 
-# Use general API key
-wildobsr_api_key = data(wildobsr_api_key)
+# Load the general API key
+data(wildobsr_api_key)
 
 # Query projects in Queensland from 2020-2024
 spatial_query <- list(xmin = 145.0, xmax = 154.0, ymin = -29.0, ymax = -10.0)
