@@ -877,10 +877,12 @@ extract_spatial_bboxes <- function(metadata) {
 
         loc_name <- NA_character_
         if ("properties" %in% names(feature_set) &&
-            "name" %in% names(feature_set$properties)) {
+            "locationName" %in% names(feature_set$properties)) {
+          loc_name <- feature_set$properties$locationName[i]
+          # catch old legacy name
+        } else if ("properties" %in% names(feature_set) &&
+                   "name" %in% names(feature_set$properties)) {
           loc_name <- feature_set$properties$name[i]
-        } else if ("name" %in% names(feature_set)) {
-          loc_name <- feature_set$name[i]
         }
 
         rows[[i]] <- tibble::tibble(

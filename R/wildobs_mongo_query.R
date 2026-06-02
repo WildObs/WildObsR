@@ -1,7 +1,12 @@
 #' Query WildObs MongoDB for Relevant Project IDs
 #'
 #' This function queries the WildObs MongoDB database for projects matching specified spatial, temporal, taxonomic, contributor, and data-sharing criteria.
-#' It extracts metadata from the database and filters projects based on bounding box overlaps, temporal overlaps, species detected, contributors associated, and data sharing preferences. The function also ensures that only projects that have past their embargo date are shared. Only admin credentials in the db_url parameter will allow users to access data with 'closed' sharing agreements or projects not past their embargo date.
+#' It extracts metadata from the database and filters projects based on bounding
+#' box overlaps, temporal overlaps, species detected, contributors associated,
+#' and data sharing preferences. The function also ensures that only projects that
+#' have past their embargo date are shared. Only admin credentials in the db_url
+#' parameter will allow users to access data with 'closed' sharing agreements
+#' or projects not past their embargo date.
 #'
 #' The character vector of project IDs that is returned from this function is then used in the function @seealso \code{\link{wildobs_dp_download}} for extracting data packages from WildObs' MongoDB.
 #'
@@ -26,11 +31,23 @@
 #'     \item{minDate}{Earliest allowable date as a `Date` object.}
 #'     \item{maxDate}{Latest allowable date as a `Date` object.}
 #'   }
-#' @param taxonomic A vector of species names in binomial nomenclature (i,e., Latin names), and all projects that detect any of the species listed will be returned.
-#' @param samplingDesign A vector of enumerated sampling design values, and projects with the specific sampling designs will be returned. The enumerated values are:"simpleRandom", "systematicRandom", "clusteredRandom", "experimental", "targeted", & "opportunistic"
-#' @param contributors A vector of first and last names of people associated with any projects. Regardless of their role in the project, if the name is found in the metadata, the relevant projects will be returned.
+#' @param taxonomic A vector of species names in binomial nomenclature (i,e., Latin names),
+#'  and all projects that detect any of the species listed will be returned.
+#' @param samplingDesign A vector of enumerated sampling design values, and projects
+#'  with the specific sampling designs will be returned. The enumerated values are:
+#'  "simpleRandom", "systematicRandom", "clusteredRandom", "experimental", "targeted", & "opportunistic"
+#' @param contributors A vector of identifiers for people associated with any projects. Each
+#'   element can be a full name (first and last, e.g. "Zachary Amir"), an email address
+#'   (e.g. "z.amir(at)uq.edu.au"), or an ORCID (e.g. "0000-0002-0113-xxxx"). The type of each
+#'   value is auto-detected, so the vector can mix all three. Regardless of a person's role in
+#'   a project, if any supplied identifier is found in the metadata, the relevant projects will
+#'   be returned.
 #' @param tabularSharingPreference A character vector specifying accepted sharing preferences.
-#'   Defaults to `c("open")`, but the user can also specify 'partial' for limited metadata of the project. If the user provides admin DB credentials, the user can access 'closed' data, but if admin credentials have not been provided, 'closed' data will be removed from the projects list.  Only projects with these preferences are returned.
+#'  Defaults to `c("open")`, but the user can also specify 'partial' for limited
+#'  metadata of the project. If the user provides admin DB credentials, the user
+#'  can access 'closed' data, but if admin credentials have not been provided,
+#'  'closed' data will be removed from the projects list.  Only projects with
+#'  these preferences are returned.
 #' @return A character vector of project IDs matching the specified criteria.
 #' @examples
 #' \dontrun{
@@ -53,7 +70,9 @@
 #' contributor_query = c("Zachary Amir")
 #'
 #' # Query the WildObs database for matching projects
-#' relevant_projects <- wildobs_mongo_query(db_url, spatial = spatial_query, temporal = temporal_query, taxonomic = taxa_query, samplingDesign = sample_query, contributors = contributor_query, tabularSharingPreference = "open")
+#' relevant_projects <- wildobs_mongo_query(db_url, spatial = spatial_query,
+#' temporal = temporal_query, taxonomic = taxa_query, samplingDesign = sample_query,
+#' contributors = contributor_query, tabularSharingPreference = "open")
 #'
 #' # display the matching projects
 #' print(relevant_projects)
@@ -78,6 +97,7 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## read in environment file with confidential DB access info
   # readRenviron("config_private/.Renviron.prod.ro") # remote DB, read only
   # readRenviron("config_private/.Renviron.admin.api") # admin api key
+  # readRenviron("config_private/.Renviron.local.ro") # local DB, read only --> test before updating remote DB!
 
   # ## load information from environment
   # HOST <- Sys.getenv("HOST")
@@ -178,27 +198,22 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
       } # end else admin api key check
     } # end use api
 
-  ## quick band-aid, IDK how this got in the DB but an Issue has been created on camDB GitHub
-  ## COME HERE AND DELETE WHEN FIXED!
-  if(any(grepl("pending development of collaborative research agreement", metadata$WildObsMetadata$tabularSharingPreference))){
-    metadata$WildObsMetadata$tabularSharingPreference[which(grepl("pending development of collaborative research agreement", metadata$WildObsMetadata$tabularSharingPreference))] = "closed"
-  }
-
   ## and immediately thin metadata to include the specific sharing preferences
   metadata = metadata[metadata$WildObsMetadata$tabularSharingPreference %in% tabularSharingPreference, ]
 
   #
   ##
   ### Create a true/false column in the metadata to determine if the embargo period has passed
-  # First, convert unknown embargo periods based on sharing preference
-  # open data has no embargo
-  metadata$WildObsMetadata$embargoPeriodMonths[metadata$WildObsMetadata$embargoPeriodMonths == "unknown" |
-                                                 is.na(metadata$WildObsMetadata$embargoPeriodMonths) &
-                                                 metadata$WildObsMetadata$tabularSharingPreference == "open"] = 0
-  # closed and partial has longest embargo
-  metadata$WildObsMetadata$embargoPeriodMonths[metadata$WildObsMetadata$embargoPeriodMonths == "unknown" |
-                                                 is.na(metadata$WildObsMetadata$embargoPeriodMonths) &
-                                                 metadata$WildObsMetadata$tabularSharingPreference %in% c("partial", "closed")] = 48
+  # First, convertNA embargo periods based on sharing preference
+  # (This has been corrected in camDB pipeline, but leaving for safety)
+  if(any(is.na(metadata$WildObsMetadata$embargoPeriodMonths))){
+    # open data has no embargo
+    metadata$WildObsMetadata$embargoPeriodMonths[is.na(metadata$WildObsMetadata$embargoPeriodMonths) &
+                                                   metadata$WildObsMetadata$tabularSharingPreference == "open"] = 0
+    # closed and partial has longest embargo
+    metadata$WildObsMetadata$embargoPeriodMonths[is.na(metadata$WildObsMetadata$embargoPeriodMonths) &
+                                                   metadata$WildObsMetadata$tabularSharingPreference %in% c("partial", "closed")] = 19 # prime number is a flag!
+  } # end incorrect embargo periods condition
 
   #now calculate when the date the emabrgo is done
   metadata$embargo_end <- lubridate::add_with_rollback(
@@ -338,34 +353,86 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ### Contributors ----
 
   # # for testing
-  # contributors = c("Zachary Amir", "Grant Linley")
+  # contributors = c("0000-0002-8398-2059", "Grant Linley")
 
   if(!missing(contributors) && !is.null(contributors) && length(contributors) > 0){
 
     ## COME HERE, and try to incorproate ORCIDs, names, and/or emails!! currently only running w/ names
     # could detect which column to check in the contributors DF later.
 
+    # Helper: coerce any column (list, data.frame, empty, nested) into a clean
+    # character vector. Empty/NULL entries become NA so row counts stay consistent.
+    # Written by Claude Opus 4.8
+    clean_chr <- function(x) {
+      # if it's a list-column, flatten each element to a single string (or NA)
+      if (is.list(x)) {
+        x <- vapply(x, function(el) {
+          if (length(el) == 0 || is.null(el)) {
+            NA_character_
+          } else {
+            # collapse multi-value entries into one string; adjust separator as needed
+            paste(unlist(el), collapse = "; ")
+          }
+        }, character(1))
+      }
+      # if it came through with zero length, return a single NA
+      if (length(x) == 0) return(NA_character_)
+      # final coercion to character
+      as.character(x)
+    }
+
     # extract the information from metadata
     cont = metadata$contributors
     # create a list to store results
     cont_df = list()
-    for(i in 1:length(cont)){
+    for(i in seq_along(cont)){
       # extract a dataframe
       t = purrr::map_dfr(cont[i], as.data.frame)
       # and add the id
       t$id = metadata$id[i]
+      # standardize the critical columns to clean character vectors
+      # (handles list-columns, nested values, and zero-length/empty fields)
+      t$title <- clean_chr(t$title)
+      t$email <- clean_chr(t$email)
+      t$path  <- clean_chr(t$path)
       # thin to CRITICAL columns
       t = dplyr::select(t, title, email, path, id)
       # save in the list
       cont_df[[i]] = t
     } # end per length taxa
-    rm(i, t)
+    rm(i, t, clean_chr)
 
     # combine into one df
-    cont_df = dplyr::distinct(do.call(rbind, cont_df))
+    cont_df = dplyr::distinct(dplyr::bind_rows(cont_df))
 
-    # subset taxa_df to the relevant species
-    cont_df_subset = cont_df[cont_df$title %in% contributors, ] # come here and update w/ orcids and emails too!
+    # Classify each user-supplied contributor value by its format
+    # - ORCID: 16 digits in groups of 4, separated by hyphens, last char may be X
+    # - email: contains an @ with text either side
+    # - otherwise: treat as a name (matched against title)
+    # Author: Claude Opus 4.8
+    classify_contributor <- function(x) {
+      dplyr::case_when(
+        grepl("^\\d{4}-\\d{4}-\\d{4}-\\d{3}[0-9X]$", x) ~ "orcid",
+        grepl("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",      x) ~ "email",
+        TRUE                                            ~ "name"
+      )
+    }
+    # normalize: trim whitespace, and lowercase emails/names for forgiving matching
+    # (ORCIDs are already canonical, but lowercasing the X is harmless to guard against)
+    norm <- function(x) tolower(trimws(x))
+
+    # tag each requested contributor with its type
+    types <- classify_contributor(contributors)
+
+    # build a logical index: a normalized row matches if its title, email, OR ORCID
+    # appears in the correspondingly-typed subset of the requested values
+    match_idx <-
+      norm(cont_df$title) %in% norm(contributors[types == "name"]) |
+      norm(cont_df$email) %in% norm(contributors[types == "email"]) |
+      norm(cont_df$path)  %in% norm(contributors[types == "orcid"])
+
+    # subset to matching contributors
+    cont_df_subset <- cont_df[match_idx, ]
 
     # extract project IDs for the relevant species
     proj_ids_contributors = unique(cont_df_subset$id)
@@ -422,6 +489,5 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
 
   # return the vector
   proj_ids
-
 } # end function
 
