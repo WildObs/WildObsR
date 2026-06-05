@@ -40,21 +40,38 @@ Defaults to \code{NULL}, in which case the function expects a valid \code{db_url
 \item{maxDate}{Latest allowable date as a \code{Date} object.}
 }}
 
-\item{taxonomic}{A vector of species names in binomial nomenclature (i,e., Latin names), and all projects that detect any of the species listed will be returned.}
+\item{taxonomic}{A vector of species names in binomial nomenclature (i,e., Latin names),
+and all projects that detect any of the species listed will be returned.}
 
-\item{samplingDesign}{A vector of enumerated sampling design values, and projects with the specific sampling designs will be returned. The enumerated values are:"simpleRandom", "systematicRandom", "clusteredRandom", "experimental", "targeted", & "opportunistic"}
+\item{samplingDesign}{A vector of enumerated sampling design values, and projects
+with the specific sampling designs will be returned. The enumerated values are:
+"simpleRandom", "systematicRandom", "clusteredRandom", "experimental", "targeted", & "opportunistic"}
 
-\item{contributors}{A vector of first and last names of people associated with any projects. Regardless of their role in the project, if the name is found in the metadata, the relevant projects will be returned.}
+\item{contributors}{A vector of identifiers for people associated with any projects. Each
+element can be a full name (first and last, e.g. "Zachary Amir"), an email address
+(e.g. "z.amir(at)uq.edu.au"), or an ORCID (e.g. "0000-0002-0113-xxxx"). The type of each
+value is auto-detected, so the vector can mix all three. Regardless of a person's role in
+a project, if any supplied identifier is found in the metadata, the relevant projects will
+be returned.}
 
 \item{tabularSharingPreference}{A character vector specifying accepted sharing preferences.
-Defaults to \code{c("open")}, but the user can also specify 'partial' for limited metadata of the project. If the user provides admin DB credentials, the user can access 'closed' data, but if admin credentials have not been provided, 'closed' data will be removed from the projects list.  Only projects with these preferences are returned.}
+Defaults to \code{c("open")}, but the user can also specify 'partial' for limited
+metadata of the project. If the user provides admin DB credentials, the user
+can access 'closed' data, but if admin credentials have not been provided,
+'closed' data will be removed from the projects list.  Only projects with
+these preferences are returned.}
 }
 \value{
 A character vector of project IDs matching the specified criteria.
 }
 \description{
 This function queries the WildObs MongoDB database for projects matching specified spatial, temporal, taxonomic, contributor, and data-sharing criteria.
-It extracts metadata from the database and filters projects based on bounding box overlaps, temporal overlaps, species detected, contributors associated, and data sharing preferences. The function also ensures that only projects that have past their embargo date are shared. Only admin credentials in the db_url parameter will allow users to access data with 'closed' sharing agreements or projects not past their embargo date.
+It extracts metadata from the database and filters projects based on bounding
+box overlaps, temporal overlaps, species detected, contributors associated,
+and data sharing preferences. The function also ensures that only projects that
+have past their embargo date are shared. Only admin credentials in the db_url
+parameter will allow users to access data with 'closed' sharing agreements
+or projects not past their embargo date.
 }
 \details{
 The character vector of project IDs that is returned from this function is then used in the function @seealso \code{\link{wildobs_dp_download}} for extracting data packages from WildObs' MongoDB.
@@ -80,7 +97,9 @@ sample_query = c("simpleRandom", "opportunistic", "systematicRandom")
 contributor_query = c("Zachary Amir")
 
 # Query the WildObs database for matching projects
-relevant_projects <- wildobs_mongo_query(db_url, spatial = spatial_query, temporal = temporal_query, taxonomic = taxa_query, samplingDesign = sample_query, contributors = contributor_query, tabularSharingPreference = "open")
+relevant_projects <- wildobs_mongo_query(db_url, spatial = spatial_query,
+temporal = temporal_query, taxonomic = taxa_query, samplingDesign = sample_query,
+contributors = contributor_query, tabularSharingPreference = "open")
 
 # display the matching projects
 print(relevant_projects)

@@ -47,7 +47,7 @@ library(tidyverse)
 # api_key = Sys.getenv("API_KEY")
 
 ## Test out general use API key
-api_key = "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+data("wildobsr_api_key")
 
 ## Define a temporal range to query
 temporal = list() #list(minDate = as.Date("2000-01-01"), maxDate = as.Date("2026-12-01")) #
@@ -69,7 +69,7 @@ contributors <- c("Emma Spencer")
 tabularSharingPreference = c("open")# (, "partial", "closed")
 
 ## Gather relevant project_ids using the mongo query function
-project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url,
+project_ids = wildobs_mongo_query(api_key = wildobsr_api_key, #db_url = db_url,
                                   temporal = temporal,
                                   spatial = spatial,
                                   taxonomic = taxonomic,
@@ -90,7 +90,7 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 ### use the output to access data from wildobs_dp_download()
 # set media to FALSE to make a quicker download
 start = Sys.time()
-dp_list = wildobs_dp_download(api_key = api_key, #db_url = db_url,
+dp_list = wildobs_dp_download(api_key = wildobsr_api_key, #db_url = db_url,
                               project_ids = project_ids, media = T,
                               metadata_only = F)
 end = Sys.time()
