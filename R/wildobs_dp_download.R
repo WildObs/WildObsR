@@ -409,64 +409,39 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
 
   ### Extract project_ids that have an open data sharing preference
   ## BUT if were admin, all projects can be included
-  # First check if we are checking API or DB url for admin access
-  if(use_api){
-    # check if we have admin rights
-    if(use_admin){
-      # if so, all projects can be accessed by admin
-      project_ids_query = project_ids
-    }else{
-      ## But if not admin, check for open projects
-      project_ids_query = c() # store them here
-      for(i in 1:length(formatted_metadata)){
-        x = formatted_metadata[[i]]
-        val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
-
-        ## Extract the citaion, which should be the RAID internal PID
-        cit = x$project_level_metadata$bibliographicCitation
-        ## verify cit is kosher (i.e. not null or zero length)
-        if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) {
-          cit <- "no_citation"  # fallback if missing
-        } else {
-          cit <- cit[[1]]  # normal case
-        }
-        # check for open data sharing & a link to a non-DEMO RAID
-        if(val == "open" &&
-           grepl("https://raid.org/", cit) &&
-           !grepl("DEMO", cit)){
-          project_ids_query = c(project_ids_query, x$project_level_metadata$id)
-        } # end open condition
-      } # end per metadata
-    } # end else admin api check
+  # First check if we have admin rights
+  if(use_admin){
+    # if so, all projects can be accessed by admin
+    project_ids_query = project_ids
   }else{
-    ## But if not using api keys, check for admin in the db_url
-    if(use_admin){
-      # all projects can be accessed by admin
-      project_ids_query = project_ids
-    }else{
-      # check for open projects only if not admin
-      project_ids_query = c() # store them here
-      for(i in 1:length(formatted_metadata)){
-        x = formatted_metadata[[i]]
-        val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
+    ## But if not admin, check for open projects
+    project_ids_query = c() # store them here
+    for(i in 1:length(formatted_metadata)){
+      x = formatted_metadata[[i]]
+      val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
 
-        ## Extract the citaion, which should be the RAID internal PID
-        cit = x$project_level_metadata$bibliographicCitation
-        ## verify cit is kosher (i.e. not null or zero length)
-        if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) {
-          cit <- "no_citation"  # fallback if missing
-        } else {
-          cit <- cit[[1]]  # normal case
-        }
-        # check for open data sharing & a link to a non-DEMO RAID
-        if(val == "open" &&
-           grepl("https://raid.org/", cit) &&
-           !grepl("DEMO", cit)){
-          project_ids_query = c(project_ids_query, x$project_level_metadata$id)
-        } # end open condition
-      } # end per metadata
-    } # end else admin condition
-  } # end use api
+      ## Extract the citaion, which should be the RAID internal PID
+      cit = x$project_level_metadata$bibliographicCitation
+      ## verify cit is kosher (i.e. not null or zero length)
+      if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) {
+        cit <- "no_citation"  # fallback if missing
+      } else {
+        cit <- cit[[1]]  # normal case
+      }
+      ## is the project ready to be shared?
+      ready_to_share <- (val == "open" &&                     # open data sharing
+                          grepl("https://raid.org/", cit) && # RAID present
+                          !grepl("DEMO", cit))               # and its not DEMO
+      ## TODO: add an exception for pre-published DPs, but delete once production RAIDs are live.
+      special_dp <- grepl("WildObsID_0001|WildObsID_0009|WildObsID_0010",
+                          x$project_level_metadata$id)
+      ## If the project is ready OR its a special DP,
+      if(ready_to_share || special_dp){
+        # then add it to the projects to be returned.
+        project_ids_query = c(project_ids_query, x$project_level_metadata$id)
+      } # end open condition
+    } # end per metadata
+  } # end else admin api check
 
   ### BEFORE accessing any data, check if we can return anything anyway!
   if(is.null(project_ids_query)){
