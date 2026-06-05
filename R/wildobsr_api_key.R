@@ -5,5 +5,7 @@
 #'
 #' @format A character string
 #' @examples
-#' wildobsr_api_key
+#' # The API key must be loaded explicitly before use.
+#' data(wildobsr_api_key)   # loads the object as a side effect (no assignment)
+#' wildobsr_api_key         # now the key object is available to reference
 "wildobsr_api_key"

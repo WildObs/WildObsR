@@ -45,8 +45,9 @@ Species trait data helps enable comparative and functional ecological
 analyses and is used to obscure threatend species location information.
 }
 \examples{
-# Load data
+# Load data explicitly
 data(species_traits)
+species_traits
 
 }
 \keyword{datasets}
