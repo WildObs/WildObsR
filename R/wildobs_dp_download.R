@@ -214,12 +214,42 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     ## apply a few quick fixes to unlist or list things
     proj_meta$keywords = unlist(proj_meta$keywords)
     proj_meta$homepage = unlist(proj_meta$homepage)
-    proj_meta$relatedIdentifiers = unlist(proj_meta$relatedIdentifiers)
     proj_meta$references = proj_meta$references[[1]] # come here, this might change!
     proj_meta$sources = as.list(proj_meta$sources[1, ])
 
-    # "temporal","spatial", and "taxonomic" need special attention!
+    # "relatedIdentifiers", "temporal","spatial", and "taxonomic" need special attention!
     ## resources is the specific schema for each resource (figured out below).
+
+    #
+    ##
+    ###
+    #### Extract related IDs ####
+
+    # Convert a relatedIdentifiers entry into a list-of-lists:
+    # one named list per row, with empty/placeholder rows dropped.
+    # Works regardless of which columns are present across datasets.
+    # Authored by Claude Opus 4.8
+    extract_related_identifiers <- function(x) {
+      # unwrap the length-1 list to get the underlying data.frame
+      df <- if (is.list(x) && !is.data.frame(x)) x[[1]] else x
+
+      # guard against NULL / non-data.frame / zero-row input
+      if (is.null(df) || !is.data.frame(df) || nrow(df) == 0) return(list())
+
+      # drop rows that are entirely empty ("" or NA across all columns)
+      # treat "" and NA as "empty"; a row survives if ANY cell has real content
+      is_empty <- function(v) is.na(v) | trimws(as.character(v)) == ""
+      keep <- apply(df, 1, function(row) !all(is_empty(row)))
+      df <- df[keep, , drop = FALSE]
+
+      if (nrow(df) == 0) return(list())
+
+      # split into one named list per surviving row
+      # purrr::transpose turns the column-list into a row-list of named elements
+      lapply(seq_len(nrow(df)), function(i) as.list(df[i, , drop = FALSE]))
+    }
+    # use the function to extract the related ID.
+    proj_meta$relatedIdentifiers = extract_related_identifiers(proj_meta$relatedIdentifiers)
 
     #
     ##
@@ -340,12 +370,6 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
                                                         example = "QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",
                                                         type = "string")
 
-      ### BUG IN THE DOWNLOADED DATA! COME HERE AND FIX
-      # should be removed, but leaving here to stay safe
-      if(resources[["name"]][r] == "deployments"){
-        schema$fields = purrr::discard(schema$fields, ~ .x$name %in% c("dataSource","UTM_zone","X","Y","state"))
-      }
-
       # and save in the res_list
       res_list[[r]] =  schema # res
       names(res_list)[r] = unique(resources[r, ]$name)
@@ -385,62 +409,39 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
 
   ### Extract project_ids that have an open data sharing preference
   ## BUT if were admin, all projects can be included
-  # First check if we are checking API or DB url for admin access
-  if(use_api){
-    # check if we have admin rights
-    if(use_admin){
-      # if so, all projects can be accessed by admin
-      project_ids_query = project_ids
-    }else{
-      ## But if not admin, check for open projects
-      project_ids_query = c() # store them here
-      for(i in 1:length(formatted_metadata)){
-        x = formatted_metadata[[i]]
-        val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
-        ## and ALSO check for published data link! COME HERE
-        ## This is a temporary fix until we have proper internal PIDs.
-        cit = x$project_level_metadata$bibliographicCitation
-        ## verify cit is kosher (i.e. not null or zero length)
-        if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) {
-          cit <- "no_citation"  # fallback if missing
-        } else {
-          cit <- cit[[1]]  # normal case
-        }
-        # check for open data sharing & a link to GBIF published data
-        if(val == "open" &
-           grepl("https://doi.org/10.15468", cit)){
-          project_ids_query = c(project_ids_query, x$project_level_metadata$id)
-        } # end open condition
-      } # end per metadata
-    } # end else admin api check
+  # First check if we have admin rights
+  if(use_admin){
+    # if so, all projects can be accessed by admin
+    project_ids_query = project_ids
   }else{
-    ## But if not using api keys, check for admin in the db_url
-    if(use_admin){
-      # all projects can be accessed by admin
-      project_ids_query = project_ids
-    }else{
-      # check for open projects only if not admin
-      project_ids_query = c() # store them here
-      for(i in 1:length(formatted_metadata)){
-        x = formatted_metadata[[i]]
-        val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
-        ## and ALSO check for published data link! COME HERE
-        ## This is a temporary fix until we have proper internal PIDs.
-        cit = x$project_level_metadata$bibliographicCitation
-        ## verify cit is kosher (i.e. not null or zero length)
-        if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) {
-          cit <- "no_citation"  # fallback if missing
-        } else {
-          cit <- cit[[1]]  # normal case
-        }
-        # check for open data sharing & a link to GBIF published data
-        if(val == "open" &
-           grepl("https://doi.org/10.15468", cit)){
-          project_ids_query = c(project_ids_query, x$project_level_metadata$id)
-        } # end open condition
-      } # end per metadata
-    } # end else admin condition
-  } # end use api
+    ## But if not admin, check for open projects
+    project_ids_query = c() # store them here
+    for(i in 1:length(formatted_metadata)){
+      x = formatted_metadata[[i]]
+      val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
+
+      ## Extract the citaion, which should be the RAID internal PID
+      cit = x$project_level_metadata$bibliographicCitation
+      ## verify cit is kosher (i.e. not null or zero length)
+      if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) {
+        cit <- "no_citation"  # fallback if missing
+      } else {
+        cit <- cit[[1]]  # normal case
+      }
+      ## is the project ready to be shared?
+      ready_to_share <- (val == "open" &&                     # open data sharing
+                          grepl("https://raid.org/", cit) && # RAID present
+                          !grepl("DEMO", cit))               # and its not DEMO
+      ## TODO: add an exception for pre-published DPs, but delete once production RAIDs are live.
+      special_dp <- grepl("WildObsID_0001|WildObsID_0009|WildObsID_0010",
+                          x$project_level_metadata$id)
+      ## If the project is ready OR its a special DP,
+      if(ready_to_share || special_dp){
+        # then add it to the projects to be returned.
+        project_ids_query = c(project_ids_query, x$project_level_metadata$id)
+      } # end open condition
+    } # end per metadata
+  } # end else admin api check
 
   ### BEFORE accessing any data, check if we can return anything anyway!
   if(is.null(project_ids_query)){
@@ -751,6 +752,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     if(media){media_proj = media_df[media_df$projectName == proj, ]}
     cov_proj = covs[covs$projectName == proj, ]
 
+
     # Extract timezone from temporal metadata for proper datetime handling
     # Get timezone from temporal metadata to ensure all datetime columns use the correct local timezone
     project_timezone <- if(!is.null(formatted_metadata[[proj]]$project_level_metadata$temporal[[1]]$timeZone)) {
@@ -762,10 +764,10 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
 
     # but before we save, apply schemas to make sure were good!
     # UPDATED: Pass timezone parameter to apply_schema_types for proper POSIXct datetime handling
-    obs_proj = suppressWarnings(apply_schema_types(obs_proj, formatted_metadata[[proj]]$observations_schema, timezone = project_timezone))
-    deps_proj = suppressWarnings(apply_schema_types(deps_proj, formatted_metadata[[proj]]$deployments_schema, timezone = project_timezone))
-    if(media){media_proj = suppressWarnings(apply_schema_types(media_proj, formatted_metadata[[proj]]$media_schema, timezone = project_timezone))}
-    cov_proj = suppressWarnings(apply_schema_types(cov_proj, formatted_metadata[[proj]]$covariates_schema, timezone = project_timezone))
+    obs_proj = suppressWarnings(WildObsR::apply_schema_types(obs_proj, formatted_metadata[[proj]]$observations_schema, timezone = project_timezone))
+    deps_proj = suppressWarnings(WildObsR::apply_schema_types(deps_proj, formatted_metadata[[proj]]$deployments_schema, timezone = project_timezone))
+    if(media){media_proj = suppressWarnings(WildObsR::apply_schema_types(media_proj, formatted_metadata[[proj]]$media_schema, timezone = project_timezone))}
+    cov_proj = suppressWarnings(WildObsR::apply_schema_types(cov_proj, formatted_metadata[[proj]]$covariates_schema, timezone = project_timezone))
 
     ## now bundle into a frictionless DP
     # use metadata to create the DP

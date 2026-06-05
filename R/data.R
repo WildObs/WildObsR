@@ -32,8 +32,9 @@
 #' }
 #'
 #' @examples
-#' # Load data
+#' # Load data explicitly
 #' data(species_traits)
+#' species_traits
 #'
 #' @source Home range data from HomeRange package;
 #' body mass data from traitdata package;

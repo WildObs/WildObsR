@@ -94,9 +94,6 @@ AUS_state_locator = function (deps){
   }
 
   ## calculate average coordinates per landscape
-  # avg_land = plyr::ddply(deps, "deploymentID", plyr::summarize,
-  #                         avg_long = mean(longitude),
-  #                         avg_lat = mean(latitude))
   avg_land <- deps %>%
     dplyr::group_by(deploymentID) %>%
     dplyr::summarise(
@@ -108,8 +105,10 @@ AUS_state_locator = function (deps){
   aus = ozmaps::ozmap_states
   # then make average coordinates a spatial object, matching the CRS of the states
   avg_land = sf::st_as_sf(avg_land, coords = c("avg_long", "avg_lat"), crs = sf::st_crs(aus))
+
   # then intersect avg coords and states
-  states = sf::st_intersection(avg_land, aus)
+  # but suppress known warning
+  states = suppressWarnings(sf::st_intersection(avg_land, aus))
 
   # Find missing deployments
   missing_deps <- setdiff(avg_land$deploymentID, states$deploymentID)
@@ -137,6 +136,8 @@ AUS_state_locator = function (deps){
 
   ## clean up the states dataframe
   states$geometry = NULL # ensure no geom is left!
+  # init an emprt col to store info
+  states$state <- NA_character_
   states$state[states$NAME == "New South Wales"] = "NSW"
   states$state[states$NAME == "Queensland"] = "QLD"
   states$state[states$NAME == "South Australia"] = "SA"
