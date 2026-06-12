@@ -11,6 +11,12 @@
 [![Codecov test coverage](https://codecov.io/gh/WildObs/WildObsR/graph/badge.svg)](https://app.codecov.io/gh/WildObs/WildObsR)
 <!-- badges: end -->
 
+# ⚠️ SERVICE OUTAGE — DATABASE ACCESS SUSPENDED
+
+> [!WARNING]
+> **PLANNED OUTAGE NOTICE:** The WildObs database access service via API keys will be offline from 4:00 PM Friday, 12 June 2026 to 4:00 PM AEST on Friday, 19 June 2026 for scheduled maintenance.
+
+
 > Professional tools for camera trap data access, management, and analysis in R
 
 WildObsR provides a suite of functions for standardizing, accessing, and analyzing wildlife camera trap data. This R package is built to support the [Camera Trap Data Package (Camtrap DP)](https://camtrap-dp.tdwg.org/) data standard, built around the [Frictionless Data Package ](https://specs.frictionlessdata.io/data-package/) specifications to ensure camera trap data remains [Findable, Accessible, Interoperable, & Reusable (FAIR)](https://ardc.edu.au/resource-hub/making-data-fair/).
