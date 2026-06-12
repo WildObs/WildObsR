@@ -11,6 +11,8 @@
 [![Codecov test coverage](https://codecov.io/gh/WildObs/WildObsR/graph/badge.svg)](https://app.codecov.io/gh/WildObs/WildObsR)
 <!-- badges: end -->
 
+# ⚠️ SERVICE OUTAGE — DATABASE ACCESS SUSPENDED
+
 > [!WARNING]
 > **PLANNED OUTAGE NOTICE:** The WildObs database access service via API keys will be offline from 4:00 PM Friday, 12 June 2026 to 4:00 PM AEST on Friday, 19 June 2026 for scheduled maintenance.
 
