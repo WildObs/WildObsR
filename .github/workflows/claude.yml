@@ -36,6 +36,13 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
+          # TEMPORARY (diagnostic): the action's output sanitizer strips the SDK's
+          # `result` field, so every failure surfaces as an identical, causeless
+          # "subtype success with is_error:true". See
+          # https://github.com/anthropics/claude-code-action/issues/880
+          # Remove this once the underlying failure is identified.
+          show_full_output: true
+
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
