@@ -110,51 +110,6 @@ test_that("Mode works with different data types", {
 })
 
 
-## Tests for is_empty_spatial() ----
-
-test_that("is_empty_spatial identifies NULL values", {
-  expect_true(is_empty_spatial(NULL))
-})
-
-test_that("is_empty_spatial identifies NA values", {
-  expect_true(is_empty_spatial(NA))
-  expect_true(is_empty_spatial(NA_character_))
-  expect_true(is_empty_spatial(NA_real_))
-})
-
-test_that("is_empty_spatial identifies 'NULL' string", {
-  expect_true(is_empty_spatial("NULL"))
-})
-
-test_that("is_empty_spatial returns FALSE for valid spatial values", {
-  expect_false(is_empty_spatial("POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))"))
-  expect_false(is_empty_spatial("POINT(1 1)"))
-  expect_false(is_empty_spatial("valid_spatial_data"))
-})
-
-test_that("is_empty_spatial returns FALSE for non-empty strings", {
-  expect_false(is_empty_spatial("text"))
-  expect_false(is_empty_spatial("0"))
-  expect_false(is_empty_spatial(" "))
-})
-
-test_that("is_empty_spatial handles vectors", {
-  # All NA - function checks all(is.na(x))
-  expect_true(is_empty_spatial(c(NA, NA, NA)))
-
-  # Mixed - the function has a bug with vectors that have mixed NA/non-NA
-  # Skip this test as the function logic uses || which doesn't handle vectors properly
-  # This would need to be fixed in the function itself
-})
-
-test_that("is_empty_spatial returns FALSE for numeric/logical values", {
-  expect_false(is_empty_spatial(0))
-  expect_false(is_empty_spatial(1))
-  expect_false(is_empty_spatial(TRUE))
-  expect_false(is_empty_spatial(FALSE))
-})
-
-
 ## Tests for is_empty_temporal() ----
 
 test_that("is_empty_temporal identifies empty data frames", {

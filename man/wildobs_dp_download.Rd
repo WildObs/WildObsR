@@ -13,19 +13,25 @@ wildobs_dp_download(
 )
 }
 \arguments{
-\item{db_url}{A character string specifying the MongoDB connection URI. This should follow the format:
-\code{'mongodb://username:password@host:port/database'}. This parameter allows
+\item{db_url}{A character string specifying the MongoDB connection URI. This
+should follow the format:\code{'mongodb://username:password@host:port/database'}.
+If \code{NULL}, the function will check for an API key, and if the \code{api_key}
+parameter is \code{NULL}, the function stop with an error. This parameter allows
 users to specify their own connection string to the WildObs MongoDB instance.
-Defaults to \code{NULL}, in which case the function expects a valid \code{api_key} to connect.}
+Defaults to \code{NULL}, in which case the function expects a valid \code{api_key}
+to connect directly to MongoDB.}
 
-\item{api_key}{A character string specifying the API key used for authenticated access to the WildObs
-public API. If provided, the function will query the API instead of connecting directly to the MongoDB
-instance with \code{mongolite}. API keys grant read-only access to specific endpoints and should be kept
-confidential (e.g., stored in an \code{.Renviron} file or other secure environment variable).
-Defaults to \code{NULL}, in which case the function expects a valid \code{db_url} to connect directly to MongoDB.}
+\item{api_key}{A character string specifying the API key used for authenticated
+access to the WildObspublic API. If provided, the function will query the API
+instead of connecting directly to the MongoDB instance with \code{mongolite}.
+API keys grant read-only access to specific endpoints and should be kept
+confidential (e.g., stored in an \code{.Renviron} file or other secure
+environment variable).
+Defaults to \code{NULL}, in which case the function expects a valid \code{db_url}
+to connect directly to MongoDB.}
 
 \item{project_ids}{A character vector of project IDs to retrieve from MongoDB,
-which is generated from from a query to WildObs' MongoDB.}
+which is generated from the light-weight \code{WildObsR::wildobs_mongo_query()} function.}
 
 \item{media}{A logical (TRUE/FALSE) value to include the media resource in your
 data package download. This is the largest spreadsheet and significantly slows
@@ -39,7 +45,13 @@ downloaded. Note: this only applies for data with 'open' data sharing agreements
 since 'partial' will be returned with metadata-only.}
 }
 \value{
-A named list of Frictionless Data Packages formatted using camtrap DP, where each element corresponds to a project. To learn more about \href{https://camtrap-dp.tdwg.org/}{camtrapDP, click here}, and to learn more about \href{https://specs.frictionlessdata.io/data-package/}{Frictionless Data Packages, click here}. Note that only data with an 'open' data sharing agreement will return tabular data, while data shared with a  'partial' data sharing agreement will return only the project-level metadata. Furthermore, any species listed as threatened under the Australian Federal Government's Environment Protection and Biodiversity Conservation Act 1999 will have their locaiton data obscured.
+A named list of Frictionless Data Packages formatted using camtrap DP,
+where each element corresponds to a project. To learn more about
+\href{https://camtrap-dp.tdwg.org/}{camtrapDP, click here}, and to learn more about
+\href{https://specs.frictionlessdata.io/data-package/}{Frictionless Data Packages, click here}.
+Note that only data with an 'open' data sharing agreement will return tabular
+data, while data shared with a  'partial' data sharing agreement will return
+only the project-level metadata.
 }
 \description{
 This function connects to the WildObs MongoDB server, retrieves project-specific
@@ -62,7 +74,7 @@ The function performs the following steps:
 \code{\link{convert_df_to_list}} for formatting metadata,
 \code{\link{clean_list_recursive}} for removing NULL and empty elements,
 \code{\link{reformat_fields}}, \code{\link{reformat_schema}}, and \code{\link{apply_schema_types}} for processing and applying schema fields,
-\code{\link{is_empty_spatial}} and \code{\link{is_empty_temporal}} for removing empty spatio-temporal fields.
+\code{\link{is_empty_temporal}} for removing empty temporal fields.
 }
 \examples{
 \dontrun{

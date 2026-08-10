@@ -8,16 +8,25 @@
 #' parameter will allow users to access data with 'closed' sharing agreements
 #' or projects not past their embargo date.
 #'
-#' The character vector of project IDs that is returned from this function is then used in the function @seealso \code{\link{wildobs_dp_download}} for extracting data packages from WildObs' MongoDB.
+#' The character vector of project IDs that is returned from this function is
+#' then used in the function @seealso \code{\link{wildobs_dp_download}} for
+#' extracting data packages from WildObs' MongoDB.
 #'
-#' @param db_url A character string specifying the MongoDB connection URI. This should follow the format:
-#'   `'mongodb://username:password@host:port/database'`. If `NULL`, the function will stop with an error.
-#'   This parameter allows users to specify their own connection string to the WildObs MongoDB instance.
-#' @param api_key A character string specifying the API key used for authenticated access to the WildObs
-#'  public API. If provided, the function will query the API instead of connecting directly to the MongoDB
-#'  instance with `mongolite`. API keys grant read-only access to specific endpoints and should be kept
-#'  confidential (e.g., stored in an `.Renviron` file or other secure environment variable).
-#'  Defaults to `NULL`, in which case the function expects a valid `db_url` to connect directly to MongoDB.
+#' @param db_url A character string specifying the MongoDB connection URI. This
+#'  should follow the format:`'mongodb://username:password@host:port/database'`.
+#'  If `NULL`, the function will check for an API key, and if the `api_key`
+#'  parameter is `NULL`, the function stop with an error. This parameter allows
+#'  users to specify their own connection string to the WildObs MongoDB instance.
+#'  Defaults to `NULL`, in which case the function expects a valid `api_key`
+#'  to connect directly to MongoDB.
+#' @param api_key A character string specifying the API key used for authenticated
+#'  access to the WildObspublic API. If provided, the function will query the API
+#'  instead of connecting directly to the MongoDB instance with `mongolite`.
+#'  API keys grant read-only access to specific endpoints and should be kept
+#'  confidential (e.g., stored in an `.Renviron` file or other secure
+#'  environment variable).
+#'  Defaults to `NULL`, in which case the function expects a valid `db_url`
+#'  to connect directly to MongoDB.
 #'
 #' @param spatial A named list specifying spatial query parameters, including:
 #'   \describe{
@@ -43,7 +52,7 @@
 #'   a project, if any supplied identifier is found in the metadata, the relevant projects will
 #'   be returned.
 #' @param tabularSharingPreference A character vector specifying accepted sharing preferences.
-#'  Defaults to `c("open")`, but the user can also specify 'partial' for limited
+#'  Defaults to `c("open")`, but the user can also specify 'partial' for
 #'  metadata of the project. If the user provides admin DB credentials, the user
 #'  can access 'closed' data, but if admin credentials have not been provided,
 #'  'closed' data will be removed from the projects list.  Only projects with
@@ -51,8 +60,8 @@
 #' @return A character vector of project IDs matching the specified criteria.
 #' @examples
 #' \dontrun{
-#' # Load the general use WildObs API key
-#' api_key <- "REDACTED_API_KEY"
+#' # Load API key from .Renviron
+#' api_key <- Sys.getenv("MY_WILDOBS_API_KEY")
 #'
 #' # Define spatial query: extract projects in a specific bounding box
 #' spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -20.0, ymax = -16.0)
@@ -94,25 +103,6 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   # create an empty vector to store project IDs
   proj_ids = c()
 
-  ## read in environment file with confidential DB access info
-  # readRenviron("config_private/.Renviron.prod.ro") # remote DB, read only
-  # readRenviron("config_private/.Renviron.admin.api") # admin api key
-  # readRenviron("config_private/.Renviron.local.ro") # local DB, read only --> test before updating remote DB!
-
-  # ## load information from environment
-  # HOST <- Sys.getenv("HOST")
-  # PORT <- Sys.getenv("PORT")
-  # DATABASE <- Sys.getenv("DATABASE")
-  # USER <- Sys.getenv("USER")
-  # PASS <- Sys.getenv("PASS")
-  #
-  # ## combine all the information into a database-url to enable access
-  # db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
-  # rm(USER, PASS, HOST, PORT, DATABASE)
-  #
-  # # Extract api_key
-  # api_key <- Sys.getenv("API_KEY")
-
   ### Determine if we will use the API key or the DB url to access data
   if(!is.null(api_key) && is.null(db_url)){
     # if API key is supplied and db url is still null, use the API
@@ -127,27 +117,77 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## But if neither an API key or db_url was provied
   if(is.null(api_key) && is.null(db_url)){
     # stop the function and tell them to get more info!
-    stop("You have not provided an API key or a database URL to access MongoDB.\nPlease provide an appropriate API key or URL if you want to access the database. \nIf you do not know how to access an appropriate API key or database URL, please contact the WildObs team at wildobs-support@qcif.edu.au")
+    stop("You have not provided an API key or a database URL to access MongoDB.",
+         "\nPlease provide an appropriate API key or URL if you want to access",
+         "the database. \nIf you require a user-specific API key, please contact",
+         "the WildObs team at support@wildobs.org.au")
   } # end double null condition
 
   # inspect the DB url that was provided to make sure its legit if we are NOT using an API
-  if(use_api == FALSE){
+  if(!use_api){
     # if the db_url is null
     if(is.null(db_url)){
       # stop the function and give an error.
-      stop("You have not provided a URL to access MongoDB.\nPlease provide an appropriate URL if you want to access the database.")
+      stop("You have not provided a URL to access MongoDB.\nPlease provide an",
+           "appropriate URL if you want to access the database.")
     } # end null check
     ## Make sure the db URL they provide matches the basic pattern
-    pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/\\?.*)?$"
+    pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/?\\?.*)?$"
     if (!grepl(pattern, db_url)) {
-      stop("The URL to access the database must be a valid MongoDB URI of the follwoing format: \n'mongodb://user:password@host:port/dbname'")
+      stop("The URL to access the database must be a valid MongoDB URI of the",
+           " follwoing format: \n'mongodb://user:password@host:port/dbname'")
     } # end pattern check
+
+    ## if we survived the pattern check, grab the db name, since it could vary
+    db <- sub("^mongodb(\\+srv)?://(.*@)?[^/?]+/([^?]*).*$", "\\3", db_url)
+
+    ### now determine which host we are using
+    # extract the host
+    host <-  sub("^mongodb(\\+srv)?://(.*@)?([^:/?]+).*$", "\\3", db_url)
+    # if the PROD host is present,
+    if(host == "REDACTED_HOST"){
+      ## run a test to check if were connected to the VPN
+      # first craft a quick ping query
+      sep <- if (grepl("\\?", db_url)) "&" else "?" # carefully extract the separator
+      uri_test <- paste0(db_url, sep, "serverSelectionTimeoutMS=", 3000) # quick time out
+
+      ## wrap in a try-catch so whole function doesn't fail
+      ok <- tryCatch({
+        # form the connection
+        con <- mongolite::mongo(collection = "metadata", db = db, url = uri_test)
+        # run a ping as the cheapest round-trip to the server
+        con$run('{"ping": 1}')
+        # then disconnect
+        con$disconnect()
+        # and return a TRUE result
+        TRUE
+      },
+      # but save the error if we dont get a connection
+      error = function(e) FALSE)
+
+      ## if we did NOT get a successful connection, stop the function
+      if(!ok){
+        stop("You have provided the production MongoDB URL, but the function ",
+             "cannot form a connection.\nPlease ensure you have logged into the ",
+             "WildObs VPN before connecting to the database. \nIf you require ",
+             "help connecting to the WildObs WireGuard VPN, please contact us at",
+             " support@wildobs.org.au")
+      }else{
+        ## but if this test connection is ok, then we have admin rights
+        use_admin <- TRUE
+      } # end else test_conn results
+    }else{
+      ## but if they are NOT providing the PROD URL, then we dont have admin rights
+      use_admin = FALSE
+    } # end else host condition
   } # end API check
+  ### COME HERE, will there be any conditions where an API key will result in admin use?
+  ### currently not, but that is subject to change.
 
   ## Access the metadata from the DB, but do it via API key, or not
   if(use_api){
-    # Send a GET request using the URL, API key, and only query for the metadata
-    response <- httr::POST( #httr::GET(
+    # Send a POST request to API URL w/ the key, and query for the metadata
+    response <- httr::POST(
       "https://camdbapi.wildobs.org.au/find", # hard code API url
       httr::add_headers("X-API-Key" = api_key),
       query =     list(
@@ -171,80 +211,24 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
 
   }else{
     ## access the metadata from the DB
-    metadata = mongolite::mongo(db = "wildobs_camdb", collection = "metadata", url = db_url)$find()
+    metadata = mongolite::mongo(db = db, collection = "metadata", url = db_url)$find()
   } # end else use_api
 
-
-  ## double check for closed in sharing preference AND admin credentials
+  ## double check for closed in sharing preference AND admin
   if("closed" %in% tabularSharingPreference){
-    # if true, verify admin status via API keys
-    if(use_api){
-      if(! grepl("REDACTED_ADMIN_KEY", api_key)){
-        # only checking middle chunk of api key^^^, not full thing
-        # if not, remove closed from the preferences w/ a warning
-        tabularSharingPreference = tabularSharingPreference[tabularSharingPreference != "closed"]
-        # and give an update
-        warning("You have requested data with closed data sharing agreements but have not provided admin credentials to access this data, so these projects have been removed from your query")
-      } # end api key grepl
-      # but if were not using an API key,
-      }else{
-        # check the db_url for admin info
-        if(! grepl("admin", db_url)){
-          # if not, remove closed from the preferences w/ a warning
-          tabularSharingPreference = tabularSharingPreference[tabularSharingPreference != "closed"]
-          # and give an update
-          warning("You have requested data with closed data sharing agreements but have not provided admin credentials to access this data, so these projects have been removed from your query")
-        } # end db_url grepl
-      } # end else admin api key check
-    } # end use api
+    # if true, check if we have admin status
+    if(!use_admin){
+      # if not, remove closed from the preferences w/ a warning
+      tabularSharingPreference = tabularSharingPreference[tabularSharingPreference != "closed"]
+      # and give an update
+      warning("You have requested data with closed data sharing agreements but ",
+              "have not provided admin credentials. \nThese projects have been ",
+              "removed projects have been removed from your query")
+    } # end use_admin condition
+  } # end closed data check
 
   ## and immediately thin metadata to include the specific sharing preferences
   metadata = metadata[metadata$WildObsMetadata$tabularSharingPreference %in% tabularSharingPreference, ]
-
-  #
-  ##
-  ### Create a true/false column in the metadata to determine if the embargo period has passed
-  # First, convertNA embargo periods based on sharing preference
-  # (This has been corrected in camDB pipeline, but leaving for safety)
-  if(any(is.na(metadata$WildObsMetadata$embargoPeriodMonths))){
-    # open data has no embargo
-    metadata$WildObsMetadata$embargoPeriodMonths[is.na(metadata$WildObsMetadata$embargoPeriodMonths) &
-                                                   metadata$WildObsMetadata$tabularSharingPreference == "open"] = 0
-    # closed and partial has longest embargo
-    metadata$WildObsMetadata$embargoPeriodMonths[is.na(metadata$WildObsMetadata$embargoPeriodMonths) &
-                                                   metadata$WildObsMetadata$tabularSharingPreference %in% c("partial", "closed")] = 19 # prime number is a flag!
-  } # end incorrect embargo periods condition
-
-  #now calculate when the date the emabrgo is done
-  metadata$embargo_end <- lubridate::add_with_rollback(
-    # take the created date
-    as.POSIXct(metadata$created),
-    # and add the embargo months
-    months(as.integer(metadata$WildObsMetadata$embargoPeriodMonths)),
-    # while keeping valid last day (e.g., Jan 31 -> Feb 28/29)
-    roll_to_first = FALSE,
-    # and we only care about dates, not time.
-    preserve_hms = FALSE
-  )
-  # and create a new T/F column if the embargo date is past today
-  metadata$embargo_pass = metadata$embargo_end < Sys.time()
-
-  ## update metadata to onclude only data ready to be shared,
-  # but allow an exception for admin access!
-  if(use_api){
-    if(grepl("REDACTED_ADMIN_KEY", api_key)){
-      # if admin, convert all embargo pass to true
-      metadata$embargo_pass = TRUE
-    } # end admin api
-  }else{
-    if(grepl("admin", db_url)){
-      # if admin, convert all embargo pass to true
-      metadata$embargo_pass = TRUE
-    } # end admin db url
-  } # end else use_api condition
-
-  ## now thin
-  metadata = metadata[metadata$embargo_pass == TRUE, ]
 
   #
   ##
@@ -482,7 +466,9 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   # if(any(proj_ids == "" | length(proj_ids) == 0)){
   if(length(proj_ids) == 0 || any(proj_ids == "")){
     # print a message
-    warning("There were no matches in our database of the specific parameters provided in your function. \nThis will return an empty vector instead of any projectIDs.")
+    warning("There were no matches in our database of the specific parameters",
+            "provided in your function. \nThis will return an empty vector",
+            "instead of any projectIDs.")
     # Make it empty
     proj_ids = "" #metadata$id
   }
