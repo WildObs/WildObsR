@@ -114,7 +114,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
            "appropriate URL if you want to access the database.")
     } # end null check
     ## Make sure the db URL they provide matches the basic pattern
-    pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/\\?.*)?$"
+    pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/?\\?.*)?$"
     if (!grepl(pattern, db_url)) {
       stop("The URL to access the database must be a valid MongoDB URI of the",
            " follwoing format: \n'mongodb://user:password@host:port/dbname'")
@@ -660,16 +660,16 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     ### add a condition for metadata only
     if(!isTRUE(metadata_only)){
       # grab observations
-      obs = mongolite::mongo(db = "wildobs_camdb", collection = "observations",
+      obs = mongolite::mongo(db = db, collection = "observations",
                              url = db_url)$find(query) # filtering w/ query
       # deployments
-      deps = mongolite::mongo(db = "wildobs_camdb", collection = "deployments",
+      deps = mongolite::mongo(db = db, collection = "deployments",
                               url = db_url)$find(query)
       # media, but only if specified
-      if(media){media_df = mongolite::mongo(db = "wildobs_camdb", collection = "media",
+      if(media){media_df = mongolite::mongo(db = db, collection = "media",
                                             url = db_url)$find(query)}
       # covariate
-      covs = mongolite::mongo(db = "wildobs_camdb", collection = "covariates",
+      covs = mongolite::mongo(db = db, collection = "covariates",
                               url = db_url)$find(query)
 
     } else {
