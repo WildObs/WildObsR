@@ -8,15 +8,21 @@
 #' parameter will allow users to access data with 'closed' sharing agreements
 #' or projects not past their embargo date.
 #'
-#' The character vector of project IDs that is returned from this function is then used in the function @seealso \code{\link{wildobs_dp_download}} for extracting data packages from WildObs' MongoDB.
+#' The character vector of project IDs that is returned from this function is
+#' then used in the function @seealso \code{\link{wildobs_dp_download}} for
+#' extracting data packages from WildObs' MongoDB.
 #'
-#' @param db_url A character string specifying the MongoDB connection URI. This should follow the format:
-#'   `'mongodb://username:password@host:port/database'`. If `NULL`, the function will stop with an error.
-#'   This parameter allows users to specify their own connection string to the WildObs MongoDB instance.
-#' @param api_key A character string specifying the API key used for authenticated access to the WildObs
-#'  public API. If provided, the function will query the API instead of connecting directly to the MongoDB
-#'  instance with `mongolite`. API keys grant read-only access to specific endpoints and should be kept
-#'  confidential (e.g., stored in an `.Renviron` file or other secure environment variable).
+#' @param db_url A character string specifying the MongoDB connection URI. This
+#'  should follow the format:`'mongodb://username:password@host:port/database'`.
+#'  If `NULL`, the function will check for an API key, and if the `api_key`
+#'  parameter is `NULL`, the function stop with an error. This parameter allows
+#'  users to specify their own connection string to the WildObs MongoDB instance.
+#' @param api_key A character string specifying the API key used for authenticated
+#'  access to the WildObspublic API. If provided, the function will query the API
+#'  instead of connecting directly to the MongoDB instance with `mongolite`.
+#'  API keys grant read-only access to specific endpoints and should be kept
+#'  confidential (e.g., stored in an `.Renviron` file or other secure
+#'  environment variable).
 #'  Defaults to `NULL`, in which case the function expects a valid `db_url` to connect directly to MongoDB.
 #'
 #' @param spatial A named list specifying spatial query parameters, including:
@@ -43,7 +49,7 @@
 #'   a project, if any supplied identifier is found in the metadata, the relevant projects will
 #'   be returned.
 #' @param tabularSharingPreference A character vector specifying accepted sharing preferences.
-#'  Defaults to `c("open")`, but the user can also specify 'partial' for limited
+#'  Defaults to `c("open")`, but the user can also specify 'partial' for
 #'  metadata of the project. If the user provides admin DB credentials, the user
 #'  can access 'closed' data, but if admin credentials have not been provided,
 #'  'closed' data will be removed from the projects list.  Only projects with
@@ -51,8 +57,8 @@
 #' @return A character vector of project IDs matching the specified criteria.
 #' @examples
 #' \dontrun{
-#' # Load the general use WildObs API key
-#' api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+#' # Load API key from .Renviron
+#' api_key <- Sys.getenv("MY_WILDOBS_API_KEY")
 #'
 #' # Define spatial query: extract projects in a specific bounding box
 #' spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -20.0, ymax = -16.0)
@@ -94,25 +100,6 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   # create an empty vector to store project IDs
   proj_ids = c()
 
-  ## read in environment file with confidential DB access info
-  # readRenviron("config_private/.Renviron.prod.ro") # remote DB, read only
-  # readRenviron("config_private/.Renviron.admin.api") # admin api key
-  # readRenviron("config_private/.Renviron.local.ro") # local DB, read only --> test before updating remote DB!
-
-  # ## load information from environment
-  # HOST <- Sys.getenv("HOST")
-  # PORT <- Sys.getenv("PORT")
-  # DATABASE <- Sys.getenv("DATABASE")
-  # USER <- Sys.getenv("USER")
-  # PASS <- Sys.getenv("PASS")
-  #
-  # ## combine all the information into a database-url to enable access
-  # db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
-  # rm(USER, PASS, HOST, PORT, DATABASE)
-  #
-  # # Extract api_key
-  # api_key <- Sys.getenv("API_KEY")
-
   ### Determine if we will use the API key or the DB url to access data
   if(!is.null(api_key) && is.null(db_url)){
     # if API key is supplied and db url is still null, use the API
@@ -127,7 +114,10 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## But if neither an API key or db_url was provied
   if(is.null(api_key) && is.null(db_url)){
     # stop the function and tell them to get more info!
-    stop("You have not provided an API key or a database URL to access MongoDB.\nPlease provide an appropriate API key or URL if you want to access the database. \nIf you do not know how to access an appropriate API key or database URL, please contact the WildObs team at wildobs-support@qcif.edu.au")
+    stop("You have not provided an API key or a database URL to access MongoDB.",
+         "\nPlease provide an appropriate API key or URL if you want to access",
+         "the database. \nIf you require a user-specific API key, please contact",
+         "the WildObs team at support@wildobs.org.au")
   } # end double null condition
 
   # inspect the DB url that was provided to make sure its legit if we are NOT using an API
@@ -144,9 +134,53 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
     } # end pattern check
   } # end API check
 
+  ## determine which MongoDB URL we are using
+  # but only if we are NOT using the API
+  if(!use_api){
+    # extract the host
+    host <-  sub("^mongodb(\\+srv)?://(.*@)?([^:/?]+).*$", "\\3", db_url)
+    # if the PROD host is present,
+    if(host == "10.0.0.136"){
+      ## run a test to check if were connected to the VPN
+      # first craft a quick ping query
+      sep <- if (grepl("\\?", db_url)) "&" else "?" # carefully extract the separator
+      uri_test <- paste0(db_url, sep, "serverSelectionTimeoutMS=", 3000) # quick time out
+
+      ## wrap in a try-catch so whole function doesn't fail
+      test_conn <- tryCatch({
+        # form the connection
+        con <- mongolite::mongo(collection = "metadata", db = "wildobs_camdb",
+                                url = uri_test)
+        # run a ping as the cheapest round-trip to the server
+        con$run('{"ping": 1}')
+        # then disconnect
+        con$disconnect()
+        # and return a successful result
+        list(ok = TRUE, msg = NULL)
+      },
+      # but save the error if we dont get a connection
+      error = function(e) list(ok = FALSE, msg = conditionMessage(e)))
+
+      ## if we did NOT get a successful connection, stop the function
+      if(!test_conn$ok){
+        stop("You have provided the production MongoDB URL, but the function",
+             "cannot form a connection.\nPlease ensure you have logged into the ",
+             "WildObs VPN before connecting to the database. \nIf you require ",
+             "help connecting to the WildObs WireGuard VPN, please contact us at",
+             "support@wildobs.org.au")
+      }else{
+        ## but if this test connection is ok, then we have admin rights
+        use_admin = TRUE
+      } # end else test_conn results
+    } # end host condition
+  } # end no API use
+  ### COME HERE, will there be any conditions where an API key will result in admin use?
+  ### currently not, but that is subject to change.
+
+
   ## Access the metadata from the DB, but do it via API key, or not
   if(use_api){
-    # Send a GET request using the URL, API key, and only query for the metadata
+    # Send a POST request to API URL w/ the key, and query for the metadata
     response <- httr::POST( #httr::GET(
       "https://camdbapi.wildobs.org.au/find", # hard code API url
       httr::add_headers("X-API-Key" = api_key),

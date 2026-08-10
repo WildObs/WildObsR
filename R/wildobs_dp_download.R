@@ -72,25 +72,6 @@
 #' @export
 wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media = FALSE, metadata_only = FALSE) {
 
-  ## read in environment file with confidential DB access info
-  # readRenviron("config_private/.Renviron.prod.ro") # remote version
-  # readRenviron("config_private/.Renviron.admin.api") # admin api key
-  ### NOTE: need to provide a read-only to open/partial shared projects here!!
-  # This MUST be done before going public!
-
-  # ## load information from enviromnet
-  # HOST <- Sys.getenv("HOST")
-  # PORT <- Sys.getenv("PORT")
-  # DATABASE <- Sys.getenv("DATABASE")
-  # USER <- Sys.getenv("USER")
-  # PASS <- Sys.getenv("PASS")
-  #
-  # ## combine all the information into a database-url to enable access
-  # db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
-  # rm(USER, PASS, HOST, PORT, DATABASE)
-  #
-  # # grab the api key
-  # api_key = Sys.getenv("API_KEY")
 
   ## Begin by checking if API key or db_url was provied
   if(is.null(api_key) && is.null(db_url)){
@@ -109,27 +90,48 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids, media
     } # end non-null DB condition
   } # end api key present condition
 
-  ### Determine if we have admin credentials
-  # if we are using the API,
-  if(use_api){
-    # check if admin string is present in the api key
-    if(grepl("e95f47130dd589ca84d8f0b0a94c7d3f223d7", api_key)){
-      # and if it is, we can be admin
-      use_admin = TRUE
-    }else{
-      # but if not, we cant
-      use_admin = FALSE
-    }
-  }else{ # end else admin api grepl
-    # if not api, check for admin in the db_url
-    if(grepl("admin", db_url)){
-      # if present, we can be admin
-      use_admin = TRUE
-    }else{
-      # but if not, we cant
-      use_admin = FALSE
-    } # end else admin db_url
-  } # end else api conditon
+  ## determine which MongoDB URL we are using
+  # but only if we are NOT using the API
+  if(!use_api){
+    # extract the host
+    host <-  sub("^mongodb(\\+srv)?://(.*@)?([^:/?]+).*$", "\\3", db_url)
+    # if the PROD host is present,
+    if(host == "10.0.0.136"){
+      ## run a test to check if were connected to the VPN
+      # first craft a quick ping query
+      sep <- if (grepl("\\?", db_url)) "&" else "?" # carefully extract the separator
+      uri_test <- paste0(db_url, sep, "serverSelectionTimeoutMS=", 3000) # quick time out
+
+      ## wrap in a try-catch so whole function doesn't fail
+      test_conn <- tryCatch({
+        # form the connection
+        con <- mongolite::mongo(collection = "metadata", db = "wildobs_camdb",
+                                url = uri_test)
+        # run a ping as the cheapest round-trip to the server
+        con$run('{"ping": 1}')
+        # then disconnect
+        con$disconnect()
+        # and return a successful result
+        list(ok = TRUE, msg = NULL)
+      },
+      # but save the error if we dont get a connection
+      error = function(e) list(ok = FALSE, msg = conditionMessage(e)))
+
+      ## if we did NOT get a successful connection, stop the function
+      if(!test_conn$ok){
+        stop("You have provided the production MongoDB URL, but the function",
+             "cannot form a connection.\nPlease ensure you have logged into the ",
+             "WildObs VPN before connecting to the database. \nIf you require ",
+             "help connecting to the WildObs WireGuard VPN, please contact us at",
+             "support@wildobs.org.au")
+      }else{
+        ## but if this test connection is ok, then we have admin rights
+        use_admin = TRUE
+      } # end else test_conn results
+    } # end host condition
+  } # end no API use
+  ### COME HERE, will there be any conditions where an API key will result in admin use?
+  ### currently not, but that is subject to change.
 
   # inspect the DB url that was provided to make sure its legit if we are NOT using an API
   if(use_api == FALSE){
