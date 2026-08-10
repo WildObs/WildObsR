@@ -132,7 +132,7 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
            "appropriate URL if you want to access the database.")
     } # end null check
     ## Make sure the db URL they provide matches the basic pattern
-    pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/\\?.*)?$"
+    pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/?\\?.*)?$"
     if (!grepl(pattern, db_url)) {
       stop("The URL to access the database must be a valid MongoDB URI of the",
            " follwoing format: \n'mongodb://user:password@host:port/dbname'")
@@ -221,9 +221,9 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
       # if not, remove closed from the preferences w/ a warning
       tabularSharingPreference = tabularSharingPreference[tabularSharingPreference != "closed"]
       # and give an update
-      warning("You have requested data with closed data sharing agreements but",
-              "have not provided admin credentials to access this data, so these",
-              "projects have been removed from your query")
+      warning("You have requested data with closed data sharing agreements but ",
+              "have not provided admin credentials. \nThese projects have been ",
+              "removed projects have been removed from your query")
     } # end use_admin condition
   } # end closed data check
 
