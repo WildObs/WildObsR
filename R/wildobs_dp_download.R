@@ -51,7 +51,7 @@
 #'   \code{\link{convert_df_to_list}} for formatting metadata,
 #'   \code{\link{clean_list_recursive}} for removing NULL and empty elements,
 #'   \code{\link{reformat_fields}}, \code{\link{reformat_schema}}, and \code{\link{apply_schema_types}} for processing and applying schema fields,
-#'   \code{\link{is_empty_spatial}} and \code{\link{is_empty_temporal}} for removing empty spatio-temporal fields.
+#'   \code{\link{is_empty_temporal}} for removing empty temporal fields.
 #'
 #' @examples
 #' \dontrun{
@@ -75,7 +75,6 @@
 #' @importFrom purrr map keep
 #' @importFrom lutz tz_lookup_coords
 #' @importFrom httr POST
-#' @importFrom httr2 req_perform req_body_json req_method request
 #' @importFrom curl curl_fetch_memory handle_setopt handle_setheaders new_handle
 #' @importFrom stringr str_detect regex
 #'
