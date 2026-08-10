@@ -88,11 +88,16 @@ frictionless::resources(dp_list[[1]]) # no media, but the rest is there!
 # check a media file
 check_med = frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "media")
 head(check_med$filePath[check_med$filePublic]) # all work!
+## also verify that the threatend species are obscured
+check_obs = frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "observations")
+head(check_obs$observationID[which(check_obs$scientificName == "Dasyurus maculatus")])
 
 ## check the partial dataset
 check = dp_list[["WA_Pilbara_Cowan_2022-2023_WildObsID_0012"]]
 frictionless::resources(check) # no resources, good!
 check$WildObsMetadata$tabularSharingPreference # partial, this is good!
+
+
 
 #
 ##

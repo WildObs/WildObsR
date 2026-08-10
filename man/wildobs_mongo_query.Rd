@@ -16,15 +16,22 @@ wildobs_mongo_query(
 )
 }
 \arguments{
-\item{db_url}{A character string specifying the MongoDB connection URI. This should follow the format:
-\code{'mongodb://username:password@host:port/database'}. If \code{NULL}, the function will stop with an error.
-This parameter allows users to specify their own connection string to the WildObs MongoDB instance.}
+\item{db_url}{A character string specifying the MongoDB connection URI. This
+should follow the format:\code{'mongodb://username:password@host:port/database'}.
+If \code{NULL}, the function will check for an API key, and if the \code{api_key}
+parameter is \code{NULL}, the function stop with an error. This parameter allows
+users to specify their own connection string to the WildObs MongoDB instance.
+Defaults to \code{NULL}, in which case the function expects a valid \code{api_key}
+to connect directly to MongoDB.}
 
-\item{api_key}{A character string specifying the API key used for authenticated access to the WildObs
-public API. If provided, the function will query the API instead of connecting directly to the MongoDB
-instance with \code{mongolite}. API keys grant read-only access to specific endpoints and should be kept
-confidential (e.g., stored in an \code{.Renviron} file or other secure environment variable).
-Defaults to \code{NULL}, in which case the function expects a valid \code{db_url} to connect directly to MongoDB.}
+\item{api_key}{A character string specifying the API key used for authenticated
+access to the WildObspublic API. If provided, the function will query the API
+instead of connecting directly to the MongoDB instance with \code{mongolite}.
+API keys grant read-only access to specific endpoints and should be kept
+confidential (e.g., stored in an \code{.Renviron} file or other secure
+environment variable).
+Defaults to \code{NULL}, in which case the function expects a valid \code{db_url}
+to connect directly to MongoDB.}
 
 \item{spatial}{A named list specifying spatial query parameters, including:
 \describe{
@@ -55,7 +62,7 @@ a project, if any supplied identifier is found in the metadata, the relevant pro
 be returned.}
 
 \item{tabularSharingPreference}{A character vector specifying accepted sharing preferences.
-Defaults to \code{c("open")}, but the user can also specify 'partial' for limited
+Defaults to \code{c("open")}, but the user can also specify 'partial' for
 metadata of the project. If the user provides admin DB credentials, the user
 can access 'closed' data, but if admin credentials have not been provided,
 'closed' data will be removed from the projects list.  Only projects with
@@ -74,12 +81,14 @@ parameter will allow users to access data with 'closed' sharing agreements
 or projects not past their embargo date.
 }
 \details{
-The character vector of project IDs that is returned from this function is then used in the function @seealso \code{\link{wildobs_dp_download}} for extracting data packages from WildObs' MongoDB.
+The character vector of project IDs that is returned from this function is
+then used in the function @seealso \code{\link{wildobs_dp_download}} for
+extracting data packages from WildObs' MongoDB.
 }
 \examples{
 \dontrun{
-# Load the general use WildObs API key
-api_key <- "REDACTED_API_KEY"
+# Load API key from .Renviron
+api_key <- Sys.getenv("MY_WILDOBS_API_KEY")
 
 # Define spatial query: extract projects in a specific bounding box
 spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -20.0, ymax = -16.0)
