@@ -1,5 +1,11 @@
 #' Find Closest Matches in Two Character Vectors
 #'
+#' @description
+#' **Deprecated as of WildObsR 0.2.0.** `find_closest_match()` will be removed in
+#' a future release. The function still runs normally; it emits a warning once
+#' per session (it is commonly passed to `sapply()`, so an unguarded warning
+#' would fire once per element).
+#'
 #' This function finds the closest match between species names provided in an unverified list
 #' and a verified species taxonomy database. It handles differences in spelling or capitalization.
 #'
@@ -19,6 +25,18 @@
 #'
 #' @keywords internal
 find_closest_match <- function(string, target_strings) {
+
+  # Warn only once per session. This function is passed to sapply() in
+  # collaborator scripts, so an unguarded warning fires once per element.
+  if (!isTRUE(.wildobsr_warned$find_closest_match)) {
+    .Deprecated(
+      msg = paste0(
+        "find_closest_match() is deprecated as of WildObsR 0.2.0 and will be ",
+        "removed in a future release."
+      )
+    )
+    .wildobsr_warned$find_closest_match <- TRUE
+  }
 
   # Function to find the closest match for each species name
   match_func <- function(single_string) {

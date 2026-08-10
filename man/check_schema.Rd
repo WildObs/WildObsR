@@ -15,6 +15,10 @@ check_schema(chosen_schema, data)
 The modified tabular data resource with updated fields and any necessary corrections applied.
 }
 \description{
+\strong{Deprecated as of WildObsR 0.2.0.} Schema validation is no longer part of
+the WildObs data intake workflow, and \code{check_schema()} will be removed in a
+future release. The function still runs normally; it only emits a warning.
+
 This function checks that each camtrapDP resource (i.e. \code{observations}, \code{deployments}, \code{media}, and \code{covariates})
 conforms to the camtrapDP specified schema by validating field names, data types, and constraints (e.g., required fields, numeric ranges).
 It creates missing fields if necessary, ensures data types are aligned with the schema, and reports any discrepancies. The modified dataset is returned with updates applied.

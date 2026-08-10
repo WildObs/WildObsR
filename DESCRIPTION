@@ -16,7 +16,6 @@ Imports:
     dplyr,
     frictionless,
     httr,
-    httr2,
     jsonlite,
     knitr,
     lubridate,
@@ -32,7 +31,6 @@ Imports:
     terra,
     tibble,
     tidyr,
-    tidyselect,
     vegan
 Suggests:
     testthat (>= 3.0.0)

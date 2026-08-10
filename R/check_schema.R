@@ -1,5 +1,10 @@
 #' Validate Data Against CamTrap DP Schemas
 #'
+#' @description
+#' **Deprecated as of WildObsR 0.2.0.** Schema validation is no longer part of
+#' the WildObs data intake workflow, and `check_schema()` will be removed in a
+#' future release. The function still runs normally; it only emits a warning.
+#'
 #' This function checks that each camtrapDP resource (i.e. `observations`, `deployments`, `media`, and `covariates`)
 #' conforms to the camtrapDP specified schema by validating field names, data types, and constraints (e.g., required fields, numeric ranges).
 #' It creates missing fields if necessary, ensures data types are aligned with the schema, and reports any discrepancies. The modified dataset is returned with updates applied.
@@ -44,6 +49,16 @@
 #' @author Tom Bruce & Zachary Amir
 #' @export
 check_schema <- function(chosen_schema, data) {
+  # Signal deprecation before doing any work. The function still runs
+  # normally after this line, so existing scripts keep working.
+  .Deprecated(
+    msg = paste0(
+      "check_schema() is deprecated as of WildObsR 0.2.0 and will be removed ",
+      "in a future release. Schema validation is no longer part of the ",
+      "WildObs data intake workflow."
+    )
+  )
+
   # Loop over all the fields in the schema
   for (i in seq_along(chosen_schema$fields)) {
     #1. Select a schema
