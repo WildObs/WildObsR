@@ -15,6 +15,11 @@ find_closest_match(string, target_strings)
 A data frame containing the original species names and their closest match from the verified species taxonomy database.
 }
 \description{
+\strong{Deprecated as of WildObsR 0.2.0.} \code{find_closest_match()} will be removed in
+a future release. The function still runs normally; it emits a warning once
+per session (it is commonly passed to \code{sapply()}, so an unguarded warning
+would fire once per element).
+
 This function finds the closest match between species names provided in an unverified list
 and a verified species taxonomy database. It handles differences in spelling or capitalization.
 }

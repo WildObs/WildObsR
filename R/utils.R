@@ -1,3 +1,8 @@
+# Package-level environment for once-per-session state, e.g. deprecation
+# warnings that would otherwise fire repeatedly inside sapply() loops.
+.wildobsr_warned <- new.env(parent = emptyenv())
+
+
 #' Convert a Data Frame to a Nested List
 #'
 #' This function is used internally in the wildobs_dp_download() function to convert a data frame into a nested list, ensuring that vector fields are flattened while preserving list-like structures.
@@ -47,23 +52,6 @@ convert_df_to_list <- function(df) {
   } else {
     stop("Input must be a dataframe or a list containing a dataframe.")
   }
-}
-
-
-#' Check if a Spatial Value is Empty
-#'
-#' This function is used internally in the wildobs_dp_download() function to check whether a given value is NULL, entirely NA, or the string `"NULL"`.
-#' @seealso \code{\link{wildobs_dp_download}} for downloading and bundling data packages.
-#'
-#' @param x A value to check.
-#' @return `TRUE` if the value is NULL, entirely NA, or the string `"NULL"`, otherwise `FALSE`.
-#'
-#'
-#' @author Zachary Amir & ChatGPT
-#'
-#' @keywords internal
-is_empty_spatial <- function(x) {
-  is.null(x) || all(is.na(x)) || x == "NULL" #|| !is.character(x)
 }
 
 

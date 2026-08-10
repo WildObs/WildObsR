@@ -6,7 +6,7 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: Dec 10th, 2025
+## last updated: August 10th, 2026
 
 # start fresh!
 rm(list = ls())
@@ -24,52 +24,32 @@ library(tidyverse)
 ##
 ### create a query using wildobs_mongo_query()
 
-### First, gather relevant information to inform the query
+### First, grab the DB connection string
+# db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
+db_url <- Sys.getenv("MONGODB_PUB_ADMIN_URL")
 
-## read in environment file with confidential DB access info
-# readRenviron("config_private/.Renviron.prod.admin") # remote access for admin, but authentification isnt working!
-# readRenviron("config_private/.Renviron.prod.ro") # remote access for read-only
-# Contact Zach if you want access to this file.
-
-# ## load information from enviromnet
-# HOST <- Sys.getenv("HOST")
-# PORT <- Sys.getenv("PORT")
-# DATABASE <- Sys.getenv("DATABASE")
-# USER <- Sys.getenv("USER")
-# PASS <- Sys.getenv("PASS")
-#
-# ## combine all the information into a database-url to enable access
-# db_url <- sprintf("mongodb://%s:%s@%s:%s/%s", USER, PASS, HOST, PORT, DATABASE)
-# rm(USER, PASS, HOST, PORT, DATABASE)
-
-## Instead of the DB_url, test out the new admin api key
-# readRenviron("config_private/.Renviron.admin.api")
-# api_key = Sys.getenv("API_KEY")
-
-## Test out general use API key
-data("wildobsr_api_key")
 
 ## Define a temporal range to query
 temporal = list() #list(minDate = as.Date("2000-01-01"), maxDate = as.Date("2026-12-01")) #
 
 ## Define a spatial bounding box to query
-spatial = list()# list(xmin = 137.995, xmax = 153.552, ymin = -28.999, ymax = -9.142)
+spatial = spatial = list(xmin = 112.9, ymin = -43.7, xmax = 153.6, ymax = -9.1) # all of AUS
 
 ## Define taxonomic query
 taxonomic = c() #c("Casuarius casuarius")
 
 ## Define sampling design query
-samplingDesign <- c("simpleRandom", "opportunistic", "systematicRandom")
+samplingDesign <- c() #c("simpleRandom", "opportunistic", "systematicRandom")
 
 ## Define contributor query only want data from WildObsR team
-# contributors = c() #c("Zachry Amir", "Tom Bruce")
-contributors <- c("Emma Spencer")
+contributors = c() #c("Zachry Amir", "Tom Bruce")
+# contributors <- c("Emma Spencer")
 
 ## Define sharing status
-tabularSharingPreference = c("open")# (, "partial", "closed")
+tabularSharingPreference = c("open", "partial", "closed")
 
 ## Gather relevant project_ids using the mongo query function
-project_ids = wildobs_mongo_query(api_key = wildobsr_api_key, #db_url = db_url,
+project_ids = wildobs_mongo_query(db_url = db_url, # api_key = wildobsr_api_key,
                                   temporal = temporal,
                                   spatial = spatial,
                                   taxonomic = taxonomic,
@@ -80,8 +60,8 @@ project_ids = wildobs_mongo_query(api_key = wildobsr_api_key, #db_url = db_url,
 
 ## Who did we get?
 sort(project_ids)
-# for testing
-project_ids = c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001", "NSW-VIC_Upper_Murray_fire_landscapes_Linley_2021-22_WildObsID_0009" )
+# for testing, one open one partial
+project_ids = c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001", "WA_Pilbara_Cowan_2022-2023_WildObsID_0012")
 ## clean up query info
 rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, temporal)
 
@@ -90,7 +70,7 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 ### use the output to access data from wildobs_dp_download()
 # set media to FALSE to make a quicker download
 start = Sys.time()
-dp_list = wildobs_dp_download(api_key = wildobsr_api_key, #db_url = db_url,
+dp_list = wildobs_dp_download(db_url = db_url, # api_key = wildobsr_api_key,
                               project_ids = project_ids, media = T,
                               metadata_only = F)
 end = Sys.time()
@@ -105,6 +85,19 @@ class(dp_list[[1]])
 length(dp_list) == length(project_ids) # MUST BE T
 # check if we have data resources
 frictionless::resources(dp_list[[1]]) # no media, but the rest is there!
+# check a media file
+check_med = frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "media")
+head(check_med$filePath[check_med$filePublic]) # all work!
+## also verify that the threatend species are obscured
+check_obs = frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "observations")
+head(check_obs$observationID[which(check_obs$scientificName == "Dasyurus maculatus")])
+
+## check the partial dataset
+check = dp_list[["WA_Pilbara_Cowan_2022-2023_WildObsID_0012"]]
+frictionless::resources(check) # no resources, good!
+check$WildObsMetadata$tabularSharingPreference # partial, this is good!
+
+
 
 #
 ##

@@ -1,5 +1,19 @@
 ## Tests for check_schema() ----
 
+test_that("check_schema signals deprecation", {
+  data <- data.frame(field1 = c("a", "b", "c"), stringsAsFactors = FALSE)
+  schema <- list(
+    fields = list(
+      list(name = "field1", type = "string", constraints = NULL)
+    )
+  )
+
+  expect_warning(
+    suppressMessages(check_schema(schema, data)),
+    "deprecated"
+  )
+})
+
 test_that("check_schema creates missing string field with NA", {
   data <- data.frame(field1 = c("a", "b", "c"), stringsAsFactors = FALSE)
   schema <- list(
@@ -9,7 +23,7 @@ test_that("check_schema creates missing string field with NA", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_true("missing_field" %in% names(result))
   expect_type(result$missing_field, "character")
@@ -25,7 +39,7 @@ test_that("check_schema creates missing number field with NA", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_true("missing_number" %in% names(result))
   expect_type(result$missing_number, "double")
@@ -41,7 +55,7 @@ test_that("check_schema creates missing integer field with NA", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_true("missing_int" %in% names(result))
   expect_type(result$missing_int, "integer")
@@ -57,7 +71,7 @@ test_that("check_schema creates missing boolean field with NA", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_true("missing_bool" %in% names(result))
   expect_type(result$missing_bool, "logical")
@@ -73,7 +87,7 @@ test_that("check_schema creates missing datetime field with NA", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_true("missing_datetime" %in% names(result))
   expect_s3_class(result$missing_datetime, "POSIXct")
@@ -93,7 +107,7 @@ test_that("check_schema handles existing fields correctly", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_equal(nrow(result), nrow(data))
   expect_equal(result$field1, data$field1)
@@ -111,7 +125,7 @@ test_that("check_schema converts factors to character", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_type(result$category, "character")
   expect_equal(result$category, c("A", "B", "C"))
@@ -128,7 +142,7 @@ test_that("check_schema handles POSIXct datetime fields", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_s3_class(result$timestamp, "POSIXct")
 })
@@ -143,7 +157,7 @@ test_that("check_schema accepts numeric for integer fields", {
 
   # Should not produce error message about type mismatch
   output <- capture.output(
-    result <- check_schema(schema, data),
+    result <- suppressWarnings(check_schema(schema, data)),
     type = "message"
   )
 
@@ -160,7 +174,7 @@ test_that("check_schema accepts integer for numeric fields", {
 
   # Should not produce error message about type mismatch
   output <- capture.output(
-    result <- check_schema(schema, data),
+    result <- suppressWarnings(check_schema(schema, data)),
     type = "message"
   )
 
@@ -180,7 +194,7 @@ test_that("check_schema recognizes ISO8601 datetime strings", {
 
   # Should not produce error about type mismatch
   output <- capture.output(
-    result <- check_schema(schema, data),
+    result <- suppressWarnings(check_schema(schema, data)),
     type = "message"
   )
 
@@ -196,7 +210,7 @@ test_that("check_schema detects type mismatches", {
   )
 
   output <- capture.output(
-    result <- check_schema(schema, data)
+    result <- suppressWarnings(check_schema(schema, data))
   )
 
   expect_true(any(grepl("Error: Field value has type character but expected numeric", output)))
@@ -215,7 +229,7 @@ test_that("check_schema checks minimum constraint for numeric fields", {
   )
 
   output <- capture.output(
-    result <- check_schema(schema, data)
+    result <- suppressWarnings(check_schema(schema, data))
   )
 
   expect_true(any(grepl("Error: Field latitude has values below the minimum constraint", output)))
@@ -234,7 +248,7 @@ test_that("check_schema checks maximum constraint for numeric fields", {
   )
 
   output <- capture.output(
-    result <- check_schema(schema, data)
+    result <- suppressWarnings(check_schema(schema, data))
   )
 
   expect_true(any(grepl("Error: Field longitude has values above the maximum constraint", output)))
@@ -256,7 +270,7 @@ test_that("check_schema checks required constraint for fields", {
   )
 
   output <- capture.output(
-    result <- check_schema(schema, data)
+    result <- suppressWarnings(check_schema(schema, data))
   )
 
   expect_true(any(grepl("Error: Field id is required but contains missing values", output)))
@@ -278,7 +292,7 @@ test_that("check_schema checks required datetime fields", {
   )
 
   output <- capture.output(
-    result <- check_schema(schema, data)
+    result <- suppressWarnings(check_schema(schema, data))
   )
 
   # Should produce error about missing values in datetime field
@@ -300,7 +314,7 @@ test_that("check_schema handles multiple fields with mixed types", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_equal(nrow(result), 3)
   expect_equal(ncol(result), 3)
@@ -315,7 +329,7 @@ test_that("check_schema returns modified data frame", {
     )
   )
 
-  result <- suppressMessages(check_schema(schema, data))
+  result <- suppressMessages(suppressWarnings(check_schema(schema, data)))
 
   expect_s3_class(result, "data.frame")
   expect_true("field1" %in% names(result))
@@ -331,7 +345,7 @@ test_that("check_schema handles empty constraints gracefully", {
   )
 
   # check_schema uses cat() which produces output, so we just check it doesn't error
-  result <- suppressMessages(capture.output(check_schema(schema, data)))
+  result <- suppressMessages(capture.output(suppressWarnings(check_schema(schema, data))))
   expect_true(TRUE)  # If we got here without error, test passes
 })
 
@@ -356,7 +370,7 @@ test_that("check_schema validates fields within numeric constraints", {
   )
 
   output <- capture.output(
-    result <- check_schema(schema, data),
+    result <- suppressWarnings(check_schema(schema, data)),
     type = "message"
   )
 
