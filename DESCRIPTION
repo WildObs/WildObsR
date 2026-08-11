@@ -1,7 +1,7 @@
 Package: WildObsR
 Type: Package
 Title: A package for wrangling tabular data generated from wildlife cameras 
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: person("Zachary", "Amir", email = "z.amir@uq.edu.au",
     role = c("aut", "cre"),
     comment = c(ORCID = "0000-0002-8398-2059"))
