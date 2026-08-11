@@ -26,7 +26,10 @@ library(tidyverse)
 
 ### First, grab the DB connection string
 # db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
-db_url <- Sys.getenv("MONGODB_PUB_ADMIN_URL")
+# db_url <- Sys.getenv("MONGODB_PUB_ADMIN_URL")
+
+### First, grab the API key from R environ
+api_key <- Sys.getenv("WILDOBS_API_KEY")
 
 
 ## Define a temporal range to query
@@ -49,7 +52,7 @@ contributors = c() #c("Zachry Amir", "Tom Bruce")
 tabularSharingPreference = c("open", "partial", "closed")
 
 ## Gather relevant project_ids using the mongo query function
-project_ids = wildobs_mongo_query(db_url = db_url, # api_key = wildobsr_api_key,
+project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url,
                                   temporal = temporal,
                                   spatial = spatial,
                                   taxonomic = taxonomic,
@@ -61,7 +64,7 @@ project_ids = wildobs_mongo_query(db_url = db_url, # api_key = wildobsr_api_key,
 ## Who did we get?
 sort(project_ids)
 # for testing, one open one partial
-project_ids = c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001", "WA_Pilbara_Cowan_2022-2023_WildObsID_0012")
+project_ids = c("QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005", "WA_Pilbara_Cowan_2022-2023_WildObsID_0012")
 ## clean up query info
 rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, temporal)
 
@@ -70,7 +73,7 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 ### use the output to access data from wildobs_dp_download()
 # set media to FALSE to make a quicker download
 start = Sys.time()
-dp_list = wildobs_dp_download(db_url = db_url, # api_key = wildobsr_api_key,
+dp_list = wildobs_dp_download(api_key = api_key, #db_url = db_url,
                               project_ids = project_ids, media = T,
                               metadata_only = F)
 end = Sys.time()
