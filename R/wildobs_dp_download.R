@@ -734,7 +734,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
     }else {
       # but give us a reminder if were only accessing metadata
-      message("metadata_only = TRUE → skipping data resource downloads for speed.")
+      message("metadata_only = TRUE -> skipping data resource downloads for speed.")
     } # end elsemetadata_only condition
 
   }else{
@@ -762,7 +762,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
                               url = db_url)$find(query)
 
     } else {
-      message("metadata_only = TRUE → skipping data resource downloads for speed.")
+      message("metadata_only = TRUE -> skipping data resource downloads for speed.")
     }# end else metadata_only condition
   }# end else use api
 

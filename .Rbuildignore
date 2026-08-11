@@ -8,4 +8,4 @@
 ^dev$
 ^CLAUDE\.md$
 ^\.Rhistory$
-^\.DS_Store$
+\.DS_Store$
