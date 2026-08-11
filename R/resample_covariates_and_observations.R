@@ -105,7 +105,7 @@
 #' # Example usage with pre-processed camera trap data, accessed from WildObs:
 #'
 #' # Load the general use WildObs API key
-#' api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+#' api_key <- Sys.getenv("WILDOBS_API_KEY")
 #'
 #' # use WildObsR function to access data
 #' dp <- WildObsR::wildobs_dp_download(api_key = api_key, project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
