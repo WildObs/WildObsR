@@ -15,5 +15,7 @@
 # Sensitive credentials and information
 config_private/
 .Renviron*
-# dont need claude online either
-.claude/
+# dont need claude prompts + responses online either
+.claude/prompts_and_responses/
+# dont need local computer settings online
+.claude/settings.local.json
