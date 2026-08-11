@@ -85,6 +85,10 @@
 wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
                                media = FALSE, metadata_only = FALSE) {
 
+  ## Warn once per session if this WildObsR is behind the released version.
+  ## Silent when up to date, and never blocks the download.
+  .check_wildobs_version()
+
   ### Determine if we will use the API key or the DB url to access data
   if(!is.null(api_key) && is.null(db_url)){
     # if API key is supplied and db url is still null, use the API

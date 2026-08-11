@@ -34,6 +34,7 @@ Imports:
     terra,
     tibble,
     tidyr,
+    utils,
     vegan
 Suggests:
     testthat (>= 3.0.0)
