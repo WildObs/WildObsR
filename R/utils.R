@@ -258,17 +258,53 @@ area_to_apothem <- function(area_m2) {
 
 #' Rename or Add a Column
 #'
-#' Renames an existing column or creates a new column with NA values if the
-#' old column name is not provided.
+#' Renames an existing column, or creates a new all-`NA` column when no old column
+#' name is supplied. Used throughout the WildObs mobilisation pipeline to coerce
+#' incoming spreadsheets into Camtrap DP column names.
 #'
-#' @param df A data frame
-#' @param new_name Character string of the new column name
-#' @param old_name Character string of the old column name. If empty, NA, or
-#'   length 0, a new column is created instead.
+#' @details
+#' **The argument order is `df`, `new_name`, `old_name` — the new name comes
+#' before the old name.** Some collaborator markdowns define their own inline copy
+#' of this helper using the opposite order. Those local copies shadow this one and
+#' are unaffected, but if you delete a local copy in favour of the package version,
+#' check the order at every call site before assuming it still works.
 #'
-#' @return A data frame with the renamed or new column
+#' The function branches on `old_name`:
+#' \enumerate{
+#'   \item If `old_name` is `NA`, an empty string, or length zero, a new column
+#'     named `new_name` is appended and filled with `NA`.
+#'   \item Otherwise the column currently named `old_name` is renamed to `new_name`.
+#'   \item If no column matches `old_name`, the data frame is returned unchanged.
+#' }
 #'
-#' @keywords internal
+#' No collision check is performed. If `new_name` already names a different column,
+#' renaming leaves two columns sharing that name.
+#'
+#' @param df A data frame to modify.
+#' @param new_name Character string. The name the column should end up with. This
+#'   is the **second** argument.
+#' @param old_name Character string. The existing column to rename. This is the
+#'   **third** argument. If `NA`, `""`, or length zero, a new all-`NA` column is
+#'   created instead of renaming.
+#'
+#' @return A data frame with the column renamed or added. The number of rows is
+#'   always unchanged.
+#'
+#' @examples
+#' df <- data.frame(lat = c(-27.5, -28.1), lon = c(153.0, 152.8))
+#'
+#' # Rename an existing column: new name second, old name third
+#' rename_or_add_column(df, "latitude", "lat")
+#'
+#' # Passing "" as old_name adds a new all-NA column instead
+#' rename_or_add_column(df, "coordinateUncertainty", "")
+#'
+#' # An old_name that matches nothing returns the data frame untouched
+#' rename_or_add_column(df, "latitude", "not_a_column")
+#'
+#' @author Zachary Amir
+#'
+#' @export
 rename_or_add_column <- function(df, new_name, old_name) {
   if (length(old_name) == 0 || is.na(old_name) || old_name == "") {
     df[[new_name]] <- NA  # Create new column with NA
@@ -280,15 +316,49 @@ rename_or_add_column <- function(df, new_name, old_name) {
 
 #' Get Decimal Places from Numeric Values
 #'
-#' Extracts the number of decimal places from a numeric value, removing
-#' trailing zeros.
+#' Counts the significant decimal places in a numeric value, ignoring trailing
+#' zeros. Used to derive coordinate precision from supplied latitude and longitude
+#' values, which in turn feeds `coordinateUncertainty`.
 #'
-#' @param x A numeric value
+#' @details
+#' The value is converted with `as.character()`, everything up to and including the
+#' decimal point is dropped, trailing zeros are stripped, and the remaining
+#' characters are counted. Three consequences are worth knowing:
+#' \enumerate{
+#'   \item Whole numbers return `0`, because there are no decimals to count.
+#'   \item The sign is ignored, since the minus sign is removed along with the
+#'     integer part.
+#'   \item Values that `as.character()` renders in scientific notation return `0`.
+#'     `1e-05` becomes the string `"1e-05"`, which contains no decimal point, so
+#'     the result is `0` rather than `5`. Convert such values with `format()`
+#'     first if you need the true precision.
+#' }
+#' `NA` input returns `NA`. The function is vectorised over `x`.
 #'
-#' @return An integer representing the number of significant decimal places
+#' @param x A numeric vector.
 #'
+#' @return An integer vector giving the number of significant decimal places for
+#'   each element of `x`. `NA` elements return `NA`.
 #'
-#' @keywords internal
+#' @examples
+#' # Typical decimals
+#' get_decimal_places(1.25)
+#'
+#' # Whole numbers have no decimal places
+#' get_decimal_places(100)
+#'
+#' # The sign is ignored
+#' get_decimal_places(-1.5)
+#'
+#' # Trailing zeros do not count
+#' get_decimal_places(1.10)
+#'
+#' # Vectorised over the input
+#' get_decimal_places(c(1.5, 2.25, 3))
+#'
+#' @author Zachary Amir
+#'
+#' @export
 get_decimal_places <- function(x) {
   x_str <- as.character(x)
   # Remove trailing zeroes after the decimal
