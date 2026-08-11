@@ -245,7 +245,7 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## Make sure there is spatial information!
   if(exists("spatial", inherits = FALSE) && !is.null(spatial) && length(spatial) > 0){
     # Extract the bounding box data frame using custom utils.R function
-    bbox_df <- WildObsR:::extract_spatial_bboxes(metadata) # handles flexible spatial data formats.
+    bbox_df <- extract_spatial_bboxes(metadata) # handles flexible spatial data formats.
 
     # Filter bbox_df to remove any non-overlapping boxes from the spatial extent
     bbox_df_filtered <- bbox_df[
