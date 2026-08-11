@@ -5,3 +5,7 @@
 ^config_private$
 ^\.Renviron.*$
 ^\.claude$
+^dev$
+^CLAUDE\.md$
+^\.Rhistory$
+^\.DS_Store$
