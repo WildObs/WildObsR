@@ -14,11 +14,12 @@
 #'  Defaults to `NULL`, in which case the function expects a valid `api_key`
 #'  to connect directly to MongoDB.
 #' @param api_key A character string specifying the API key used for authenticated
-#'  access to the WildObspublic API. If provided, the function will query the API
-#'  instead of connecting directly to the MongoDB instance with `mongolite`.
-#'  API keys grant read-only access to specific endpoints and should be kept
-#'  confidential (e.g., stored in an `.Renviron` file or other secure
-#'  environment variable).
+#'  access to the WildObs public API. If provided, the function will query the API
+#'  instead of connecting directly to the MongoDB instance. API keys grant read-only
+#'  access to the public WildObs MongoDB database and should be kept confidential
+#'  (e.g., stored in an `.Renviron` file or other secure environment variable).
+#'  You can create your own API key on the
+#'  [WildObs Dashboard](https://dashboard.wildobs.org.au/).
 #'  Defaults to `NULL`, in which case the function expects a valid `db_url`
 #'  to connect directly to MongoDB.
 #' @param project_ids A character vector of project IDs to retrieve from MongoDB,
@@ -159,10 +160,14 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
       } # end else test_conn results
     }else{
       ## but if they are NOT providing the PROD URL, then we dont have admin rights
-      use_admin = FALSE
+      use_admin <- FALSE
     } # end else host condition
+    ## but if we are using the API,
+  }else{
+    ## default to non-admin since API only connects to public (i.e., non-admin) MongoDB
+    use_admin <- FALSE
   } # end API check
-  ### COME HERE, will there be any conditions where an API key will result in admin use?
+  ### TODO: will there be any conditions where an API key will result in admin use?
   ### currently not, but that is subject to change.
 
   ## Access the metadata from the DB, but do it via API key, or not
@@ -207,7 +212,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     ## and the matching metadata
     meta = metadata[metadata$id == name,] # must produce one row
     ## verify there is only one row
-    if(nrow(meta)>1){print(paste("The project name:", name, "has multiple rows of metadata. This is not good and means repeated project names which violates our database rules. Please inspect manually!"))}
+    if(nrow(meta)>1){print(paste("The project name:", name, "has multiple rows of metadata.",
+                                 "This is not good and means repeated project names",
+                                 "which violates our database rules. Please inspect manually!"))}
 
     ## convert to a list
     meta_list = as.list(meta)
@@ -440,7 +447,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
       x = formatted_metadata[[i]]
       val = x$project_level_metadata$WildObsMetadata$tabularSharingPreference
 
-      ## Extract the citaion, which should be the RAID internal PID
+      ## Extract the citation, which should be the RAID
       cit = x$project_level_metadata$bibliographicCitation
       ## verify cit is kosher (i.e. not null or zero length)
       if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) {
@@ -449,7 +456,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
         cit <- cit[[1]]  # normal case
       }
       ## is the project ready to be shared?
-      ready_to_share <- (val == "open" &&                    # open data sharing
+      ready_to_share <- (val == "open" &&                     # open data sharing
                            grepl("https://raid.org/", cit) && # RAID present
                            !grepl("DEMO", cit))               # and its not DEMO
       ## If the project is ready,
@@ -465,10 +472,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     # convert metadata to TRUE
     metadata_only = TRUE
     # and let the user know about this
-    message("You have requested data that is unpublished without admin credentials.",
-            "\nThis will produce metadata only, not any spreadsheets.")
+    message("You have requested data without an open data sharing agreement and without admin credentials.",
+            "\nThis function will return metadata only, not any tables.")
   }
-
 
   ### Construct an API query or DB_url query and download the data
   if(use_api){
@@ -519,19 +525,19 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
         # Create a new curl "handle", which is like a container that will hold all the settings for your API request
         h_dep <- curl::new_handle()
         # Add HTTP headers to the handle, which are metadata that tells the server:
-        # 1. The API key for authentication, and
-        # 2. What type of data were querying (JSON format)
         curl::handle_setheaders(h_dep,
+                                # 1. The API key for authentication, and
                                 "X-API-Key" = api_key,
+                                # 2. What type of data were querying (JSON format)
                                 "Content-Type" = "application/json"
         )
         # Configure the request options for the handle:
-        # 1. customrequest = "POST" tells it to use POST method (not GET)
-        # 2. postfields = the actual data to send in the request body
-        #    - jsonlite::toJSON() converts your R list (dep_body) into JSON text
-        #    - auto_unbox = TRUE prevents single values from becoming arrays in JSON
         curl::handle_setopt(h_dep,
+                            # 1. customrequest = "POST" tells it to use POST method (not GET)
                             customrequest = "POST",
+                            # 2. postfields = the data to send in the body, where
+                            #   toJSON converts an R list (dep_body) into JSON text &
+                            #    auto_unbox = TRUE prevents single values from becoming arrays
                             postfields = jsonlite::toJSON(bodies[[ht]], auto_unbox = TRUE)
         )
         # Actually send the HTTP request to the API and store the raw response in memory
@@ -556,10 +562,80 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
         ### Establish batch uploads for API b/c media requires too much bandwidth
         batch_size = 5000 # can explore values here, maybe allow users to toggle?
 
-        ## give us an update about accessing media in batches
-        message("Downloading media data over API connection in ", batch_size, " row batches...")
+        ### Gather total row count of media being accessed here for percentage reporting
+        # re-use the same project filter logic as in the loop below
+        if(length(project_ids_query) == 1){
+          count_filt <- list(projectName = project_ids_query)
+        }else{
+          count_filt <- list(projectName = list(`$in` = project_ids_query))
+        }
+
+        # Init a body request for the API call
+        count_body <- list(
+          # only inspect the media collection
+          collection = "media",
+          #  Build an aggregation pipeline
+          aggregation = list(
+            # match our projects query
+            list(`$match` = count_filt),
+            # and only count how many docs (cheap)
+            list(`$count` = "n")
+          )
+        )
+        # Use the same API curl pattern as before
+        h_count <- curl::new_handle()
+        curl::handle_setheaders(h_count,
+                                "X-API-Key" = api_key,
+                                "Content-Type" = "application/json"
+        )
+        # Send the body, but tell curl the verb is GET.
+        curl::handle_setopt(h_count,
+                            # Setting postfields implies POST, so we must
+                            postfields = jsonlite::toJSON(count_body, auto_unbox = TRUE),
+                            ## specify a GET in the request to override POST
+                            customrequest = "GET"
+        )
+        # Try it safely - if the count fails we still want the download to run
+        count_resp_raw <- try(
+          curl::curl_fetch_memory(sub("/find$", "/aggregation", url), handle = h_count),
+          silent = TRUE
+        )
+
+        # Pull the number out, or fall back to NA if anything went wrong.
+        # NA means "we don't know the total", which switches off percentage messages.
+        media_total <- NA_integer_
+        # if there is no error, and we got a valid response (200)
+        if(!inherits(count_resp_raw, "try-error") && count_resp_raw$status_code == 200){
+          # try to grab the row count safely
+          count_data <- try(jsonlite::fromJSON(rawToChar(count_resp_raw$content)), silent = TRUE)
+          # if there is no error AND we returned valid results
+          if(!inherits(count_data, "try-error") && nrow(count_data[[1]]$results) > 0){
+            # extract the row count from results
+            media_total <- count_data[[1]]$results$n
+          } # end second results condition
+        } # end inital success condition
+
+        ### give users an update about accessing media in batches
+        # if media count was NA
+        if(is.na(media_total)){
+          # provide a simple message re: batch size
+          message("Downloading media records over API connection in ",
+                  batch_size, " row batches...")
+        }else{
+          ## but if we got total rows, count how many batches this will take
+          # use ceiling() because the last partial batch still counts as a batch
+          n_batches <- ceiling(media_total / batch_size)
+          # provide a more informativ message
+          message("Downloading ", media_total, " media records over API connection in ",
+                  n_batches, " batches of ", batch_size, " rows...")
+        } # end NA total condition
+
+
+        ### Prepare to download all batches
         # create a last_id vector to track what was the last mediaID pulled
         last_id <- NULL
+        # track the last percentage milestone we printed, so we only message on new ones
+        last_pct <- 0
         # store all media here
         all_media <- list()
 
@@ -628,10 +704,24 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
           # Compute cumulative progress
           total_rows <- sum(vapply(all_media, nrow, integer(1)))
-          # batch_rows <- nrow(media_part)
-          # and let us know about it
-          message("Fetched batch ", length(all_media),
-                  ": ", total_rows, " total rows so far...")
+
+          ### Report percentages only if the count API call above worked
+          # if we have a row count and more than zero media records
+          if(!is.na(media_total) && media_total > 0){
+            ## calculate percentage rounded down to the nearest 10.
+            # min() guards against exceeding 100 if the count and download disagree.
+            pct <- min(floor(total_rows / media_total * 10) * 10, 100)
+
+            # print every milestone crossed since the last message.
+            if(pct > last_pct){
+              # The seq() handles a batch jumping several milestones at once
+              for(p in seq(last_pct + 10, pct, by = 10)){
+                message(p, "% successfully downloaded")
+              }
+              # remember where we got to
+              last_pct <- pct
+            } # end new milestone condition
+          } # end progress reporting condition
 
         } # end per repeat
 
@@ -648,7 +738,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     } # end elsemetadata_only condition
 
   }else{
-    ## if not using API, stick with the old method
+    ## if not using API, stick with the OG method
     # construct the project_id based query in json format
     query <- if(length(project_ids_query) == 1) {
       jsonlite::toJSON(list(projectName = project_ids_query), auto_unbox = TRUE) # Single ID
