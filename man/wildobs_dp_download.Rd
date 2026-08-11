@@ -22,11 +22,12 @@ Defaults to \code{NULL}, in which case the function expects a valid \code{api_ke
 to connect directly to MongoDB.}
 
 \item{api_key}{A character string specifying the API key used for authenticated
-access to the WildObspublic API. If provided, the function will query the API
-instead of connecting directly to the MongoDB instance with \code{mongolite}.
-API keys grant read-only access to specific endpoints and should be kept
-confidential (e.g., stored in an \code{.Renviron} file or other secure
-environment variable).
+access to the WildObs public API. If provided, the function will query the API
+instead of connecting directly to the MongoDB instance. API keys grant read-only
+access to the public WildObs MongoDB database and should be kept confidential
+(e.g., stored in an \code{.Renviron} file or other secure environment variable).
+You can create your own API key on the
+\href{https://dashboard.wildobs.org.au/}{WildObs Dashboard}.
 Defaults to \code{NULL}, in which case the function expects a valid \code{db_url}
 to connect directly to MongoDB.}
 

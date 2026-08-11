@@ -20,11 +20,12 @@
 #'  Defaults to `NULL`, in which case the function expects a valid `api_key`
 #'  to connect directly to MongoDB.
 #' @param api_key A character string specifying the API key used for authenticated
-#'  access to the WildObspublic API. If provided, the function will query the API
-#'  instead of connecting directly to the MongoDB instance with `mongolite`.
-#'  API keys grant read-only access to specific endpoints and should be kept
-#'  confidential (e.g., stored in an `.Renviron` file or other secure
-#'  environment variable).
+#'  access to the WildObs public API. If provided, the function will query the API
+#'  instead of connecting directly to the MongoDB instance. API keys grant read-only
+#'  access to the public WildObs MongoDB database and should be kept confidential
+#'  (e.g., stored in an `.Renviron` file or other secure environment variable).
+#'  You can create your own API key on the
+#'  [WildObs Dashboard](https://dashboard.wildobs.org.au/).
 #'  Defaults to `NULL`, in which case the function expects a valid `db_url`
 #'  to connect directly to MongoDB.
 #'
@@ -61,7 +62,7 @@
 #' @examples
 #' \dontrun{
 #' # Load API key from .Renviron
-#' api_key <- Sys.getenv("MY_WILDOBS_API_KEY")
+#' api_key <- Sys.getenv("WILDOBS_API_KEY")
 #'
 #' # Define spatial query: extract projects in a specific bounding box
 #' spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -20.0, ymax = -16.0)
@@ -178,10 +179,14 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
       } # end else test_conn results
     }else{
       ## but if they are NOT providing the PROD URL, then we dont have admin rights
-      use_admin = FALSE
+      use_admin <- FALSE
     } # end else host condition
+    ## but if we are using the API,
+  }else{
+    ## default to non-admin since API only connects to public (i.e., non-admin) MongoDB
+    use_admin <- FALSE
   } # end API check
-  ### COME HERE, will there be any conditions where an API key will result in admin use?
+  ### TODO: will there be any conditions where an API key will result in admin use?
   ### currently not, but that is subject to change.
 
   ## Access the metadata from the DB, but do it via API key, or not
@@ -223,7 +228,7 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
       # and give an update
       warning("You have requested data with closed data sharing agreements but ",
               "have not provided admin credentials. \nThese projects have been ",
-              "removed projects have been removed from your query")
+              "removed from your query")
     } # end use_admin condition
   } # end closed data check
 
@@ -476,4 +481,3 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   # return the vector
   proj_ids
 } # end function
-
