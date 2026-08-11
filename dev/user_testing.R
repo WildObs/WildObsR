@@ -246,7 +246,7 @@ sp = c("Felis catus", # common in both sources
 ### Import species traits information to contextualize these critters
 
 # # set wd to where external data file lives.
-# wd = "/Users/zachary_amir/Dropbox/WildObs master folder/WildObs GitHub Data Storage/data_tools/"
+# wd = file.path(Sys.getenv("WILDOBS_DROPBOX"), "WildObs master folder/WildObs GitHub Data Storage/data_tools/")
 # # list availible files
 # ver_files = list.files(wd)
 # ver_files = ver_files[grepl("taxonomy", ver_files)] # only want species data

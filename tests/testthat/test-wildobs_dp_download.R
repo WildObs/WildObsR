@@ -1,7 +1,7 @@
 ## Tests for wildobs_dp_download() ----
 
 # General use API key from examples
-test_api_key <- "REDACTED_API_KEY"
+test_api_key <- Sys.getenv("WILDOBS_API_KEY")
 
 # Test project IDs from examples
 test_project_ids <- c(
