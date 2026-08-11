@@ -12,7 +12,7 @@
 #'
 #' @return A single URL string.
 #'
-#' @author Zachary Amir
+#' @author Zachary Amir & Claude Opus 5
 #'
 #' @keywords internal
 #' @noRd
@@ -41,7 +41,7 @@
 #'
 #' @return `TRUE` if the service answered, `FALSE` otherwise. Never errors.
 #'
-#' @author Zachary Amir
+#' @author Zachary Amir & Claude Opus 5
 #'
 #' @importFrom curl new_handle handle_setopt curl_fetch_memory
 #'
@@ -88,7 +88,7 @@
 #'
 #' @return Invisibly `NULL`.
 #'
-#' @author Zachary Amir
+#' @author Zachary Amir & Claude Opus 5
 #'
 #' @keywords internal
 #' @noRd

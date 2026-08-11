@@ -35,7 +35,7 @@
 #' @return A single version string such as `"0.2.0"`, or `NULL` on any failure.
 #'   Never errors, never warns, never messages.
 #'
-#' @author Zachary Amir
+#' @author Zachary Amir & Claude Opus 5
 #'
 #' @importFrom curl new_handle curl_fetch_memory
 #'
@@ -97,7 +97,7 @@
 #' @return A single character string to pass to `warning()`, or `NULL` if there
 #'   is nothing worth saying.
 #'
-#' @author Zachary Amir
+#' @author Zachary Amir & Claude Opus 5
 #'
 #' @keywords internal
 #' @noRd
@@ -147,7 +147,7 @@
 #'
 #' @return Invisibly `NULL`. Called for the side effect of warning.
 #'
-#' @author Zachary Amir
+#' @author Zachary Amir & Claude Opus 5
 #'
 #' @importFrom utils packageVersion
 #'
