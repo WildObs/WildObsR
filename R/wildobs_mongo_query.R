@@ -101,6 +101,11 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
                                taxonomic = NULL, samplingDesign = NULL,
                                contributors = NULL,
                                tabularSharingPreference = c("open")){
+
+  ## Warn once per session if this WildObsR is behind the released version.
+  ## Silent when up to date, and never blocks the query.
+  .check_wildobs_version()
+
   # create an empty vector to store project IDs
   proj_ids = c()
 
