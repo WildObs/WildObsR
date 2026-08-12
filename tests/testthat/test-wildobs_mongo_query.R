@@ -1,7 +1,7 @@
 ## Tests for wildobs_mongo_query() ----
 
 # General use API key from examples
-test_api_key <- "REDACTED_API_KEY"
+test_api_key <- Sys.getenv("WILDOBS_API_KEY")
 
 test_that("wildobs_mongo_query errors when neither api_key nor db_url provided", {
   expect_error(

@@ -7,18 +7,55 @@
 rename_or_add_column(df, new_name, old_name)
 }
 \arguments{
-\item{df}{A data frame}
+\item{df}{A data frame to modify.}
 
-\item{new_name}{Character string of the new column name}
+\item{new_name}{Character string. The name the column should end up with. This
+is the \strong{second} argument.}
 
-\item{old_name}{Character string of the old column name. If empty, NA, or
-length 0, a new column is created instead.}
+\item{old_name}{Character string. The existing column to rename. This is the
+\strong{third} argument. If \code{NA}, \code{""}, or length zero, a new all-\code{NA} column is
+created instead of renaming.}
 }
 \value{
-A data frame with the renamed or new column
+A data frame with the column renamed or added. The number of rows is
+always unchanged.
 }
 \description{
-Renames an existing column or creates a new column with NA values if the
-old column name is not provided.
+Renames an existing column, or creates a new all-\code{NA} column when no old column
+name is supplied. Used throughout the WildObs mobilisation pipeline to coerce
+incoming spreadsheets into Camtrap DP column names.
 }
-\keyword{internal}
+\details{
+\strong{The argument order is \code{df}, \code{new_name}, \code{old_name} — the new name comes
+before the old name.} Some collaborator markdowns define their own inline copy
+of this helper using the opposite order. Those local copies shadow this one and
+are unaffected, but if you delete a local copy in favour of the package version,
+check the order at every call site before assuming it still works.
+
+The function branches on \code{old_name}:
+\enumerate{
+\item If \code{old_name} is \code{NA}, an empty string, or length zero, a new column
+named \code{new_name} is appended and filled with \code{NA}.
+\item Otherwise the column currently named \code{old_name} is renamed to \code{new_name}.
+\item If no column matches \code{old_name}, the data frame is returned unchanged.
+}
+
+No collision check is performed. If \code{new_name} already names a different column,
+renaming leaves two columns sharing that name.
+}
+\examples{
+df <- data.frame(lat = c(-27.5, -28.1), lon = c(153.0, 152.8))
+
+# Rename an existing column: new name second, old name third
+rename_or_add_column(df, "latitude", "lat")
+
+# Passing "" as old_name adds a new all-NA column instead
+rename_or_add_column(df, "coordinateUncertainty", "")
+
+# An old_name that matches nothing returns the data frame untouched
+rename_or_add_column(df, "latitude", "not_a_column")
+
+}
+\author{
+Zachary Amir
+}

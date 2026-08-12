@@ -9,13 +9,14 @@
 rm(list = ls())
 
 ## Set up personal file paths to dropbox
-personal_path = "/Users/zachary_amir/Dropbox/" # for Zach
+## Set WILDOBS_DROPBOX in your .Renviron, e.g. WILDOBS_DROPBOX=/Users/you/Dropbox
+personal_path <- Sys.getenv("WILDOBS_DROPBOX")
 
 
 ##### Species traits data #####
 
 ## Create working directory to where species data lives
-wd = paste(personal_path, "WildObs master folder/WildObs GitHub Data Storage/data_tools/", sep = "")
+wd = file.path(personal_path, "WildObs master folder/WildObs GitHub Data Storage/data_tools/")
 
 #
 ##

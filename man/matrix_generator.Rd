@@ -93,7 +93,7 @@ that align with the detection history matrix and are compressed to match samplin
 # Example usage with pre-processed camera trap data, accessed from WildObs:
 
 # Load the general use WildObs API key
-api_key <- "REDACTED_API_KEY"
+api_key <- Sys.getenv("WILDOBS_API_KEY")
 # use WildObsR function to access data
 dp <- WildObsR::wildobs_dp_download(api_key = api_key, project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
 # extract first DP from the list

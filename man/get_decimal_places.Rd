@@ -7,13 +7,49 @@
 get_decimal_places(x)
 }
 \arguments{
-\item{x}{A numeric value}
+\item{x}{A numeric vector.}
 }
 \value{
-An integer representing the number of significant decimal places
+An integer vector giving the number of significant decimal places for
+each element of \code{x}. \code{NA} elements return \code{NA}.
 }
 \description{
-Extracts the number of decimal places from a numeric value, removing
-trailing zeros.
+Counts the significant decimal places in a numeric value, ignoring trailing
+zeros. Used to derive coordinate precision from supplied latitude and longitude
+values, which in turn feeds \code{coordinateUncertainty}.
 }
-\keyword{internal}
+\details{
+The value is converted with \code{as.character()}, everything up to and including the
+decimal point is dropped, trailing zeros are stripped, and the remaining
+characters are counted. Three consequences are worth knowing:
+\enumerate{
+\item Whole numbers return \code{0}, because there are no decimals to count.
+\item The sign is ignored, since the minus sign is removed along with the
+integer part.
+\item Values that \code{as.character()} renders in scientific notation return \code{0}.
+\code{1e-05} becomes the string \code{"1e-05"}, which contains no decimal point, so
+the result is \code{0} rather than \code{5}. Convert such values with \code{format()}
+first if you need the true precision.
+}
+\code{NA} input returns \code{NA}. The function is vectorised over \code{x}.
+}
+\examples{
+# Typical decimals
+get_decimal_places(1.25)
+
+# Whole numbers have no decimal places
+get_decimal_places(100)
+
+# The sign is ignored
+get_decimal_places(-1.5)
+
+# Trailing zeros do not count
+get_decimal_places(1.10)
+
+# Vectorised over the input
+get_decimal_places(c(1.5, 2.25, 3))
+
+}
+\author{
+Zachary Amir
+}
