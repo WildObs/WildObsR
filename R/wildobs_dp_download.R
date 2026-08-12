@@ -58,7 +58,7 @@
 #' \dontrun{
 #' # Example usage:
 #' # Load the general use WildObs API key
-#' api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+#' api_key <- Sys.getenv("WILDOBS_API_KEY")
 #'
 #' # Load relevant project ids
 #' project_ids <- c("QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",
@@ -84,6 +84,10 @@
 #' @export
 wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
                                media = FALSE, metadata_only = FALSE) {
+
+  ## Warn once per session if this WildObsR is behind the released version.
+  ## Silent when up to date, and never blocks the download.
+  .check_wildobs_version()
 
   ### Determine if we will use the API key or the DB url to access data
   if(!is.null(api_key) && is.null(db_url)){
@@ -233,10 +237,10 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
                                                   "references","id","project","WildObsMetadata")]
 
     # use custom function where needed
-    proj_meta$contributors = WildObsR:::convert_df_to_list(proj_meta$contributors)
-    proj_meta$licenses = WildObsR:::convert_df_to_list(proj_meta$licenses)
-    proj_meta$project = WildObsR:::convert_df_to_list(proj_meta$project)
-    proj_meta$WildObsMetadata = WildObsR:::convert_df_to_list(proj_meta$WildObsMetadata)
+    proj_meta$contributors = convert_df_to_list(proj_meta$contributors)
+    proj_meta$licenses = convert_df_to_list(proj_meta$licenses)
+    proj_meta$project = convert_df_to_list(proj_meta$project)
+    proj_meta$WildObsMetadata = convert_df_to_list(proj_meta$WildObsMetadata)
 
     ## apply a few quick fixes to unlist or list things
     proj_meta$keywords = unlist(proj_meta$keywords)
@@ -284,7 +288,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     #### Extract spaital ####
 
     ## Use new chatGPT helper function to handle geoJSON + bboxes + flat bbox
-    proj_meta$spatial <- WildObsR:::format_spatial_to_geojson(meta_list$spatial)
+    proj_meta$spatial <- format_spatial_to_geojson(meta_list$spatial)
 
     #
     ##
@@ -295,7 +299,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     t = as.list(meta_list$temporal)
 
     # apply the function, only keeping non-NA values
-    t_clean = purrr::keep(t, ~ !WildObsR:::is_empty_temporal(.x))
+    t_clean = purrr::keep(t, ~ !is_empty_temporal(.x))
     # verify timezone is present
     if(is.null(t_clean$timeZone) || t_clean$timeZone == ""){
       # assume timezone is NA then
@@ -388,7 +392,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     for(r in 1:nrow(resources)){
 
       # begin extracting the schema per resource
-      schema = WildObsR:::reformat_schema(resources[r, "schema"])
+      schema = reformat_schema(resources[r, "schema"])
       ## and create a new field for projectName, which must be present in all datasets
       schema$fields[[length(schema$fields) + 1]] = list(name = "projectName",
                                                         description = "This is the persistent identifier used to describe the overall datapackage, stored in dataPackage$id. This identifier is used to manage and track many different dataPackages. This value is a short url-usable and preferably human-readable name of the package. The name should be invariant, meaning that it should not change when a data package is updated.",
@@ -734,7 +738,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
     }else {
       # but give us a reminder if were only accessing metadata
-      message("metadata_only = TRUE → skipping data resource downloads for speed.")
+      message("metadata_only = TRUE -> skipping data resource downloads for speed.")
     } # end elsemetadata_only condition
 
   }else{
@@ -762,7 +766,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
                               url = db_url)$find(query)
 
     } else {
-      message("metadata_only = TRUE → skipping data resource downloads for speed.")
+      message("metadata_only = TRUE -> skipping data resource downloads for speed.")
     }# end else metadata_only condition
   }# end else use api
 

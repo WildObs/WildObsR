@@ -81,7 +81,7 @@ The function performs the following steps:
 \dontrun{
 # Example usage:
 # Load the general use WildObs API key
-api_key <- "f4b9126e87c44da98c0d1e29a671bb4ff39adcc65c8b92a0e7f4317a2b95de83"
+api_key <- Sys.getenv("WILDOBS_API_KEY")
 
 # Load relevant project ids
 project_ids <- c("QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",

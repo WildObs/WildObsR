@@ -42,6 +42,30 @@ WildObsR provides a suite of functions for standardizing, accessing, and analyzi
 devtools::install_github("WildObs/WildObsR")
 ```
 
+### Keeping WildObsR up to date
+
+WildObsR checks its own version the first time you query or download data in an R
+session. If your copy is out of date it prints a warning telling you to reinstall;
+if you are current it says nothing at all. The check never blocks your work — if
+GitHub cannot be reached it is skipped silently.
+
+To update at any time, re-run the install command above.
+
+### What the version number means
+
+WildObsR uses [semantic versioning](https://semver.org/), written as
+`major.minor.patch` (for example `0.2.0`). Each part tells you something different
+about whether you need to act:
+
+| Change | Example | What it means for you |
+|---|---|---|
+| **major** | `1.0.0` → `2.0.0` | **Not backwards compatible.** An old installed version will produce broken or wrong downloads. Update before running anything. |
+| **minor** | `0.1.0` → `0.2.0` | Backwards-compatible additions, such as new functions, or database changes that old code still handles correctly. Update when convenient. |
+| **patch** | `0.2.0` → `0.2.1` | Behaviour-preserving fixes, such as a corrected error message or a bug fix. Nothing you rely on changes. |
+
+The practical rule: **if the first number changes, update before you download data
+again.** Otherwise you can update at your own pace.
+
 ---
 
 ## Getting Database Access
