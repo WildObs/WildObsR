@@ -3,7 +3,7 @@
 #' This function processes camera trapping data formatted using the camtrapDP data standard to generate detection history matrices along with site-level and observation-level covariate matrices. These outputs can then be used for hierarchical occupancy or abundance modeling (e.g., with the \code{unmarked} package).
 #'
 #' @param obs A \code{data.frame} of observations. This must include columns for date-time information
-#'   (e.g., \code{eventStart}, \code{eventEnd}, \code{observationStart}, \code{observationEnd}),
+#'   (e.g., \code{eventStart}, \code{eventEnd},
 #'   a species identifier (\code{scientificName}), and a unique identifier for sampling units
 #'   (e.g., \code{cellID_10km} in spatially resampled data from \code{WildObsR::resample_covariates_and_observations()} or \code{deploymentID} in regular camtrap DP data).
 #' @param covs A \code{data.frame} of covariates. This must include sampling start/end dates (e.g.,
@@ -182,9 +182,9 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
   #   }
   # }
   ## make sure dates are properly formatted
-  if(!any(sapply(obs[, c("eventStart","eventEnd","observationStart","observationEnd")],
+  if(!any(sapply(obs[, c("eventStart","eventEnd")],
                  function(x) inherits(x, "POSIXct")))){
-    stop("The observations table you provided in this function does not have date-time columns (i.e.,eventStart, eventEnd, observationStart, & observationEnd) formatted in POSIXct class. Please format these date-time columns to a standard format (%Y-%m-%d %H:%M:%S) using the as.posixct() function before using this function.\n ")
+    stop("The observations table you provided in this function does not have date-time columns (i.e.,eventStart, eventEnd)formatted in POSIXct class. Please format these date-time columns to a standard format (%Y-%m-%d %H:%M:%S) using the as.posixct() function before using this function.\n ")
   }
   # same for covs
   if(!any(sapply(covs[, covs_date_cols],
@@ -203,13 +203,13 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
   #first grab the tx
   tz = suppressWarnings(lutz::tz_lookup_coords(mean(covs$Avg_latitude), mean(covs$Avg_longitude), method = "fast"))
   ## update obs
-  obs$observationEnd = lubridate::with_tz(obs$observationEnd, tzone = tz)
-  obs$observationStart = lubridate::with_tz(obs$observationStart, tzone = tz)
+  obs$eventEnd = lubridate::with_tz(obs$eventEnd, tzone = tz)
+  obs$eventStart = lubridate::with_tz(obs$eventStart, tzone = tz)
   ## update covs
   covs[[covs_date_cols[1]]] = lubridate::with_tz(covs[[covs_date_cols[1]]], tzone = tz)
   covs[[covs_date_cols[2]]] = lubridate::with_tz(covs[[covs_date_cols[2]]], tzone = tz)
-  ## Create a date column in obs from the observationStart col
-  obs$date = as.Date(obs$observationStart) # could change to eventStart??
+  ## Create a date column in obs from the eventStart col
+  obs$date = as.Date(obs$eventStart)
 
 
   ### Clean covariates and standardize the values

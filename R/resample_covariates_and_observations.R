@@ -32,7 +32,7 @@
 #' }
 #'
 #' @param covs A data frame or tibble of covariate data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include columns defining spatial cells (with names starting with "cellID"), and date-time columns (e.g., \code{deploymentStart} and \code{deploymentEnd}) formatted as POSIXct.
-#' @param obs A data frame or tibble of observation data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include a \code{deploymentID} column and several date-time columns (e.g., \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp}, \code{observationStart}, \code{observationEnd}) formatted as POSIXct.
+#' @param obs A data frame or tibble of observation data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include a \code{deploymentID} column and several date-time columns (e.g., \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp} formatted as POSIXct.
 #' @param individuals A character string specifying how to aggregate the number of individuals counted per spatially re sampled cell per day. Options are \code{"sum"} to take the sum total number of counts or  \code{"max"} to use the maximum count.
 #' @param mode_cols_covs (Optional) A character vector specifying the names of covariate columns for which the mode should be computed rather than concatenating all unique values. (Example: \code{c("habitat")}).
 #' @param obs_covs (Optional) A character vector specifying observation-level covariate column names that may vary in space and time and will be combined with the resampled observations. (Example: \code{c("baitUse", "featureType")}).
@@ -50,7 +50,7 @@
 #'    - Verifies that the covariates data frame contains at least one spatial cellID column generated from the \code{WildObsR::spatial_hexagon_generator()} function (i.e., a column whose name starts with "cellID"). If not, the function stops with an error.
 #'    - Checks that the \code{deploymentID} values match between the covariates and observation data. If there is a mismatch, the function stops with an error.
 #'    - Ensures that the specified observation-level covariate columns (provided in \code{obs_covs}) exist in the covariates data. If some are missing, they are omitted from further processing with a warning.
-#'    - Confirms that all required date-time columns in both datasets are formatted as \code{POSIXct}. This includes columns such as \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp}, \code{observationStart}, and \code{observationEnd} in the observations, and \code{deploymentStart} and \code{deploymentEnd} in the covariates.
+#'    - Confirms that all required date-time columns in both datasets are formatted as \code{POSIXct}. This includes columns such as \code{eventStart}, \code{eventEnd}, and \code{classificationTimestamp} in the observations, and \code{deploymentStart} and \code{deploymentEnd} in the covariates.
 #'
 #' 2. **Data Preparation**:
 #'    - Removes any columns that contain only \code{NA} values from both datasets.
@@ -185,10 +185,9 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
     warning("You have provided observation-level covariates that are not present in the covariates resource. The observation-level covariates have been reduced to include only values present in the covariates resource.\n")
   }
   ## Make sure date columns are formatted as posixct
-  if(!any(sapply(obs[, c("eventStart","eventEnd","classificationTimestamp",
-                         "observationStart","observationEnd")],
+  if(!any(sapply(obs[, c("eventStart","eventEnd","classificationTimestamp")],
                  function(x) inherits(x, "POSIXct")))){
-    stop("The observations table you provided in this function does not have date-time columns (i.e.,eventStart, eventEnd, classificationTimestamp, observationStart, & observationEnd) formatted in POSIXct class. Please format these date-time columns to a standard format (%Y-%m-%d %H:%M:%S) using the as.posixct() function before using this function.\n ")
+    stop("The observations table you provided in this function does not have date-time columns (i.e.,eventStart, eventEnd, &  classificationTimestamp) formatted in POSIXct class. Please format these date-time columns to a standard format (%Y-%m-%d %H:%M:%S) using the as.posixct() function before using this function.\n ")
   }
   # same for covs
   if(!any(sapply(covs[, c("deploymentStart", "deploymentEnd")],

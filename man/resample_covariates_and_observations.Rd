@@ -16,7 +16,7 @@ resample_covariates_and_observations(
 \arguments{
 \item{covs}{A data frame or tibble of covariate data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include columns defining spatial cells (with names starting with "cellID"), and date-time columns (e.g., \code{deploymentStart} and \code{deploymentEnd}) formatted as POSIXct.}
 
-\item{obs}{A data frame or tibble of observation data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include a \code{deploymentID} column and several date-time columns (e.g., \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp}, \code{observationStart}, \code{observationEnd}) formatted as POSIXct.}
+\item{obs}{A data frame or tibble of observation data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include a \code{deploymentID} column and several date-time columns (e.g., \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp} formatted as POSIXct.}
 
 \item{individuals}{A character string specifying how to aggregate the number of individuals counted per spatially re sampled cell per day. Options are \code{"sum"} to take the sum total number of counts or  \code{"max"} to use the maximum count.}
 
@@ -69,7 +69,7 @@ The function performs the following steps to resample the covariate and observat
 \item Verifies that the covariates data frame contains at least one spatial cellID column generated from the \code{WildObsR::spatial_hexagon_generator()} function (i.e., a column whose name starts with "cellID"). If not, the function stops with an error.
 \item Checks that the \code{deploymentID} values match between the covariates and observation data. If there is a mismatch, the function stops with an error.
 \item Ensures that the specified observation-level covariate columns (provided in \code{obs_covs}) exist in the covariates data. If some are missing, they are omitted from further processing with a warning.
-\item Confirms that all required date-time columns in both datasets are formatted as \code{POSIXct}. This includes columns such as \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp}, \code{observationStart}, and \code{observationEnd} in the observations, and \code{deploymentStart} and \code{deploymentEnd} in the covariates.
+\item Confirms that all required date-time columns in both datasets are formatted as \code{POSIXct}. This includes columns such as \code{eventStart}, \code{eventEnd}, and \code{classificationTimestamp} in the observations, and \code{deploymentStart} and \code{deploymentEnd} in the covariates.
 }
 \item \strong{Data Preparation}:
 \itemize{
