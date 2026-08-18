@@ -20,7 +20,7 @@ matrix_generator(
 }
 \arguments{
 \item{obs}{A \code{data.frame} of observations. This must include columns for date-time information
-(e.g., \code{eventStart}, \code{eventEnd}, \code{observationStart}, \code{observationEnd}),
+(e.g., \code{eventStart}, \code{eventEnd},
 a species identifier (\code{scientificName}), and a unique identifier for sampling units
 (e.g., \code{cellID_10km} in spatially resampled data from \code{WildObsR::resample_covariates_and_observations()} or \code{deploymentID} in regular camtrap DP data).}
 
