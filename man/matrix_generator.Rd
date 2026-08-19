@@ -20,7 +20,7 @@ matrix_generator(
 }
 \arguments{
 \item{obs}{A \code{data.frame} of observations. This must include columns for date-time information
-(e.g., \code{eventStart}, \code{eventEnd}, \code{observationStart}, \code{observationEnd}),
+(e.g., \code{eventStart}, \code{eventEnd},
 a species identifier (\code{scientificName}), and a unique identifier for sampling units
 (e.g., \code{cellID_10km} in spatially resampled data from \code{WildObsR::resample_covariates_and_observations()} or \code{deploymentID} in regular camtrap DP data).}
 
@@ -93,7 +93,7 @@ that align with the detection history matrix and are compressed to match samplin
 # Example usage with pre-processed camera trap data, accessed from WildObs:
 
 # Load the general use WildObs API key
-api_key <- "REDACTED_API_KEY"
+api_key <- Sys.getenv("WILDOBS_API_KEY")
 # use WildObsR function to access data
 dp <- WildObsR::wildobs_dp_download(api_key = api_key, project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
 # extract first DP from the list

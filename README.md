@@ -11,32 +11,16 @@
 [![Codecov test coverage](https://codecov.io/gh/WildObs/WildObsR/graph/badge.svg)](https://app.codecov.io/gh/WildObs/WildObsR)
 <!-- badges: end -->
 
-# ⚠️ SERVICE OUTAGE — DATABASE ACCESS SUSPENDED
-
-> [!WARNING]
-> **PLANNED OUTAGE NOTICE:** The WildObs database access service via API keys will be offline from 4:00 PM Friday, 12 June 2026 to 4:00 PM AEST on Friday, 19 June 2026 for scheduled maintenance.
-
-
 > Professional tools for camera trap data access, management, and analysis in R
 
 WildObsR provides a suite of functions for standardizing, accessing, and analyzing wildlife camera trap data. This R package is built to support the [Camera Trap Data Package (Camtrap DP)](https://camtrap-dp.tdwg.org/) data standard, built around the [Frictionless Data Package ](https://specs.frictionlessdata.io/data-package/) specifications to ensure camera trap data remains [Findable, Accessible, Interoperable, & Reusable (FAIR)](https://ardc.edu.au/resource-hub/making-data-fair/).
 
 ---
 
-## Installation
-
-```r
-# Install from GitHub
-# install.packages("devtools")
-devtools::install_github("WildObs/WildObsR")
-```
-
----
-
 ## Key Features
 
 ### Data Access & Management
-- **MongoDB Integration**: Query and download camera trap data from WildObs' internal database via API
+- **MongoDB Integration**: Query and download camera trap data from WildObs' public database via API
 - **Flexible Filtering**: Query projects by spatial bounds, temporal ranges, species, contributors, and sampling design
 - **Schema Validation**: Enforce data quality with Camtrap DP schema checking and type coercion
 
@@ -50,6 +34,100 @@ devtools::install_github("WildObs/WildObsR")
 
 ---
 
+## Installation
+
+```r
+# Install from GitHub
+# install.packages("devtools")
+devtools::install_github("WildObs/WildObsR")
+```
+
+### Keeping WildObsR up to date
+
+WildObsR checks its own version the first time you query or download data in an R
+session. If your copy is out of date it prints a warning telling you to reinstall;
+if you are current it says nothing at all. The check never blocks your work — if
+GitHub cannot be reached it is skipped silently.
+
+To update at any time, re-run the install command above.
+
+### What the version number means
+
+WildObsR uses [semantic versioning](https://semver.org/), written as
+`major.minor.patch` (for example `0.2.0`). Each part tells you something different
+about whether you need to act:
+
+| Change | Example | What it means for you |
+|---|---|---|
+| **major** | `1.0.0` → `2.0.0` | **Not backwards compatible.** An old installed version will produce broken or wrong downloads. Update before running anything. |
+| **minor** | `0.1.0` → `0.2.0` | Backwards-compatible additions, such as new functions, or database changes that old code still handles correctly. Update when convenient. |
+| **patch** | `0.2.0` → `0.2.1` | Behaviour-preserving fixes, such as a corrected error message or a bug fix. Nothing you rely on changes. |
+
+The practical rule: **if the first number changes, update before you download data
+again.** Otherwise you can update at your own pace.
+
+---
+
+## Getting Database Access
+
+Database access requires a personal API key tied to your individual WildObs account. Keys are per-person, not per-project. All keys provide access to the public WildObs database, in which sensitive species records are obscured and data sharing agreements applied.
+
+> [!IMPORTANT]
+> **API key creation is not live yet.** Selecting **Create** currently returns
+> *"API key creation is not available yet. This feature is coming soon."* The
+> steps below describe the process once enabled. In the meantime, contact
+> support@wildobs.org.au to arrange access.
+
+### 1. Log in to the WildObs Dashboard
+
+Create an account or log in at the [WildObs Dashboard](https://dashboard.wildobs.org.au).
+
+### 2. Open the WildObs Database
+
+From the Dashboard home, select **Get Started** under **WildObs Database**. This
+takes you to the [WildObs Database](https://dashboard.wildobs.org.au/camdb).
+
+### 3. Create your API key
+
+In the panel at the top right of the camDB page, select **Create** under **API Key**.
+Copy the key immediately — treat it like a password, and do not share it or paste it into a script.
+
+### 4. Store the key in your `.Renviron`
+
+Your `.Renviron` file holds environment variables that R loads at startup. Storing the key here keeps it secure and out of your code.
+
+```r
+# Open .Renviron for editing (creates the file if it doesn't exist)
+usethis::edit_r_environ()
+```
+
+Add this line, replacing `your_key_here` with the key you copied:
+
+```
+WILDOBS_API_KEY=your_key_here
+```
+Then **save the file and restart R** — `.Renviron` is only read at startup.
+
+A few things that commonly go wrong:
+
+- No quotes around the key, and no spaces either side of the `=`.
+- The file must end with a blank line, or the last entry is ignored.
+
+### 5. Retrieve the key in R
+
+```r
+# Read the API key from your .Renviron
+api_key <- Sys.getenv("WILDOBS_API_KEY")
+
+# Confirm it loaded — should be TRUE if loaded
+nchar(api_key) > 0
+```
+
+If this returns `FALSE`, R has not picked up the variable. Check the spelling of
+the variable name and confirm you restarted your R session.
+
+---
+
 ## Quick Start
 
 ### Query WildObs database
@@ -59,8 +137,8 @@ devtools::install_github("WildObs/WildObsR")
 library(WildObsR)   
 library(frictionless)  ## For working with data packages 
 
-# Load the general API key
-data(wildobsr_api_key)
+# Load your personal API key from .Renviron (see "Getting Access" above)
+wildobsr_api_key <- Sys.getenv("WILDOBS_API_KEY")
 
 # Query projects in Queensland from 2020-2024
 spatial_query <- list(xmin = 145.0, xmax = 154.0, ymin = -29.0, ymax = -10.0)

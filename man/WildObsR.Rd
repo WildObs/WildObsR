@@ -43,4 +43,8 @@ resampling, matrix generation for hierarchical models, and schema validation.
 Visit the project repository: \url{https://github.com/WildObs/WildObsR}
 }
 
+\author{
+\strong{Maintainer}: Zachary Amir \email{z.amir@uq.edu.au} (\href{https://orcid.org/0000-0002-8398-2059}{ORCID})
+
+}
 \keyword{package}
