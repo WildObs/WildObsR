@@ -454,6 +454,23 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
   ###
   #### Determine which projects to download, extract key resources, apply schemas, and bundle together
 
+  ### Define a quick helper function to determine when data is ready to share
+  ## Define the function, expecting project metadaa
+  is_shareable <- function(project_metadata) {
+    # extract sharing preference
+    pref <- project_metadata$WildObsMetadata$tabularSharingPreference
+    # extract the citation
+    cit  <- project_metadata$bibliographicCitation
+    # safely handle the citation
+    cit  <- if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) "no_citation" else cit[[1]]
+    # Check if the data sharing agreement states open AND
+    identical(pref, "open") &&
+      # that the citation has a demo RAiD AND
+      grepl("https://raid.org/", cit) &&
+      # that the RAiD is not the DEMO version.
+      !grepl("DEMO", cit)
+  } # end function
+
   ### Extract project_ids that have an open data sharing preference
   ## BUT if were admin, all projects can be included
   # First check if we have admin rights
@@ -476,9 +493,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
         cit <- cit[[1]]  # normal case
       }
       ## is the project ready to be shared?
-      ready_to_share <- (val == "open" &&                     # open data sharing
-                           grepl("https://raid.org/", cit) && # RAID present
-                           !grepl("DEMO", cit))               # and its not DEMO
+      ready_to_share <-is_shareable(project_metadata = x$project_level_metadata)
       ## If the project is ready,
       if(ready_to_share){
         # then add it to the projects to be returned.
@@ -977,7 +992,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     }else{
       # but if not admin, only allow open data to be returned
       # only add data if there is an open data sharing agreement!
-      if(formatted_metadata[[proj]]$project_level_metadata$WildObsMetadata$tabularSharingPreference == "open"){
+      if(is_shareable(formatted_metadata[[proj]]$project_level_metadata)){
         # deployments
         dp = frictionless::add_resource(package = dp,
                                         resource_name = "deployments",
