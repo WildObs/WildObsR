@@ -58,7 +58,7 @@
 #' dep_expanded <- extract_tags(dep, keep_original = FALSE)
 #' }
 #'
-#' @author Zachary Amir
+#' @author Zachary Amir & Claude Opus 4.5
 #'
 #' @importFrom dplyr bind_cols
 #' @importFrom purrr map map_chr
@@ -66,8 +66,9 @@
 #'
 #' @export
 extract_tags <- function(df, col = NULL, keep_original = TRUE) {
-
-  # ---- Input validation -------------------------------------------------------
+  #
+  ##
+  ### Validate data input validation ----
 
   # Confirm the input is a dataframe before doing anything else
   if (!is.data.frame(df)) {
@@ -81,6 +82,7 @@ extract_tags <- function(df, col = NULL, keep_original = TRUE) {
 
   # Define the two standard Camtrap DP tag column names
   standard_tag_cols <- c("deploymentTags", "observationTags")
+  # and determine which tag is present in the df
   present_tag_cols  <- intersect(standard_tag_cols, names(df))
 
   # Warn if both standard tag columns are present (non-standard Camtrap DP),
@@ -92,37 +94,46 @@ extract_tags <- function(df, col = NULL, keep_original = TRUE) {
       "Please specify `col` explicitly to indicate which column to parse.",
       call. = FALSE
     )
-  }
+  } # end double tag condition
 
-  # ---- Resolve which column to parse -----------------------------------------
+  ### Resolve which column to parse ------
 
+  ## if the user specified a column,
   if (!is.null(col)) {
-    # User specified a column: validate that it actually exists in the dataframe
+    # validate that it actually exists in the dataframe
     if (!col %in% names(df)) {
+      # and hard stop if it dopes not
       stop(sprintf("Column '%s' not found in `df`.", col))
     }
+    # but if present, save the tag column
     tags_col <- col
 
+    ## but if the user did not specify,
   } else {
-    # Auto-detect: look for exactly one standard tag column
+    ## Auto-detect exactly one standard tag column
+    # if there were no tags found in the data,
     if (length(present_tag_cols) == 0) {
+      # hard stop with a clear error
       stop(
         "No tag column found in `df`. ",
         "Expected a column named `deploymentTags` or `observationTags`. ",
         "Please specify `col` explicitly."
       )
+      # But if both tags were found in the data,
     } else if (length(present_tag_cols) == 2) {
+      # hard stop with a clear error
       stop(
         "Both `deploymentTags` and `observationTags` found in `df`. ",
         "Please specify `col` explicitly."
       )
+      ## but if there is exactly one tag
     } else {
-      # Exactly one standard tag column detected — use it automatically
+      # use it automatically
       tags_col <- present_tag_cols
     }
   }
 
-  # ---- Parse the tag strings --------------------------------------------------
+  ### Parse the tag strings -------------
 
   # Pull out the raw tag strings as a plain character vector
   raw_tags <- as.character(df[[tags_col]])
@@ -152,8 +163,8 @@ extract_tags <- function(df, col = NULL, keep_original = TRUE) {
       colon_pos <- regexpr(":", pair, fixed = TRUE)
       # Skip malformed pairs that contain no colon
       if (colon_pos == -1) return(NULL)
-      key   <- substring(pair, 1, colon_pos - 1)
-      value <- substring(pair, colon_pos + 1)
+      key   <- str_trim(substring(pair, 1, colon_pos - 1))
+      value <- str_trim(substring(pair, colon_pos + 1))
       list(key = key, value = value)
     })
 
@@ -169,17 +180,18 @@ extract_tags <- function(df, col = NULL, keep_original = TRUE) {
     return(result)
   })
 
-  # ---- Collect all unique keys found across all rows -------------------------
+  ### Collect all unique keys found across all rows ----------
 
   all_keys <- unique(unlist(lapply(parsed, names)))
 
   # If no keys were found (all rows had empty/missing tags), return df unchanged
   if (length(all_keys) == 0) {
-    message("No tag key:value pairs found in column '", tags_col, "'. Returning `df` unchanged.")
+    message("No tag key:value pairs found in column '", tags_col,
+            "'. Returning `df` unchanged.")
     return(df)
   }
 
-  # ---- Build the expanded tag dataframe --------------------------------------
+  ### Build the tag-expanded dataframe ------------
 
   # For each unique key, extract the corresponding value from each row.
   # Rows that do not have a given key receive NA.
@@ -200,14 +212,14 @@ extract_tags <- function(df, col = NULL, keep_original = TRUE) {
   # Assign the key names as column names of the new tag dataframe
   names(tag_df) <- all_keys
 
-  # ---- Attempt type coercion on each new tag column --------------------------
+  ### Attempt type coercion on each new tag column -------
 
   # Try to coerce each character column to a more informative type.
   # This modifies tag_df in-place and may emit warnings for columns that
   # cannot be safely coerced.
   tag_df <- .coerce_tag_columns(tag_df)
 
-  # ---- Assemble the output dataframe -----------------------------------------
+  #### Assemble the output dataframe ---------
 
   # Start from the original dataframe (preserving all original columns and order)
   out_df <- df
@@ -224,7 +236,7 @@ extract_tags <- function(df, col = NULL, keep_original = TRUE) {
 }
 
 
-# ---- Internal helpers --------------------------------------------------------
+#### Define a couple internal helpers ---------------------
 
 #' Attempt Type Coercion for Expanded Tag Columns
 #'
