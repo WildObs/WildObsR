@@ -127,46 +127,62 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     ## if we survived the pattern check, grab the db name, since it could vary
     db <- sub("^mongodb(\\+srv)?://(.*@)?[^/?]+/([^?]*).*$", "\\3", db_url)
 
-    ### now determine which host we are using
-    # extract the host
-    host <-  sub("^mongodb(\\+srv)?://(.*@)?([^:/?]+).*$", "\\3", db_url)
-    # if the PROD host is present,
-    if(host == "REDACTED_HOST"){
-      ## run a test to check if were connected to the VPN
-      # first craft a quick ping query
-      sep <- if (grepl("\\?", db_url)) "&" else "?" # carefully extract the separator
-      uri_test <- paste0(db_url, sep, "serverSelectionTimeoutMS=", 3000) # quick time out
+    ## also extract the host, which we only use to tailor the error message
+    ## below - it no longer decides whether we have admin rights
+    host <- sub("^mongodb(\\+srv)?://(.*@)?([^:/?]+).*$", "\\3", db_url)
 
-      ## wrap in a try-catch so whole function doesn't fail
-      ok <- tryCatch({
-        # form the connection
-        con <- mongolite::mongo(collection = "metadata", db = db, url = uri_test)
-        # run a ping as the cheapest round-trip to the server
-        con$run('{"ping": 1}')
-        # then disconnect
-        con$disconnect()
-        # and return a TRUE result
-        TRUE
-      },
-      # but save the error if we dont get a connection
-      error = function(e) FALSE)
+    ### Connect to the server to ask whowe are, rather than guessing from the host address
+    # carefully extract the separator from db url
+    sep <- if (grepl("\\?", db_url)) "&" else "?"
+    # add a quick time out so it fails fast instead of hanging.
+    uri_test <- paste0(db_url, sep, "serverSelectionTimeoutMS=", 3000) # quick time out
 
-      ## if we did NOT get a successful connection, stop the function
-      if(!ok){
-        stop("You have provided the production MongoDB URL, but the function ",
-             "cannot form a connection.\nPlease ensure you have logged into the ",
+    ## wrap in a try-catch so whole function doesn't fail
+    roles <- tryCatch({
+      # form the connection
+      con <- mongolite::mongo(collection = "metadata", db = db, url = uri_test)
+      # connectionStatus is self-describing, so any authenticated user can run
+      # it about their own connection without needing extra privileges
+      status <- con$run('{"connectionStatus": 1}')
+      # then disconnect
+      con$disconnect()
+      # and hand back whatever roles the server says this user holds
+      status$authInfo$authenticatedUserRoles
+    },
+    # but save a NULL if we could not reach the server at all
+    error = function(e) NULL)
+
+    ## If we did not get a successful connection,
+    if(is.null(roles)){
+      ### Create a useful STOP message
+      ## first, determine if the host is from a private VPN, based on a generic
+      # RFC1918 test, so no specific host is disclosed.
+      is_private <- grepl("^(10\\.|192\\.168\\.|172\\.(1[6-9]|2[0-9]|3[0-1])\\.)",
+                          host)
+      ## if it is private
+      if(is_private){
+        ## instruct the user to log into the VPN
+        stop("You have provided a private MongoDB URL, but the function cannot ",
+             "form a connection.\nPlease ensure you have logged into the ",
              "WildObs VPN before connecting to the database. \nIf you require ",
              "help connecting to the WildObs WireGuard VPN, please contact us at",
              " support@wildobs.org.au")
+        ## but if its not private,
       }else{
-        ## but if this test connection is ok, then we have admin rights
-        use_admin <- TRUE
-      } # end else test_conn results
-    }else{
-      ## but if they are NOT providing the PROD URL, then we dont have admin rights
-      use_admin <- FALSE
-    } # end else host condition
-    ## but if we are using the API,
+        ## Notify that the connection failed
+        stop("The function cannot form a connection to the MongoDB URL you ",
+             "provided.\nPlease check the host, username and password in your ",
+             "connection string are correct, and that you have an active ",
+             "internet connection.\nIf you continue to have trouble, please ",
+             "contact us at support@wildobs.org.au")
+      } # end else private host connection
+    } # end failed conneciton check
+
+    ### if we survived, grant admin rights based on what we got from the server via utils.R funct
+    ## Each role is scoped to a database, so any DB other than public
+    # means this connection has privileged access. Empty role returns FALSE here.
+    use_admin <- any(role_dbs(roles) != "wildobs_camdb_public")
+
   }else{
     ## default to non-admin since API only connects to public (i.e., non-admin) MongoDB
     use_admin <- FALSE
@@ -438,6 +454,23 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
   ###
   #### Determine which projects to download, extract key resources, apply schemas, and bundle together
 
+  ### Define a quick helper function to determine when data is ready to share
+  ## Define the function, expecting project metadaa
+  is_shareable <- function(project_metadata) {
+    # extract sharing preference
+    pref <- project_metadata$WildObsMetadata$tabularSharingPreference
+    # extract the citation
+    cit  <- project_metadata$bibliographicCitation
+    # safely handle the citation
+    cit  <- if (is.null(cit) || length(cit) == 0 || is.null(cit[[1]])) "no_citation" else cit[[1]]
+    # Check if the data sharing agreement states open AND
+    identical(pref, "open") &&
+      # that the citation has a demo RAiD AND
+      grepl("https://raid.org/", cit) &&
+      # that the RAiD is not the DEMO version.
+      !grepl("DEMO", cit)
+  } # end function
+
   ### Extract project_ids that have an open data sharing preference
   ## BUT if were admin, all projects can be included
   # First check if we have admin rights
@@ -460,9 +493,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
         cit <- cit[[1]]  # normal case
       }
       ## is the project ready to be shared?
-      ready_to_share <- (val == "open" &&                     # open data sharing
-                           grepl("https://raid.org/", cit) && # RAID present
-                           !grepl("DEMO", cit))               # and its not DEMO
+      ready_to_share <-is_shareable(project_metadata = x$project_level_metadata)
       ## If the project is ready,
       if(ready_to_share){
         # then add it to the projects to be returned.
@@ -961,7 +992,7 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     }else{
       # but if not admin, only allow open data to be returned
       # only add data if there is an open data sharing agreement!
-      if(formatted_metadata[[proj]]$project_level_metadata$WildObsMetadata$tabularSharingPreference == "open"){
+      if(is_shareable(formatted_metadata[[proj]]$project_level_metadata)){
         # deployments
         dp = frictionless::add_resource(package = dp,
                                         resource_name = "deployments",
