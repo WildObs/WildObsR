@@ -6,8 +6,7 @@
 #' and groups records into events using a fixed independence threshold (default
 #' 30 minutes). This function reuses that pre-calculated column to redraw event
 #' boundaries at a different, user-supplied threshold, without re-parsing
-#' \code{dateTime}, making it much faster than re-running the full event-grouping
-#' step of the pipeline.
+#' \code{dateTime}, making it much faster than any temporal grouping analysis.
 #'
 #' This is useful for identifying "continuous" detections that exceed the default
 #' independence threshold (e.g., an animal resting in front of a camera for hours):
@@ -72,19 +71,22 @@
 #' # Reclassify events using a 60-minute threshold
 #' reclassify_eventID(obs, new_event_time = 60)
 #'
-#' @author Zachary Amir & Claude
+#' @author Zachary Amir & Claude Opus 5
 #'
 #' @export
 reclassify_eventID <- function(obs, new_event_time) {
 
-  ## Make sure the required columns are present
+  ## Specify the required columns
   required_cols <- c("deploymentID", "scientificName", "eventStart", "deltaTime_event")
+  # check if there are any missing
   missing_cols <- setdiff(required_cols, names(obs))
+  # if there are,
   if (length(missing_cols) > 0) {
+    # hard stop the function with missing columsn
     stop(paste("The `obs` data frame is missing the following required column(s):",
                paste(missing_cols, collapse = ", "),
                ". These are needed to recalculate eventID with a new time threshold.\n"))
-  }
+  } # end missing condition
 
   ## Make sure new_event_time is a single, positive number
   if (!is.numeric(new_event_time) || length(new_event_time) != 1 ||
@@ -92,10 +94,10 @@ reclassify_eventID <- function(obs, new_event_time) {
     stop("`new_event_time` must be a single positive numeric value, given in minutes.\n")
   }
 
-  ## Warn (but don't stop) if the new threshold is below the default obs_time window (5 min),
+  ## Warn (but don't stop) if the new threshold is below the default window (5 min),
   ## since values below this are unlikely to represent a meaningful independence threshold.
   if (new_event_time < 5) {
-    warning("`new_event_time` is less than 5 minutes, which is below the default observation window (obs_time) used by the WildObsR pipeline to define independent observations. Event boundaries finer than this may not be meaningful.\n")
+    warning("`new_event_time` is less than 5 minutes, which is below the default observation window used by the WildObs data curation pipeline to define independent observations. Event boundaries finer than this may not be ecologically meaningful.\n")
   }
 
   ## convert threshold from minutes to seconds for comparison
@@ -107,30 +109,33 @@ reclassify_eventID <- function(obs, new_event_time) {
   ## preserve the original row order, since grouping/arranging below can reorder rows
   obs$..orig_row_order <- seq_len(nrow(obs))
 
+  ## Update the observations by...
   obs <- obs |>
     # group by deployment and species so event counters reset per species per camera
     dplyr::group_by(deploymentID, scientificName) |>
     # arrange by start date-time within each group, required for the boundary/cumsum logic below
     dplyr::arrange(eventStart, .by_group = TRUE) |>
     dplyr::mutate(
-      # derive new event boundary flag:
-      # TRUE  = first record ever (delta == 0) or gap exceeds new threshold
-      # FALSE = gap exists but is below threshold (i.e., belongs to prior event)
-      # NA    = non-boundary row (deltaTime_event is NA); treated as FALSE in cumsum
+      # derive new column to flag event boundaries:
       independent_event_new = dplyr::case_when(
+        # TRUE  = first record ever (delta == 0) or gap exceeds new threshold
         deltaTime_event == 0              ~ TRUE,
         deltaTime_event >= threshold_secs ~ TRUE,
+        # FALSE = gap exists but is below threshold (i.e., belongs to prior event)
         !is.na(deltaTime_event)           ~ FALSE,
+        # NA    = non-boundary row (deltaTime_event is NA); treated as FALSE in cumsum
         TRUE                              ~ NA
       ),
       # increment event counter only at TRUE boundaries; NA rows treated as 0 (non-incrementing)
-      event_counter = cumsum(ifelse(is.na(independent_event_new), FALSE, independent_event_new)),
+      event_counter = cumsum(ifelse(is.na(independent_event_new),
+                                    FALSE, independent_event_new)),
       # reconstruct eventID, embedding scientificName since the counter above resets per
       # species (unlike the globally sequential counter used in the WildObsR pipeline)
       eventID = paste(deploymentID, gsub(" ", "_", scientificName), new_tag, "event", event_counter, sep = "_")
     ) |>
-    # remove groupings and drop derived columns
+    # remove groupings
     dplyr::ungroup() |>
+    # and drop derived columns
     dplyr::select(-independent_event_new, -event_counter) |>
     # restore the original row order
     dplyr::arrange(..orig_row_order) |>
