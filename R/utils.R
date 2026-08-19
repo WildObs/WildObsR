@@ -706,3 +706,22 @@ geojson_list_to_sf <- function(geojson_list) {
   geojson_string <- jsonlite::toJSON(geojson_list, auto_unbox = TRUE)
   geojsonsf::geojson_sf(geojson_string)
 }
+
+#' Pull the database scope out of a roles object
+#'
+#' mongolite simplifies JSON on the way back, so the roles arrive as a data
+#' frame when every entry has the same fields, but as a list of lists when
+#' they don't. This normalises both to a plain character vector, and returns
+#' an empty vector when there are no roles at all.
+role_dbs <- function(roles){
+  # nothing came back, so there is nothing to report
+  if(is.null(roles)){
+    return(character(0))
+  }
+  # the simplified case, where we can just pull the column
+  if(is.data.frame(roles)){
+    return(as.character(roles$db))
+  }
+  # otherwise walk the list and grab the db entry from each role
+  vapply(roles, function(r) as.character(r$db), character(1))
+}
