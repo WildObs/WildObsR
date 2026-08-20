@@ -73,7 +73,8 @@ these preferences are returned.}
 A character vector of project IDs matching the specified criteria.
 }
 \description{
-This function queries the WildObs MongoDB database for projects matching specified spatial, temporal, taxonomic, contributor, and data-sharing criteria.
+This function queries the WildObs MongoDB database for projects matching
+specified spatial, temporal, taxonomic, contributor, and data-sharing criteria.
 It extracts metadata from the database and filters projects based on bounding
 box overlaps, temporal overlaps, species detected, contributors associated,
 and data sharing preferences. The function also ensures that only projects that
