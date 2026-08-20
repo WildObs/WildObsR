@@ -4,26 +4,40 @@ on:
   push:
     branches: [main, master]
   pull_request:
+  # Lets the check be run by hand, e.g. to re-test a platform that is no
+  # longer part of the standing matrix before cutting a release.
+  workflow_dispatch:
 
 name: R-CMD-check.yaml
 
 permissions: read-all
 
+# A force-push to a PR branch supersedes the previous run. Without this, both
+# generations run to completion; on 2026-08-19 both ran to the 6-hour ceiling.
+# run_id in the fallback keeps pushes to main from cancelling each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
+
+    # Nothing here has ever legitimately taken more than 35 minutes. Without
+    # this, an upstream apt/mirror stall runs to GitHub's 6-hour ceiling
+    # (2026-08-19: 15 jobs x 6h = 5,415 minutes, 271% of the monthly allowance).
+    timeout-minutes: 30
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
     strategy:
       fail-fast: false
       matrix:
+        # One entry. The macOS, Windows, R-devel and oldrel-1 entries cost ~90%
+        # of the bill and have never once disagreed with this one. Use
+        # workflow_dispatch to run the wider set by hand before a release.
         config:
-          - {os: macos-latest,   r: 'release'}
-          - {os: windows-latest, r: 'release'}
-          - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
-          - {os: ubuntu-latest,   r: 'release'}
-          - {os: ubuntu-latest,   r: 'oldrel-1'}
+          - {os: ubuntu-latest, r: 'release'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
