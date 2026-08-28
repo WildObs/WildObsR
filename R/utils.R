@@ -707,6 +707,13 @@ geojson_list_to_sf <- function(geojson_list) {
   geojsonsf::geojson_sf(geojson_string)
 }
 
+
+#
+##
+###
+####
+##### MongoDB helper functions ----
+
 #' Pull the database scope out of a roles object
 #'
 #' mongolite simplifies JSON on the way back, so the roles arrive as a data
@@ -724,4 +731,157 @@ role_dbs <- function(roles){
   }
   # otherwise walk the list and grab the db entry from each role
   vapply(roles, function(r) as.character(r$db), character(1))
+}
+
+
+#' Resolve how database access and privileges
+#'
+#' Works out whether a call should reach the database through the public API or
+#' through a direct MongoDB connection, validates the connection string, asks
+#' the server who we are, and reports whether that connection holds admin
+#' rights. This is shared by the query and download functions so both apply the
+#' same checks and return the same error messages.
+#'
+#' A supplied `db_url` always takes priority over an `api_key`, since a direct
+#' connection can reach data the public API cannot. When the API route is taken
+#' no connection test is made, because the API only ever reaches the public
+#' database and so never carries admin privileges.
+#'
+#' Privilege is determined by asking the server rather than by inspecting the
+#' host address. The `connectionStatus` command is self-describing, so any
+#' authenticated user can run it about their own connection without needing
+#' extra privileges. Each role the server reports is scoped to a database, so a
+#' connection scoped to anything other than "public" is treated as privileged.
+#'
+#' @param api_key Character string. A user-specific API key for the public
+#'   database, or `NULL` if the user is connecting directly.
+#' @param db_url Character string. A MongoDB connection URI of the form
+#'   `mongodb://user:password@host:port/dbname`, or `NULL` if the user is
+#'   connecting through the API.
+#' @param timeout_ms Numeric. How long to wait for the server to respond, in
+#'   milliseconds. Defaults to 10000 (ten seconds), which is long enough for a
+#'   VPN route to come up but short enough that a genuinely unreachable host
+#'   fails quickly.
+#'
+#' @return A list with three elements:
+#'   \describe{
+#'     \item{use_api}{Logical. `TRUE` if data should be fetched via the API.}
+#'     \item{use_admin}{Logical. `TRUE` if the connection holds privileges
+#'       beyond the public database. Always `FALSE` on the API route.}
+#'     \item{db}{Character string naming the database pulled from `db_url`, or
+#'       `NULL` on the API route.}
+#'   }
+#'
+#' @details Errors are raised with `call. = FALSE` so that users see only the
+#'   guidance text, rather than the name of this internal helper, which would
+#'   not mean anything to them.
+#'
+#' @keywords internal
+#' @noRd
+resolve_db_access <- function(api_key = NULL, db_url = NULL, timeout_ms = 10000) {
+
+  ### If neither an API key nor a db_url was provided, we cannot go anywhere
+  if (is.null(api_key) && is.null(db_url)) {
+    # stop the function and tell them how to get access
+    stop("You have not provided an API key or a database URL to access MongoDB.",
+         "\nPlease provide an appropriate API key or URL if you want to access ",
+         "the database. \nIf you require a user-specific API key, please contact ",
+         "the WildObs team at support@wildobs.org.au",
+         call. = FALSE)
+  } # end double null condition
+
+  ### Decide which route we are taking
+  ## a db_url always wins over an API key, so we fall back to the API when no URL was given
+  use_api <- is.null(db_url)
+
+  ## If we are on the API route there is no URL to validate and no admin to grant
+  if (use_api) {
+    # the API only reaches the public MongoDB, so this is never an admin session
+    return(list(use_api = TRUE, use_admin = FALSE, db = NULL))
+  } # end API route
+
+  ### From here on we are on the direct URL route
+  ## Make sure the db URL they provided matches the basic pattern
+  pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/?\\?.*)?$"
+  if (!grepl(pattern, db_url)) {
+    # stop before we try to connect with something malformed
+    stop("The URL to access the database must be a valid MongoDB URI of the",
+         " following format: \n'mongodb://user:password@host:port/dbname'",
+         call. = FALSE)
+  } # end pattern check
+
+  ## if we survived the pattern check, grab the db name, since it could vary
+  db <- sub("^mongodb(\\+srv)?://(.*@)?[^/?]+/([^?]*).*$", "\\3", db_url)
+
+  ### Connect to the server to ask who we are, rather than guessing from the host
+  # carefully extract the separator from the db url
+  sep <- if (grepl("\\?", db_url)) "&" else "?"
+  # add a timeout to accommodate a slow VPN connection, but not too long
+  uri_test <- paste0(db_url, sep, "serverSelectionTimeoutMS=", timeout_ms)
+
+  ## wrap in a try-catch so the whole function doesn't fail
+  ## return a list so we keep the error text as well as the roles
+  attempt <- tryCatch({
+    # form the connection
+    con <- mongolite::mongo(collection = "metadata", db = db, url = uri_test)
+    # connectionStatus is self-describing, so any authenticated user can run
+    # it about their own connection without needing extra privileges
+    status <- con$run('{"connectionStatus": 1}')
+    # then disconnect
+    con$disconnect()
+    # and hand back whatever roles the server says this user holds
+    list(roles = status$authInfo$authenticatedUserRoles, msg = NULL)
+  },
+  # but save the error message if we could not reach the server at all
+  error = function(e) list(roles = NULL, msg = conditionMessage(e)))
+
+  # pull the roles out for inspection
+  roles <- attempt$roles
+
+  ## If we did not get a successful connection, work out why before we stop
+  if (is.null(roles)) {
+
+    ## detect if there was a timeout in the error message
+    timed_out <- grepl("timed out|timeout", attempt$msg, ignore.case = TRUE)
+    ## detect if the connection was refused in the error message
+    refused   <- grepl("connection refused", attempt$msg, ignore.case = TRUE)
+
+    ## check refused first, since it is the more specific of the two
+    if (refused) {
+      # point them at the VPN, which is the usual cause
+      stop("The MongoDB server refused the connection.\nThis usually means you ",
+           "are not connected to the VPN, so the host is not reachable from ",
+           "your network. Please connect to the VPN and try again.\n",
+           "Server message: ", attempt$msg,
+           call. = FALSE)
+      ## but if there was a timeout instead,
+    } else if (timed_out) {
+      # the host may be there but the route was not up in time, so suggest a retry
+      stop("The connection to the MongoDB server timed out after ",
+           timeout_ms / 1000, " seconds.\nThis may happen on the first attempt ",
+           "while a VPN is still establishing its route. Please wait a moment ",
+           "and try again.\nIf it keeps timing out, check that your VPN is ",
+           "connected and that the host in your connection string is correct.\n",
+           "Server message: ", attempt$msg,
+           call. = FALSE)
+      ## but if its not refused or a timeout error,
+    } else {
+      ## something other than a network problem, most likely credentials
+      stop("The function cannot form a connection to the MongoDB URL you ",
+           "provided.\nPlease check the host, username and password in your ",
+           "connection string are correct, and that you have an active ",
+           "internet connection. \nIf you continue to have trouble, please ",
+           "contact us at support@wildobs.org.au\n",
+           "Server message: ", attempt$msg,
+           call. = FALSE)
+    } # end else network condition
+  } # end failed connection check
+
+  ### if we survived, grant admin rights based on what the server told us
+  ## Each role is scoped to a database, so any DB other than "public" means
+  ## this connection has privileged access. An empty role returns FALSE here.
+  use_admin <- !grepl("public", role_dbs(roles))
+
+  ## hand back everything the calling function needs in one object
+  list(use_api = use_api, use_admin = use_admin, db = db)
 }

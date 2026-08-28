@@ -6,7 +6,6 @@
 
 ### Zachary Amir, Z.Amir@uq.edu.au
 ## code initalized: March 31st, 2025
-## last updated: August 10th, 2026
 
 # start fresh!
 rm(list = ls())
@@ -25,11 +24,11 @@ library(tidyverse)
 ### create a query using wildobs_mongo_query()
 
 ### First, grab the DB connection string
-# db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
+db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
 # db_url <- Sys.getenv("MONGODB_PUB_ADMIN_URL")
 
 ### First, grab the API key from R environ
-api_key <- Sys.getenv("WILDOBS_API_KEY")
+# api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 
 ## Define a temporal range to query
@@ -52,7 +51,7 @@ contributors = c() #c("Zachry Amir", "Tom Bruce")
 tabularSharingPreference = c("open", "partial", "closed")
 
 ## Gather relevant project_ids using the mongo query function
-project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url,
+project_ids = wildobs_mongo_query(db_url = db_url, # api_key
                                   temporal = temporal,
                                   spatial = spatial,
                                   taxonomic = taxonomic,
@@ -73,7 +72,7 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 ### use the output to access data from wildobs_dp_download()
 # set media to FALSE to make a quicker download
 start = Sys.time()
-dp_list = wildobs_dp_download(api_key = api_key, #db_url = db_url,
+dp_list = wildobs_dp_download(db_url = db_url,# api_key = api_key,
                               project_ids = project_ids, media = T,
                               metadata_only = F)
 end = Sys.time()
@@ -87,7 +86,7 @@ class(dp_list[[1]])
 # make sure all project_ids were downloads
 length(dp_list) == length(project_ids) # MUST BE T
 # check if we have data resources
-frictionless::resources(dp_list[[1]]) # no media, but the rest is there!
+frictionless::resources(dp_list[[2]]) # media should be present
 # check a media file
 check_med = frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "media")
 head(check_med$filePath[check_med$filePublic]) # all work!
