@@ -52,14 +52,105 @@ Three levels, escalating in scope:
   genuinely distinct task-blocks; not needed for simple straight-line scripts.
 
 The `#` floor is never removed by adding higher levels — complexity *adds*
-structure on top of baseline narration, it doesn't replace it.
+structure on top of baseline narration, it doesn't replace it. But see §4a: the
+floor means *one clear line*, not a paragraph, and never the same fact twice.
+
+### Multi-line comment blocks: `###` opener, `##` body
+
+A comment block of **three or more lines** opens with `###` and continues with
+`##`. The `###` line is the heading; the `##` lines are the explanation.
+
+```r
+### statewide RE + biodiversity status shapefile
+## despite the folder name this is RE version 12.1 and is NOT remnant-only:
+## cleared land is explicitly mapped, so absence of vegetation is data, not a hole
+re_path <- paste0("/Users/zachary_amir/Dropbox/ECL spatial layers repository/",
+                  "Australian spatial layers GIS data/QLD/QLD regional ecosystems 2019/",
+                  "Biodiversity_status_of_remnant_regional_ecosystems.shp")
+```
+
+**Two-line blocks stay all `##`:**
+
+```r
+## only keep occurrence records from this year onwards
+## single point of control -- change it here and the whole workflow follows
+year_min <- 2000
+```
+
+The exception is a two-line block whose first line is a genuine heading — most
+often a question the second line answers. Then use `###` / `##`:
+
+```r
+### What to do with records whose coordinate uncertainty is missing entirely?
+## TRUE means keeping them, because dropping them may remove older data
+keep_missing_coord_uncertainty <- TRUE
+```
+
+Write the `###` opener as a heading, not a sentence fragment: a noun phrase
+("Cut lines that sever Cooloola from the mainland") or an imperative
+("Establish landmarks to check the Cooloola boundary is behaving").
+
+### Comments inside multi-line pipe chains
+
+A multi-line `|>` chain gets the same `#` floor as any other multi-line block:
+one comment per pipe step, sitting directly above the step it describes, with
+an `##` header above the whole chain naming the overall goal.
+
+```r
+## Load all data packages into a list
+dp_list <- dp_paths |>
+  # save each package ID as the name in the list
+  set_names(dp_import) |>
+  # and use frictionless's read_package across all paths
+  map(read_package)
+```
+
+**Do not** hoist all the step comments above the chain as a block, even though
+the code below is otherwise unchanged:
+
+```r
+# DON'T -- comments detached from the steps they explain
+## Load all data packages into a list
+# save each package ID as the name in the list
+# and use frictionless's read_package across all paths
+dp_list <- dp_paths |>
+  set_names(dp_import) |>
+  map(read_package)
+```
+
+The hoisted version forces the reader to hold all three comments in their head
+before matching them back to the pipe steps below. Each comment stays glued to
+its own line.
+
+### Never use banner rules
+
+**Never** mark a section with a run of hashes or dashes:
+
+```r
+###############################################################################
+## DON'T DO THIS
+###############################################################################
+```
+
+This is not an aesthetic preference. RStudio's **Jump To** menu — the section
+navigator in the editor status bar — builds a section from any comment line
+ending in four or more `-`, `=`, or `#`. A banner rule therefore registers as a
+nameless section and fills the navigator with meaningless entries. The navigator
+is the primary way these scripts get moved around in, so this is a hard rule.
+
+For the same reason, a bare `###` heading with **no** trailing `----` is safe and
+does *not* create a navigator entry. That is exactly why `###` works as a
+multi-line block opener without polluting the outline. Only `### Name ----`
+creates a section, and it should always have a real name.
 
 ### The spacer stack
 
-Before a `###` section in heavy code, use a three-line ramp for vertical
-breathing room:
+Before a `###` section, use a three-line ramp for vertical breathing room,
+preceded by **two blank lines**:
 
 ```r
+
+
 #
 ##
 ### First, extract the PI's organization as lead (require exactly one) ----
@@ -109,11 +200,111 @@ if (!is.null(c$role) && tolower(c$role) == "principalinvestigator") {
 
 ---
 
-## 5. Comments go above, not trailing
+## 4a. Say it once, and say it where it happens
 
-Default position is **on their own line, above the code**. Avoid right-trailing
-comments. (The one tolerated exception is a short label on a constant
-assignment, but even those read better moved above.)
+Comment density is not the goal — comprehension is. Repetition is what produces
+reader fatigue, so:
+
+- **Do not comment on code because of something that happens elsewhere in the
+  script.** If the note is about how a value gets *used*, it belongs at the point
+  of use, not at the point of definition. A config file should say what a knob
+  is; the script that turns the knob explains what turning it does.
+- **Never state the same fact twice** in one script. The second statement is the
+  one to delete.
+- **No changelog comments.** A comment describes what the code does now and why
+  — never what it used to do, what changed, or what a past version of an API,
+  function, or argument used to mean. If that history matters, it belongs in a
+  dedicated changelog file (`NEWS.md`, a commit message, a GitHub issue), never
+  inline. Apply the history test: if a comment only makes sense to someone who
+  already knows the "before" state, it fails and gets rewritten as a plain
+  statement of the current contract.
+
+```r
+# DON'T -- changelog buried in a code comment
+## WildObsR changed this argument's meaning: it used to take the hexagon apothem
+## in metres, and now takes the cell AREA in square metres, labelling the scale
+## itself. Passing the old 930.6 is silently accepted and builds 930.6 m2 cells,
+## a 16 m apothem, which is roughly one cell per camera. 3e6 m2 gives the 3 km2
+## cell this analysis has always used, and resolves to the same 930.6 m apothem.
+scales <- c(3e6)
+
+# DO -- states the current contract only
+## sampling unit: 3 km2 hexagons (spatial_hexagon_generator takes cell area in m2)
+scales <- c(3e6)
+```
+
+- **A long rationale does not belong in the code.** If a decision needs several
+  paragraphs to defend, put it in `CLAUDE.md` or a `README.md` and leave a one-line
+  pointer:
+
+```r
+### distance (metres) to bridge gaps between sand masses before splitting into components
+## Tested at 0 m: all five islands separate cleanly at correct areas.
+## See CLAUDE.md decision 2 for more info
+bridge_distance_m <- 0
+```
+
+Exceptions exist — a genuinely surprising gotcha earns its inline paragraph — but
+it must be succinct, and it must be the only place that fact is stated.
+
+- **Narrated failure scenarios follow the per-line rule, same as pipe chains.**
+  A comment describing what a check guards against sits directly above the line
+  it explains — not hoisted above a multi-line `if`/`stop()` block as a single
+  block comment covering the whole thing.
+
+```r
+## Prepare to merge deployments and covariates together,
+# but first make sure equal deploymentID values (i.e., the foreign key)
+if (length(setdiff(deps$deploymentID, covs$deploymentID)) +
+    length(setdiff(covs$deploymentID, deps$deploymentID)) != 0) {
+  ## hard stop if there is a deployments mismatch
+  stop("Mismatched deploymentID values between covariates and deployments in: ",
+       dp$name,
+       "\nRe-curate that data package before including it here.")
+} # end deploymentID check
+```
+
+Abbreviate freely once a term is established: `REs`, `ALA`, `RE version 12.1`.
+
+---
+
+## 5. Comment position
+
+Default position is **on their own line, above the code**. Prose explanation is
+always above.
+
+**Aligned trailing comments are the correct form for list-like blocks**, where
+each line is a short label on one item and the block reads as a table. Use a
+single `#`, and align the comments into a column:
+
+```r
+## Load libraries
+library(tidyverse) # For basic data wrangling
+library(sf)        # For everything spatial
+library(here)      # For project-relative paths so this runs on any machine
+library(galah)     # For pulling occurrence records out of the ALA
+```
+
+```r
+## build bounding box coordinates in EPSG:4326
+xmin <- 152.50     # Cooloola western tip
+xmax <- 153.60     # Point Lookout eastern tip
+ymin <- -28.00     # S. Stradbroke southern tip
+ymax <- -24.60     # K'gari northern tip
+```
+
+Note what those trailing comments do: they carry **information the code cannot**
+— which geographic feature sets each bound. A trailing comment that restates the
+code (`xmin <- 152.50 # set xmin`) is worse than none.
+
+A trailing comment is also the right place for a short human annotation on a
+decision, initialled:
+
+```r
+cooloola_boundary_approved <- TRUE # ZDA interactively did this w/ Claude Code
+```
+
+Anything longer than a short label goes above the line, not trailing.
 
 ---
 
@@ -171,11 +362,38 @@ the empty case, because the explicit form fails loudly and tells the reader why.
 
 ---
 
-## 10. Inherited conventions (unchanged)
+## 10. Inherited conventions
 
-Native pipe `|>`; `snake_case`; `#### Name ----` section headers where used;
+Native pipe `|>`; `snake_case`; `### Name ----` section headers where used;
 `message()` not `cat()` (except HPC scripts, where `cat()` goes to `.out`); CSS
 colors only in DT/htmlwidgets.
+
+Section headers are **three** hashes, not four — see §2. Four hashes still create
+a valid RStudio section, but three is what the codebase uses and mixing the two
+splits the outline visually for no reason.
+
+---
+
+## 11. Analysis script file headers
+
+An analysis script opens with a `###` title line carrying the filename and a
+one-line purpose, then `##` prose. No banner rules above or below it.
+
+```r
+### 00_config.R -- every knob for the SEQ sand mass species detection map
+##
+## Scientific motivation:
+##
+## The southeast Queensland sand masses -- K'gari, Cooloola, Bribie, Mulgumpin
+## ... [ prose ] ...
+##
+## This file defines objects only. It runs no analysis and writes no files, so
+## it is safe to source at the top of any other script.
+```
+
+Keep the header to what a reader needs before reading the code: what the script
+is for, and any constraint on how it may be run. Method detail and justification
+go in `CLAUDE.md` or a `README.md` (§4a), not here.
 
 ---
 

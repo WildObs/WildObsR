@@ -89,87 +89,14 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
   ## Silent when up to date, and never blocks the download.
   .check_wildobs_version()
 
-  ### Determine if we will use the API key or the DB url to access data
-  if(!is.null(api_key) && is.null(db_url)){
-    # if API key is supplied and db url is still null, use the API
-    use_api = TRUE
-  }else{
-    # but if there is a db_url supplied, prioritize that over the API key
-    if(!is.null(db_url)){
-      use_api = FALSE
-    } # end non-null DB condition
-  } # end api key present condition
-
-  ## But if neither an API key or db_url was provied
-  if(is.null(api_key) && is.null(db_url)){
-    # stop the function and tell them to get more info!
-    stop("You have not provided an API key or a database URL to access MongoDB.",
-         "\nPlease provide an appropriate API key or URL if you want to access",
-         "the database. \nIf you require a user-specific API key, please contact",
-         "the WildObs team at support@wildobs.org.au")
-  } # end double null condition
-
-  # inspect the DB url that was provided to make sure its legit if we are NOT using an API
-  if(!use_api){
-    # if the db_url is null
-    if(is.null(db_url)){
-      # stop the function and give an error.
-      stop("You have not provided a URL to access MongoDB.\nPlease provide an",
-           "appropriate URL if you want to access the database.")
-    } # end null check
-    ## Make sure the db URL they provide matches the basic pattern
-    pattern <- "^mongodb:\\/\\/[^:@]+:[^:@]+@[^\\/]+:\\d+(\\/[a-zA-Z0-9._-]+)?(\\/?\\?.*)?$"
-    if (!grepl(pattern, db_url)) {
-      stop("The URL to access the database must be a valid MongoDB URI of the",
-           " follwoing format: \n'mongodb://user:password@host:port/dbname'")
-    } # end pattern check
-
-    ## if we survived the pattern check, grab the db name, since it could vary
-    db <- sub("^mongodb(\\+srv)?://(.*@)?[^/?]+/([^?]*).*$", "\\3", db_url)
-
-    ### Connect to the server to ask whowe are, rather than guessing from the host address
-    # carefully extract the separator from db url
-    sep <- if (grepl("\\?", db_url)) "&" else "?"
-    # add a quick time out so it fails fast instead of hanging.
-    uri_test <- paste0(db_url, sep, "serverSelectionTimeoutMS=", 3000) # quick time out
-
-    ## wrap in a try-catch so whole function doesn't fail
-    roles <- tryCatch({
-      # form the connection
-      con <- mongolite::mongo(collection = "metadata", db = db, url = uri_test)
-      # connectionStatus is self-describing, so any authenticated user can run
-      # it about their own connection without needing extra privileges
-      status <- con$run('{"connectionStatus": 1}')
-      # then disconnect
-      con$disconnect()
-      # and hand back whatever roles the server says this user holds
-      status$authInfo$authenticatedUserRoles
-    },
-    # but save a NULL if we could not reach the server at all
-    error = function(e) NULL)
-
-    ## If we did not get a successful connection,
-    if(is.null(roles)){
-      ## Notify that the connection failed
-      stop("The function cannot form a connection to the MongoDB URL you ",
-           "provided.\nPlease check the host, username and password in your ",
-           "connection string are correct, and that you have an active ",
-           "internet connection. \nIf you continue to have trouble, please ",
-           "contact us at support@wildobs.org.au")
-    } # end failed conneciton check
-
-    ### if we survived, grant admin rights based on what we got from the server via utils.R funct
-    ## Each role is scoped to a database, so any DB other than "public" means
-    # this connection has privileged access. Empty role returns FALSE here.
-    # check if the database that was accessed was private
-    use_admin <- !grepl("public", role_dbs(roles))
-
-  }else{
-    ## default to non-admin since API only connects to public (i.e., non-admin) MongoDB
-    use_admin <- FALSE
-  } # end API check
-  ### TODO: will there be any conditions where an API key will result in admin use?
-  ### currently not, but that is subject to change.
+  ### Resolve database access and credentials using a utility helper function
+  access    <- resolve_db_access(api_key = api_key, db_url = db_url)
+  ## pull out T/F API access
+  use_api   <- access$use_api
+  ## pull out T/F admin access
+  use_admin <- access$use_admin
+  ## and save the database name
+  db        <- access$db
 
   ## Access the metadata from the DB, but do it via API key, or not
   if(use_api){
