@@ -19,3 +19,5 @@ config_private/
 .claude/prompts_and_responses/
 # dont need local computer settings online
 .claude/settings.local.json
+# ignore personal R style guides
+docs/style/*
