@@ -63,7 +63,7 @@
 #' @examples
 #' \dontrun{
 #' # Load API key from .Renviron
-#' api_key <- Sys.getenv("WILDOBS_API_KEY")
+#' api_key <- Sys.getenv("WILDOBSR_API_KEY")
 #'
 #' # Define spatial query: extract projects in a specific bounding box
 #' spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -20.0, ymax = -16.0)

@@ -58,7 +58,7 @@
 #' \dontrun{
 #' # Example usage:
 #' # Load the general use WildObs API key
-#' api_key <- Sys.getenv("WILDOBS_API_KEY")
+#' api_key <- Sys.getenv("WILDOBSR_API_KEY")
 #'
 #' # Load relevant project ids
 #' project_ids <- c("QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",
