@@ -32,7 +32,10 @@ make_obs <- function() {
 
 test_that("extract_tags auto-detects deploymentTags column", {
   dep    <- make_dep()
-  result <- extract_tags(dep)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep))
 
   # Should have the three original columns plus three new tag columns
   expect_equal(ncol(result), ncol(dep) + 3)
@@ -41,28 +44,40 @@ test_that("extract_tags auto-detects deploymentTags column", {
 
 test_that("extract_tags auto-detects observationTags column", {
   obs    <- make_obs()
-  result <- extract_tags(obs)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(obs))
 
   expect_true(all(c("temperature", "moonphase") %in% names(result)))
 })
 
 test_that("extract_tags col argument overrides auto-detection", {
   dep    <- make_dep()
-  result <- extract_tags(dep, col = "deploymentTags")
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep, col = "deploymentTags"))
 
   expect_true("lantana" %in% names(result))
 })
 
 test_that("extract_tags returns correct number of rows", {
   dep    <- make_dep()
-  result <- extract_tags(dep)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep))
 
   expect_equal(nrow(result), nrow(dep))
 })
 
 test_that("original column order is preserved", {
   dep    <- make_dep()
-  result <- extract_tags(dep)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep))
 
   # The first N columns of the output should match the original column names
   expect_equal(names(result)[seq_len(ncol(dep))], names(dep))
@@ -72,7 +87,10 @@ test_that("original column order is preserved", {
 
 test_that("literal 'NA' strings in tags are converted to true NA", {
   dep    <- make_dep()
-  result <- extract_tags(dep)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep))
 
   # Row 1 has tsf:NA — should be converted to NA_character_, then to NA (numeric)
   expect_true(is.na(result$tsf[1]))
@@ -80,7 +98,10 @@ test_that("literal 'NA' strings in tags are converted to true NA", {
 
 test_that("rows with NA tags receive NA in all new tag columns", {
   dep    <- make_dep()
-  result <- extract_tags(dep)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep))
 
   # Row 3 has NA in deploymentTags
   expect_true(all(is.na(result[3, c("lantana", "site_burned", "tsf")])))
@@ -101,14 +122,20 @@ test_that("rows with empty-string tags receive NA in all new tag columns", {
 
 test_that("keep_original = TRUE retains the tags column", {
   dep    <- make_dep()
-  result <- extract_tags(dep, keep_original = TRUE)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep, keep_original = TRUE))
 
   expect_true("deploymentTags" %in% names(result))
 })
 
 test_that("keep_original = FALSE drops the tags column", {
   dep    <- make_dep()
-  result <- extract_tags(dep, keep_original = FALSE)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep, keep_original = FALSE))
 
   expect_false("deploymentTags" %in% names(result))
 })
@@ -117,16 +144,31 @@ test_that("keep_original = FALSE drops the tags column", {
 
 test_that("numeric tag values are coerced to numeric class", {
   obs    <- make_obs()
-  result <- extract_tags(obs)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(obs))
 
   expect_type(result$temperature, "double")
   expect_equal(result$temperature, c(13, 22))
 })
 
 test_that("character tag values remain as character", {
-  obs    <- make_obs()
-  result <- extract_tags(obs)
+  obs <- make_obs()
 
+  # The coercion warning is expected: moonphase holds values that could never
+  # have been numeric. Asserting it here means that if the warning is ever
+  # removed or reworded, that change shows up in a diff rather than slipping
+  # through a refactor. regexp is supplied so only THIS warning satisfies the
+  # expectation, and a future unrelated warning cannot hide behind it.
+  expect_warning(
+    result <- extract_tags(obs),
+    regexp = "could not be safely coerced"
+  )
+
+  # The point of the warning is that the column was left alone rather than
+  # silently mangled into NAs. That is the contract that must hold whatever
+  # the warning does.
   expect_type(result$moonphase, "character")
 })
 
@@ -222,7 +264,10 @@ test_that("malformed pairs without a colon are silently skipped", {
     deploymentTags = c("valid_key:value | bad_pair | another_key:123"),
     stringsAsFactors = FALSE
   )
-  result <- extract_tags(dep)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep))
 
   # Only the two valid pairs should produce columns
   expect_true("valid_key"   %in% names(result))
@@ -253,7 +298,10 @@ test_that("keys with varying presence across rows produce NA for absent rows", {
     ),
     stringsAsFactors = FALSE
   )
-  result <- extract_tags(dep)
+  # The coercion warning is expected here and is tested directly in
+  # "character tag values remain as character". Suppressed so this block
+  # asserts only what it is named for.
+  result <- suppressWarnings(extract_tags(dep))
 
   expect_true("key_b" %in% names(result))
   # Row 2 does not have key_b — should be NA
