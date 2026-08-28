@@ -1,7 +1,7 @@
 ## Tests for wildobs_dp_download() ----
 
-# General use API key from examples
-test_api_key <- Sys.getenv("WILDOBS_API_KEY")
+# General use WildObs API key, named once in helper-wildobs.R
+test_api_key <- Sys.getenv(wildobs_api_key_var)
 
 # Test project IDs from examples
 test_project_ids <- c(
@@ -31,7 +31,7 @@ test_that("wildobs_dp_download accepts valid MongoDB URI format", {
   # Should not error on URL validation
   expect_error(
     wildobs_dp_download(db_url = db_url, project_ids = test_project_ids),
-    NA  # Expect different error (connection), not format error
+    NA # Expect different error (connection), not format error
   )
 })
 
@@ -42,14 +42,16 @@ test_that("wildobs_dp_download prioritizes db_url over api_key", {
 
   # When both provided, should use db_url
   expect_error(
-    wildobs_dp_download(db_url = db_url, api_key = test_api_key,
-                       project_ids = test_project_ids),
-    ".*"  # Will error on connection, but validates prioritization
+    wildobs_dp_download(
+      db_url = db_url, api_key = test_api_key,
+      project_ids = test_project_ids
+    ),
+    ".*" # Will error on connection, but validates prioritization
   )
 })
 
 test_that("wildobs_dp_download with API key downloads data packages", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -61,7 +63,7 @@ test_that("wildobs_dp_download with API key downloads data packages", {
 })
 
 test_that("wildobs_dp_download returns named list of data packages", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -73,7 +75,7 @@ test_that("wildobs_dp_download returns named list of data packages", {
 })
 
 test_that("wildobs_dp_download handles single project ID", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -85,7 +87,7 @@ test_that("wildobs_dp_download handles single project ID", {
 })
 
 test_that("wildobs_dp_download handles multiple project IDs", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -97,7 +99,7 @@ test_that("wildobs_dp_download handles multiple project IDs", {
 })
 
 test_that("wildobs_dp_download media parameter defaults to FALSE", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Default should exclude media
   result <- wildobs_dp_download(
@@ -111,7 +113,7 @@ test_that("wildobs_dp_download media parameter defaults to FALSE", {
 })
 
 test_that("wildobs_dp_download includes media when media=TRUE", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -125,7 +127,7 @@ test_that("wildobs_dp_download includes media when media=TRUE", {
 })
 
 test_that("wildobs_dp_download returns Frictionless Data Package structure", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -141,7 +143,7 @@ test_that("wildobs_dp_download returns Frictionless Data Package structure", {
 })
 
 test_that("wildobs_dp_download includes required resources", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -158,7 +160,7 @@ test_that("wildobs_dp_download includes required resources", {
 })
 
 test_that("wildobs_dp_download applies schema types correctly", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -173,7 +175,7 @@ test_that("wildobs_dp_download applies schema types correctly", {
 })
 
 test_that("wildobs_dp_download includes projectName in all resources", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -189,7 +191,7 @@ test_that("wildobs_dp_download includes projectName in all resources", {
 })
 
 test_that("wildobs_dp_download removes deprecated schema fields from deployments", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -211,7 +213,7 @@ test_that("wildobs_dp_download removes deprecated schema fields from deployments
 })
 
 test_that("wildobs_dp_download respects open data sharing preference", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -243,7 +245,7 @@ test_that("wildobs_dp_download handles partial data sharing preference", {
 })
 
 test_that("wildobs_dp_download includes spatial metadata", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -258,7 +260,7 @@ test_that("wildobs_dp_download includes spatial metadata", {
 })
 
 test_that("wildobs_dp_download includes temporal metadata", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -272,7 +274,7 @@ test_that("wildobs_dp_download includes temporal metadata", {
 })
 
 test_that("wildobs_dp_download includes taxonomic metadata", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -286,7 +288,7 @@ test_that("wildobs_dp_download includes taxonomic metadata", {
 })
 
 test_that("wildobs_dp_download infers timezone when missing", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -303,7 +305,7 @@ test_that("wildobs_dp_download infers timezone when missing", {
 })
 
 test_that("wildobs_dp_download cleans spatial bounding boxes", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -319,7 +321,7 @@ test_that("wildobs_dp_download cleans spatial bounding boxes", {
 })
 
 test_that("wildobs_dp_download handles contributors metadata", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -333,7 +335,7 @@ test_that("wildobs_dp_download handles contributors metadata", {
 })
 
 test_that("wildobs_dp_download handles licenses metadata", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -346,7 +348,7 @@ test_that("wildobs_dp_download handles licenses metadata", {
 })
 
 test_that("wildobs_dp_download column order matches schema", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -363,7 +365,7 @@ test_that("wildobs_dp_download column order matches schema", {
 })
 
 test_that("wildobs_dp_download handles API connection failure gracefully", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Invalid API key should produce error
   expect_error(
@@ -373,7 +375,7 @@ test_that("wildobs_dp_download handles API connection failure gracefully", {
 })
 
 test_that("wildobs_dp_download handles non-existent project IDs", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -385,7 +387,7 @@ test_that("wildobs_dp_download handles non-existent project IDs", {
 })
 
 test_that("wildobs_dp_download WildObsMetadata is included", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -428,7 +430,7 @@ test_that("wildobs_dp_download admin API key accesses all data", {
 })
 
 test_that("wildobs_dp_download preserves data types from schema", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -446,7 +448,7 @@ test_that("wildobs_dp_download preserves data types from schema", {
 })
 
 test_that("wildobs_dp_download handles empty observations", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -462,7 +464,7 @@ test_that("wildobs_dp_download handles empty observations", {
 })
 
 test_that("wildobs_dp_download handles empty covariates", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -478,7 +480,7 @@ test_that("wildobs_dp_download handles empty covariates", {
 })
 
 test_that("wildobs_dp_download returns consistent structure across projects", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -489,11 +491,11 @@ test_that("wildobs_dp_download returns consistent structure across projects", {
   structures <- lapply(result, names)
 
   # All should have similar structure
-  expect_true(length(unique(structures)) <= 2)  # Allow some variation
+  expect_true(length(unique(structures)) <= 2) # Allow some variation
 })
 
 test_that("wildobs_dp_download bibliography and citations included", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_dp_download(
     api_key = test_api_key,
@@ -504,5 +506,5 @@ test_that("wildobs_dp_download bibliography and citations included", {
 
   # Check for citation metadata
   expect_true("bibliographicCitation" %in% names(dp) ||
-              "sources" %in% names(dp))
+    "sources" %in% names(dp))
 })

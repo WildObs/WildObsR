@@ -1,7 +1,7 @@
 ## Tests for wildobs_mongo_query() ----
 
-# General use API key from examples
-test_api_key <- Sys.getenv("WILDOBS_API_KEY")
+# General use WildObs API key, named once in helper-wildobs.R
+test_api_key <- Sys.getenv(wildobs_api_key_var)
 
 test_that("wildobs_mongo_query errors when neither api_key nor db_url provided", {
   expect_error(
@@ -25,7 +25,7 @@ test_that("wildobs_mongo_query accepts valid MongoDB URI format", {
   # Should not error on URL validation
   expect_error(
     wildobs_mongo_query(db_url = db_url),
-    NA  # No error expected on URL format
+    NA # No error expected on URL format
   )
 })
 
@@ -39,12 +39,12 @@ test_that("wildobs_mongo_query prioritizes db_url over api_key", {
   # Function should attempt db_url connection, not API
   expect_error(
     wildobs_mongo_query(db_url = db_url, api_key = test_api_key),
-    ".*"  # Will error on connection, but validates prioritization
+    ".*" # Will error on connection, but validates prioritization
   )
 })
 
 test_that("wildobs_mongo_query with API key queries metadata endpoint", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_mongo_query(api_key = test_api_key)
 
@@ -53,7 +53,7 @@ test_that("wildobs_mongo_query with API key queries metadata endpoint", {
 })
 
 test_that("wildobs_mongo_query returns character vector of project IDs", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_mongo_query(api_key = test_api_key)
 
@@ -62,7 +62,7 @@ test_that("wildobs_mongo_query returns character vector of project IDs", {
 })
 
 test_that("wildobs_mongo_query spatial parameter filters correctly", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -20.0, ymax = -16.0)
 
@@ -75,7 +75,7 @@ test_that("wildobs_mongo_query spatial parameter filters correctly", {
 })
 
 test_that("wildobs_mongo_query temporal parameter filters correctly", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   temporal_query <- list(
     minDate = as.Date("2022-01-01"),
@@ -91,7 +91,7 @@ test_that("wildobs_mongo_query temporal parameter filters correctly", {
 })
 
 test_that("wildobs_mongo_query taxonomic parameter filters correctly", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   taxa_query <- c("Phascolarctos cinereus", "Tachyglossus aculeatus")
 
@@ -104,7 +104,7 @@ test_that("wildobs_mongo_query taxonomic parameter filters correctly", {
 })
 
 test_that("wildobs_mongo_query samplingDesign parameter filters correctly", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   sample_query <- c("simpleRandom", "opportunistic", "systematicRandom")
 
@@ -117,7 +117,7 @@ test_that("wildobs_mongo_query samplingDesign parameter filters correctly", {
 })
 
 test_that("wildobs_mongo_query contributors parameter filters correctly", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   contributor_query <- c("Zachary Amir")
 
@@ -130,7 +130,7 @@ test_that("wildobs_mongo_query contributors parameter filters correctly", {
 })
 
 test_that("wildobs_mongo_query combines multiple filters with intersection", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -20.0, ymax = -16.0)
   temporal_query <- list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2025-01-01"))
@@ -145,7 +145,7 @@ test_that("wildobs_mongo_query combines multiple filters with intersection", {
 })
 
 test_that("wildobs_mongo_query respects tabularSharingPreference default", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Default should be "open"
   result <- wildobs_mongo_query(api_key = test_api_key)
@@ -155,7 +155,7 @@ test_that("wildobs_mongo_query respects tabularSharingPreference default", {
 })
 
 test_that("wildobs_mongo_query warns when requesting closed data without admin", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   expect_warning(
     wildobs_mongo_query(
@@ -167,7 +167,7 @@ test_that("wildobs_mongo_query warns when requesting closed data without admin",
 })
 
 test_that("wildobs_mongo_query handles empty spatial parameter", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # NULL spatial should not error
   result <- wildobs_mongo_query(
@@ -179,7 +179,7 @@ test_that("wildobs_mongo_query handles empty spatial parameter", {
 })
 
 test_that("wildobs_mongo_query handles empty temporal parameter", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # NULL temporal should not error
   result <- wildobs_mongo_query(
@@ -191,7 +191,7 @@ test_that("wildobs_mongo_query handles empty temporal parameter", {
 })
 
 test_that("wildobs_mongo_query handles empty taxonomic parameter", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # NULL taxonomic should not error
   result <- wildobs_mongo_query(
@@ -203,7 +203,7 @@ test_that("wildobs_mongo_query handles empty taxonomic parameter", {
 })
 
 test_that("wildobs_mongo_query warns when no matches found", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Use impossible spatial bounds to trigger no matches
   spatial_query <- list(xmin = 0.0, xmax = 0.01, ymin = 0.0, ymax = 0.01)
@@ -218,7 +218,7 @@ test_that("wildobs_mongo_query warns when no matches found", {
 })
 
 test_that("wildobs_mongo_query returns all projects when no filters match", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Use impossible parameters
   spatial_query <- list(xmin = 0.0, xmax = 0.01, ymin = 0.0, ymax = 0.01)
@@ -236,7 +236,7 @@ test_that("wildobs_mongo_query returns all projects when no filters match", {
 })
 
 test_that("wildobs_mongo_query handles API connection failure gracefully", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Invalid API key should produce error
   expect_error(
@@ -246,7 +246,7 @@ test_that("wildobs_mongo_query handles API connection failure gracefully", {
 })
 
 test_that("wildobs_mongo_query validates spatial parameter structure", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Spatial with missing components
   spatial_incomplete <- list(xmin = 145.0, xmax = 147.0)
@@ -262,7 +262,7 @@ test_that("wildobs_mongo_query validates spatial parameter structure", {
 })
 
 test_that("wildobs_mongo_query validates temporal parameter types", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Temporal with invalid date types
   temporal_invalid <- list(minDate = "2022-01-01", maxDate = "2025-01-01")
@@ -277,7 +277,7 @@ test_that("wildobs_mongo_query validates temporal parameter types", {
 })
 
 test_that("wildobs_mongo_query handles single vs multiple project returns", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Query that should return single project
   contributor_query <- c("Zachary Amir")
@@ -292,7 +292,7 @@ test_that("wildobs_mongo_query handles single vs multiple project returns", {
 })
 
 test_that("wildobs_mongo_query embargo period calculation works correctly", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Projects should respect embargo periods
   result <- wildobs_mongo_query(api_key = test_api_key)
@@ -302,7 +302,7 @@ test_that("wildobs_mongo_query embargo period calculation works correctly", {
 })
 
 test_that("wildobs_mongo_query handles unknown embargo periods", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Function should convert unknown embargo based on sharing preference
   result <- wildobs_mongo_query(
@@ -314,10 +314,12 @@ test_that("wildobs_mongo_query handles unknown embargo periods", {
 })
 
 test_that("wildobs_mongo_query accepts valid samplingDesign enumerations", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
-  valid_designs <- c("simpleRandom", "systematicRandom", "clusteredRandom",
-                     "experimental", "targeted", "opportunistic")
+  valid_designs <- c(
+    "simpleRandom", "systematicRandom", "clusteredRandom",
+    "experimental", "targeted", "opportunistic"
+  )
 
   result <- wildobs_mongo_query(
     api_key = test_api_key,
@@ -328,7 +330,7 @@ test_that("wildobs_mongo_query accepts valid samplingDesign enumerations", {
 })
 
 test_that("wildobs_mongo_query spatial bbox overlap detection works", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Test overlapping bounding box
   spatial_overlap <- list(xmin = 145.5, xmax = 146.5, ymin = -18.0, ymax = -17.0)
@@ -342,7 +344,7 @@ test_that("wildobs_mongo_query spatial bbox overlap detection works", {
 })
 
 test_that("wildobs_mongo_query temporal overlap detection works", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Test partial temporal overlap
   temporal_overlap <- list(
@@ -359,7 +361,7 @@ test_that("wildobs_mongo_query temporal overlap detection works", {
 })
 
 test_that("wildobs_mongo_query handles multiple taxonomic species", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   taxa_multiple <- c(
     "Phascolarctos cinereus",
@@ -376,7 +378,7 @@ test_that("wildobs_mongo_query handles multiple taxonomic species", {
 })
 
 test_that("wildobs_mongo_query returns unique project IDs", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_mongo_query(api_key = test_api_key)
 
@@ -384,7 +386,7 @@ test_that("wildobs_mongo_query returns unique project IDs", {
 })
 
 test_that("wildobs_mongo_query project IDs follow naming convention", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_mongo_query(api_key = test_api_key)
 
@@ -393,7 +395,7 @@ test_that("wildobs_mongo_query project IDs follow naming convention", {
 })
 
 test_that("wildobs_mongo_query handles empty contributors list", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   result <- wildobs_mongo_query(
     api_key = test_api_key,
@@ -404,7 +406,7 @@ test_that("wildobs_mongo_query handles empty contributors list", {
 })
 
 test_that("wildobs_mongo_query filters work independently", {
-  skip("Requires live API access")
+  skip_if_no_wildobs_api()
 
   # Test each filter independently
   result_spatial <- wildobs_mongo_query(
