@@ -720,6 +720,8 @@ geojson_list_to_sf <- function(geojson_list) {
 #' frame when every entry has the same fields, but as a list of lists when
 #' they don't. This normalises both to a plain character vector, and returns
 #' an empty vector when there are no roles at all.
+#' @keywords internal
+#' @noRd
 role_dbs <- function(roles){
   # nothing came back, so there is nothing to report
   if(is.null(roles)){
