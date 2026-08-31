@@ -546,6 +546,7 @@ format_spatial_to_geojson <- function(spatial_obj) {
 #' @importFrom tidyr pivot_longer
 #'
 #' @keywords internal
+#' @noRd
 extract_spatial_bboxes <- function(metadata) {
   # ---- required namespaces ----
   requireNamespace("tibble")
