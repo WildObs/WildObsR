@@ -20,4 +20,4 @@ config_private/
 # dont need local computer settings online
 .claude/settings.local.json
 # ignore personal R style guides
-docs/style/*
+docs/*

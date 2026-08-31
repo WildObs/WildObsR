@@ -16,7 +16,7 @@ That dataset has been removed and the key it contained no longer works.
 `.Renviron` file, and read it in R with:
 
 ```r
-api_key <- Sys.getenv("WILDOBS_API_KEY")
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
 ```
 
 Keys are tied to you personally rather than to a project. The README has a

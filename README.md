@@ -104,7 +104,7 @@ usethis::edit_r_environ()
 Add this line, replacing `your_key_here` with the key you copied:
 
 ```
-WILDOBS_API_KEY=your_key_here
+WILDOBSR_API_KEY=your_key_here
 ```
 Then **save the file and restart R** — `.Renviron` is only read at startup.
 
@@ -117,7 +117,7 @@ A few things that commonly go wrong:
 
 ```r
 # Read the API key from your .Renviron
-api_key <- Sys.getenv("WILDOBS_API_KEY")
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 # Confirm it loaded — should be TRUE if loaded
 nchar(api_key) > 0
@@ -138,7 +138,7 @@ library(WildObsR)
 library(frictionless)  ## For working with data packages 
 
 # Load your personal API key from .Renviron (see "Getting Access" above)
-wildobsr_api_key <- Sys.getenv("WILDOBS_API_KEY")
+wildobsr_api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 # Query projects in Queensland from 2020-2024
 spatial_query <- list(xmin = 145.0, xmax = 154.0, ymin = -29.0, ymax = -10.0)
