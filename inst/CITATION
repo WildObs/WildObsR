@@ -1,0 +1,18 @@
+# inst/CITATION
+# `meta` is the parsed DESCRIPTION file, available automatically inside CITATION
+
+citHeader("To cite WildObsR in publications, please use:")
+
+bibentry(
+  bibtype  = "Manual",
+  title    = "{WildObsR}: Tools for Camera Trap Data Access, Management, and Analysis in R",
+  author   = c(
+    person("Zachary", "Amir"),
+    person("Tom", "Bruce")
+  ),
+  # Pull the year from the DESCRIPTION Date field if present, else use the current year
+  year     = if (!is.null(meta$Date)) substr(meta$Date, 1, 4) else format(Sys.Date(), "%Y"),
+  # Pull the version straight from DESCRIPTION so this never goes stale
+  note     = paste("R package version", meta$Version),
+  url      = "https://github.com/WildObs/WildObsR"
+)
