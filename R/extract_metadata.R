@@ -159,11 +159,11 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
               lat  <- sapply(ring, `[[`, 2)
             } else {
               stop(paste("Unexpected coordinate structure for feature:",
-                         f$properties$name %||% "unknown"))
+                         f$properties$locationName %||% "unknown"))
             }
             ## save into a dataframe
             data.frame(
-              locationName = f$properties$name %||% NA_character_,
+              locationName = f$properties$locationName %||% NA_character_,
               xmin = min(lon, na.rm = TRUE),
               ymin = min(lat, na.rm = TRUE),
               xmax = max(lon, na.rm = TRUE),
