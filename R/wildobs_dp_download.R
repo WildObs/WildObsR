@@ -862,14 +862,14 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
       for(i in 1:length(formatted_metadata[[proj]]$media_schema$fields)){
         col_order = c(col_order, formatted_metadata[[proj]]$media_schema$fields[[i]]$name)
       }
-      ## If we do NOT have admin access,
-      if(!use_admin){
-        ## verify fileName has been fully removed from media,
+      ## If we are pulling from the public MongoDB,
+      if(grepl("public", db)){
+        ## fileName has been removed to obscure sensitive species, but confirm its missing
         if(! "fileName" %in% names(media_proj)){
           # if missing, add an empty placeholder w/ NA values
           media_proj[["fileName"]] <- NA
         } # end missing filename condition
-      } # end admin condition
+      } # end public DB condition
       ## re-order to match
       media_proj = media_proj[, col_order]
     }
