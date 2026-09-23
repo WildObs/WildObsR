@@ -150,8 +150,8 @@ spatial_hexagon_generator = function(data, scales) {
     for(s in 1:length(scales)){
       # create a new column name
       colname = paste("cellID", names(scales)[s], sep = "_")
-      # make the hex
-      hex = sf::st_make_grid(shape, cellsize = scales[s], square = FALSE) %>%
+      # make the hex, fixed
+      hex = sf::st_make_grid(shape, cellsize = 2 * scales[s], square = FALSE) %>%
         sf::st_sf() %>%
         tibble::rowid_to_column(colname)
       # Add locationName name to cell_id
