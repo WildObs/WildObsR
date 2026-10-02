@@ -24,8 +24,9 @@ library(tidyverse)
 ### create a query using wildobs_mongo_query()
 
 ### First, grab the DB connection string
-db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
+# db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
 # db_url <- Sys.getenv("MONGODB_PUB_ADMIN_URL")
+db_url <- Sys.getenv("MONGODB_LOCAL_RO_URL")
 
 ### First, grab the API key from R environ
 # api_key <- Sys.getenv("WILDOBSR_API_KEY")
@@ -62,8 +63,8 @@ project_ids = wildobs_mongo_query(db_url = db_url, # api_key
 
 ## Who did we get?
 sort(project_ids)
-# for testing, one open one partial
-project_ids = c("QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005", "WA_Pilbara_Cowan_2022-2023_WildObsID_0012")
+# subset to smallest dataset for testing
+project_ids <- project_ids[grepl("WildObsID_0005", project_ids)]
 ## clean up query info
 rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, temporal)
 
@@ -85,20 +86,6 @@ end-start # 10 seconds for metadata only, 1.5 min for full dat w/ general API
 class(dp_list[[1]])
 # make sure all project_ids were downloads
 length(dp_list) == length(project_ids) # MUST BE T
-# check if we have data resources
-frictionless::resources(dp_list[[2]]) # media should be present
-# check a media file
-check_med = frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "media")
-head(check_med$filePath[check_med$filePublic]) # all work!
-## also verify that the threatend species are obscured
-check_obs = frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "observations")
-head(check_obs$observationID[which(check_obs$scientificName == "Dasyurus maculatus")])
-
-## check the partial dataset
-check = dp_list[["WA_Pilbara_Cowan_2022-2023_WildObsID_0012"]]
-frictionless::resources(check) # no resources, good!
-check$WildObsMetadata$tabularSharingPreference # partial, this is good!
-
 
 
 #
@@ -111,7 +98,7 @@ anyNA(cont_table$title) #MUST BE F
 # tbh, all should be F, but
 
 # works for single dp too and/or multiple DPs
-cont_table_1 = extract_metadata(dp_list[[3]], c("contributors", "relatedIdentifiers"))
+cont_table_1 = extract_metadata(dp_list[[1]], c("contributors", "relatedIdentifiers"))
 cont_table_1$contributors
 cont_table_1$relatedIdentifiers
 
@@ -125,8 +112,8 @@ check = extract_metadata(dp_list, "spatial") # working now!
 
 #
 ##
-### Extract deployments covaraites and observations
-covs = list();deps = list();obs = list() # store results here
+### Extract deployments covaraites observations and media if present 
+covs = list();deps = list();obs = list(); med = list() # store results here
 for(i in 1:length(dp_list)){
   ## add a condition to skip partial and closed datasets (i.e., no resources)
   if(length(frictionless::resources(dp_list[[i]])) == 0){
@@ -135,22 +122,25 @@ for(i in 1:length(dp_list)){
   }
   # covaraties
   c = frictionless::read_resource(dp_list[[i]], "covariates")
-  c$source = dp_list[[i]]$id
   covs[[i]] = c
   # deployments
   d = frictionless::read_resource(dp_list[[i]], "deployments")
-  d$source = dp_list[[i]]$id
   deps[[i]] = d
   # observations
   o = frictionless::read_resource(dp_list[[i]], "observations")
-  o$source = dp_list[[i]]$id
   obs[[i]] = o
+  # media, but only if present
+  if("media" %in% names(dp_list[[i]]$data)){
+    m = frictionless::read_resource(dp_list[[i]], "media")
+    med[[i]] = m
+  }
 }
-rm(d,i,c,o)
+rm(d,i,c,o,m)
 ## Combine into one df
-obs = do.call(rbind, obs)
-deps = do.call(rbind, deps)
-covs = do.call(rbind, covs)
+obs   = do.call(rbind, obs)
+deps  = do.call(rbind, deps)
+covs  = do.call(rbind, covs)
+media = do.call(rbind, med)
 # inspect
 table(deps$projectName)
 
@@ -162,20 +152,53 @@ covs = merge(deps, covs, by = names(covs)[names(covs) %in% names(deps)])
 # dont need deps anymore
 rm(deps)
 
-## check that ibra_classifications work w/ internal data
-# remove existing values from covs
-table(covs[, names(covs)[grepl("IBRA", names(covs))]])
 
-check = ibra_classification(covs, "latitude", "longitude")
+##### Access camera trap images directly ------
 
-check = data(ibra)
+### access both public and private (google cloud storage) images
+## This works b/c I (Zachary Amir) have authorized access to these project on WI
 
-ibra
+## inspect public and non-public files
+head(media$filePath[!media$filePublic]) # GSC 
+head(media$filePath[media$filePublic])  # iTIR
+
+### Test for private GCS pics 
+## gather my authenticated google cloude authorization token (set up in google CLI before)
+token <- system2("gcloud", c("auth", "print-access-token"), stdout = TRUE)
+
+## subset media for non-public animal images
+media_sub <- media[!media$filePublic & 
+  media$observationID %in% obs$observationID[which(obs$observationType == "animal")], ]
+## and only download 25
+# media_sub <- head(media_sub, 25)
+## try 200 now
+media_sub <- head(media_sub, 200)
+
+## run the download function for private media, specifying the GCS token
+res <- wildobs_media_download(media_sub, out_dir = "~/Desktop/wi_test", gcs_token = token)
+## what was returned?
+res[, c("mediaID", "downloadStatus", "downloadNote", "localPath")] # all good! 
+table(res$downloadStatus)
+unique(res$downloadNote[res$downloadStatus == "failed"]) # only should be 404/3's 
+rm(res)
+
+### Test for public pics 
+## grab observationIDs for interesting animals
+obs_ids <- obs$observationID[obs$scientificName %in% c("Varanus rosenbergi", 
+                              "Varanus varius", "Turnix melanogaster", "Felis catus",
+                              "Phascolarctos cinereus")]
+## subset media for them 
+media_sub <- media[media$observationID %in% obs_ids, ]
+
+## run the download function w/out the token
+res <- wildobs_media_download(media_sub, out_dir = "~/Desktop/wi_test")
+res[, c("mediaID", "downloadStatus", "downloadNote", "localPath")] # seemingly good 
+table(res$downloadStatus)
+unique(res$downloadNote[res$downloadStatus == "failed"]) # only should be 404/3's 
 
 ##### Occupancy/Abundance modelling functions #####
 
-
-# and dont forget to thin obs to the relevant deploymentIDs now that we have excluded some
+# Dont forget to thin obs to the relevant deploymentIDs now that we have excluded some
 obs = obs[obs$deploymentID %in% covs$deploymentID, ]
 
 ## format datetimes

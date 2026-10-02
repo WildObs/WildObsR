@@ -60,7 +60,7 @@
 #' \dontrun{
 #' api_key <- Sys.getenv("WILDOBSR_API_KEY")
 #' dp <- wildobs_dp_download(api_key = api_key,
-#'                           project_ids = "QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",
+#'                           project_ids = "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005",
 #'                           media = TRUE)[[1]]
 #'
 #' # Download a small batch of the publicly hosted images first
