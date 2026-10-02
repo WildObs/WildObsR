@@ -58,6 +58,9 @@ than before and the 1–5 km / 5–10 km / >10 km notes may change category.
 
 ## Fixed
 
+- `wildobs_dp_download()` skips project IDs it cannot find, with one warning naming
+  them, and downloads the rest. It stops only when none are found. Previously an
+  unknown ID failed with "subscript out of bounds" (#129).
 - `ibra_classification()` no longer drops locations that fall just outside every
   IBRA subregion. They now take the IBRA values of their nearest matched
   location, as documented (#97).

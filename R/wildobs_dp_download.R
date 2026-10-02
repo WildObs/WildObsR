@@ -130,6 +130,31 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
   #
   ##
+  ### Keep only the project IDs the metadata knows about ----
+
+  ## an unknown ID is either a typo or a project this connection cannot see
+  ## (closed projects never reach API users), so skip it with a warning and carry on
+  # drop repeats so no project is downloaded twice
+  project_ids <- unique(project_ids)
+  # which requested IDs have no metadata at all
+  unknown_ids <- setdiff(project_ids, metadata$id)
+  if (length(unknown_ids) > 0) {
+    warning(sprintf("%d of %d project IDs were not found in the WildObs metadata and will be skipped: %s\n",
+                    length(unknown_ids), length(project_ids), paste(unknown_ids, collapse = ", ")),
+            "Check the spelling, or run wildobs_mongo_query() to list the projects you can access.",
+            call. = FALSE)
+  } # end unknown ID condition
+  # carry on with the IDs that do exist, in the order they were asked for
+  project_ids <- project_ids[!project_ids %in% unknown_ids]
+  # but if none of them exist there is nothing to download
+  if (length(project_ids) == 0) {
+    stop("None of the requested project IDs were found in the WildObs metadata.\n",
+         "Check the spelling, or run wildobs_mongo_query() to list the projects you can access.",
+         call. = FALSE)
+  } # end no valid IDs condition
+
+  #
+  ##
   ###
   #### Begin to reformat the metadata to fit back into datapackage.json format
   formatted_metadata = list() # store results here!
@@ -140,9 +165,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     ## and the matching metadata
     meta = metadata[metadata$id == name,] # must produce one row
     ## verify there is only one row
-    if(nrow(meta)>1){print(paste("The project name:", name, "has multiple rows of metadata.",
-                                 "This is not good and means repeated project names",
-                                 "which violates our database rules. Please inspect manually!"))}
+    if(nrow(meta)>1){warning(paste("The project name:", name, "has multiple rows of metadata.",
+                                   "This is not good and means repeated project names",
+                                   "which violates our database rules. Please inspect manually!"))}
 
     ## convert to a list
     meta_list = as.list(meta)

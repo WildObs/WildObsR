@@ -502,6 +502,31 @@ test_that("wildobs_dp_download WildObsMetadata is included", {
 ##
 ### Failure handling ----
 
+test_that("wildobs_dp_download skips unknown project IDs with a warning", {
+  skip_if_no_wildobs_api()
+
+  # a mix of valid and invalid IDs downloads the valid ones and names the rest
+  expect_warning(
+    result <- wildobs_dp_download(api_key = test_api_key,
+                                  project_ids = c("not_a_real_project", stable_project,
+                                                  "another_fake_id"),
+                                  metadata_only = TRUE),
+    "2 of 3 project IDs were not found.*not_a_real_project, another_fake_id"
+  )
+  expect_named(result, stable_project)
+})
+
+test_that("wildobs_dp_download stops when no project ID is found", {
+  skip_if_no_wildobs_api()
+
+  # with nothing valid to download, a clear stop beats an empty result
+  expect_error(
+    suppressWarnings(wildobs_dp_download(api_key = test_api_key,
+                                         project_ids = "not_a_real_project")),
+    "None of the requested project IDs were found"
+  )
+})
+
 test_that("wildobs_dp_download handles API connection failure gracefully", {
   skip_if_no_wildobs_api()
 
