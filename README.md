@@ -187,6 +187,26 @@ contributors <- extract_metadata(dp_list, "contributors")
 projects     <- extract_metadata(dp_list, "project")
 ```
 
+### Export to standard Camtrap DP
+
+WildObs packages are Camtrap DP plus a few WildObs additions. To share data with
+tools that expect the standard exactly, such as the
+[camtrapdp](https://inbo.github.io/camtrapdp/) package or a GBIF export, convert it
+first. This needs the media table, so download with `media = TRUE`.
+
+```r
+dp <- wildobs_dp_download(api_key = wildobsr_api_key, project_ids = "<project ID>",
+                          media = TRUE)[[1]]
+
+# Convert to Camtrap DP 1.0.2; out$report lists every change made
+out <- as_camtrapdp(dp)
+
+# Save it, then use it with the camtrapdp package (version 0.5.0 or later)
+frictionless::write_package(out$package, "camtrapdp_export")
+x <- camtrapdp::read_camtrapdp("camtrapdp_export/datapackage.json")
+camtrapdp::write_dwc(x, "gbif_export")
+```
+
 ### Download images
 
 Most WildObs images are held privately by their contributors or by Wildlife
@@ -334,7 +354,7 @@ camtrapR::surveyDashboard(CTtable = covs,                                   ## i
 
 | Category | Functions |
 |----------|-----------|
-| **Data Access** | `wildobs_mongo_query()`, `wildobs_dp_download()`, `wildobs_media_download()`, `extract_metadata()` |
+| **Data Access** | `wildobs_mongo_query()`, `wildobs_dp_download()`, `wildobs_media_download()`, `extract_metadata()`, `as_camtrapdp()` |
 | **Spatial** | `AUS_state_locator()`, `ibra_classification()`, `locationName_buffer_CAPAD()`
 | **Data Wrangling** | `survey_and_deployment_generator()`, `resample_covariates_and_observations()`, `matrix_generator()` |
 | **Quality Control** | `check_schema()`, `apply_schema_types()` |

@@ -48,6 +48,11 @@ stops with a clear message when given no IDs, including the old `""` (#129).
 
 ## New
 
+- `as_camtrapdp()` converts a WildObs data package to canonical Camtrap DP 1.0.2 (or
+  1.0.1), so it works with the camtrapdp package, including `camtrapdp::write_dwc()`
+  for GBIF. It removes every WildObs addition, read from the official Camtrap DP
+  profiles vendored in the package rather than a fixed list, and returns a report of
+  every change and the result of validating it (#113).
 - `wildobs_media_download()` downloads the image files listed in a media table into
   `out_dir/<projectName>/<deploymentID>/<mediaID>.<ext>`, and reports what happened
   to each file. Publicly hosted files (`filePublic = TRUE`) download for anyone;

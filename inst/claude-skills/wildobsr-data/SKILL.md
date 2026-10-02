@@ -196,6 +196,29 @@ What can actually be fetched depends on `filePath`:
 So for most users, filter to public files first: `media[media$filePublic, ]`. Start with a
 few rows (`head(..., 20)`) to check the result before downloading thousands.
 
+## Exporting to standard Camtrap DP
+
+`as_camtrapdp(dp)` converts a WildObs package to canonical Camtrap DP (1.0.2 by default,
+or `version = "1.0.1"`) for tools that expect the standard exactly, such as the
+`camtrapdp` R package (>= 0.5.0) and its `write_dwc()` GBIF export, which fails on an
+unconverted WildObs package. It returns `list(package, report, validation)`.
+
+- It needs all three tables, so download with `media = TRUE`. `partial` projects have no
+  tables and can't be converted.
+- It removes every WildObs addition: `WildObsMetadata`, `versionControlWildObs`,
+  `project$DPID`, contributors' `ROR`, the per-deploymentGroup `temporal` blocks and
+  `timeZone`, and the columns `multiSeason_deploymentGroup`, `deltaTime_event`,
+  `media$observationID`, `TIR` and `projectName`. `covariates` is dropped unless
+  `keep_covariates = TRUE`.
+- **Lost in conversion:** the media-to-observation link (`media$observationID`), since
+  Camtrap DP has no field for it. A warning says so.
+- A few values change so the result validates: English names move to
+  `vernacularNames$eng`; ranks such as `subclass` round up to `class`; RAiD identifiers
+  become `Handle`; and media rows whose `filePath` is a path on a contributor's computer
+  are removed. That can be a large share of some projects' media; the report counts it.
+- Save with `frictionless::write_package(out$package, dir)`, then read with
+  `camtrapdp::read_camtrapdp()`.
+
 ## Practical cautions
 
 - **Sensitive species.** Coordinates and species names are not obscured. Do not publish
