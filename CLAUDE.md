@@ -2,6 +2,43 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## The two style guides are binding
+
+Read both at session start. They govern more than formatting — where one of
+them disagrees with a prompt, the style guide wins and you say so rather than
+quietly picking one.
+
+| What it governs | Path |
+|---|---|
+| All R code | `docs/style/AI formatting style guides/zachary_amir_R_coding_style.md` |
+| All R comments | `docs/style/zachary_amir_R_commenting_style_guide.md` |
+
+The short version of the code rules, which does not replace reading the guides:
+
+- Comments explain data transformations, statistical intent or ecological 
+  interpretation in plain English, never syntax.
+- Comments describe the current state of the code only. A comment that only makes
+  sense to someone who knows what the code used to be gets deleted. History lives
+  in a changelog file or a commit message.
+- Never mark a section with a banner rule of repeated `#`, `-` or `=`. RStudio's
+  Jump To navigator builds a nameless section out of any such line.
+- One comment per step, sitting directly above the line it explains, in multi-line
+  pipe chains and in failure-scenario checks. Never hoist them into a block.
+- `here()` for every path.
+- Heavy commenting is expected. Assume the reader knows ecology and is rusty on R.
+
+## Commit discipline
+
+Do not work on the `main` branch. Check `git status` before starting and 
+report a dirty tree rather than committing someone else's work in progress.
+
+- Commit at every phase gate, without being asked. One commit per phase minimum,
+  more where a phase produces genuinely separable pieces.
+- Commit **before** stopping for approval, so what is approved is what is recorded.
+- Commit messages say what changed and why, in plain English.
+- Never amend, rebase or force-push. If something needs undoing, say so.
+- Say explicitly in the phase report if `.gitignore` was touched.
+
 ## Package Overview
 
 WildObsR is an R package for accessing, managing, and analyzing camera trap biodiversity data following the **Camera Trap Data Package (Camtrap DP)** standard and **Frictionless Data Package** specifications. It integrates with a WildObs MongoDB backend and provides tools for spatial, temporal, taxonomic, and statistical processing of wildlife observation data.
