@@ -47,6 +47,9 @@ apply_schema_types <- function(data, schema, timezone = "UTC") {
           next
         } # end empty column condition
 
+        ## a missing format is not a parse instruction, so fall back to ISO 8601
+        if (is.null(col_format)) col_format <- "%Y-%m-%dT%H:%M:%S%z"
+
         ## a parse has failed if nothing came back, or a real value came back NA
         parse_failed <- function(p) is.null(p) || any(is.na(p[has_value]))
 

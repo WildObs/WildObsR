@@ -293,6 +293,26 @@ test_that("apply_schema_types converts a partly empty datetime column", {
   expect_true(is.na(result$ts[2]))
 })
 
+test_that("apply_schema_types parses a datetime field that has no format", {
+  data <- data.frame(ts = c("2024-01-15 08:00:00", "2024-02-01 09:30:00"), stringsAsFactors = FALSE)
+  schema <- list(fields = list(list(name = "ts", type = "datetime")))
+
+  result <- apply_schema_types(data, schema)
+
+  # the column survives and is converted using the fallback formats
+  expect_true("ts" %in% names(result))
+  expect_s3_class(result$ts, "POSIXct")
+})
+
+test_that("apply_schema_types never deletes a datetime column it cannot parse", {
+  data <- data.frame(ts = c("not a date", "also not"), stringsAsFactors = FALSE)
+  schema <- list(fields = list(list(name = "ts", type = "datetime")))
+
+  # a failed parse warns and leaves the original values in place
+  expect_warning(result <- apply_schema_types(data, schema), "Failed to parse datetime")
+  expect_identical(result$ts, data$ts)
+})
+
 test_that("apply_schema_types returns data frame with same structure", {
   data <- data.frame(
     col1 = c(1, 2, 3),

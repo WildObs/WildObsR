@@ -64,6 +64,9 @@ than before and the 1–5 km / 5–10 km / >10 km notes may change category.
 - `apply_schema_types()` gives empty `datetime` columns the `POSIXct` type, and
   converts partly empty ones. Previously a column with any empty cell was treated as
   unparseable and left as text, or as `logical` if wholly empty (#129).
+- `apply_schema_types()` no longer deletes a `datetime` column whose schema field has
+  no `format`: it falls back to ISO 8601, and leaves the column unchanged with a
+  warning if it still cannot parse it (#129).
 - `ibra_classification()` no longer drops locations that fall just outside every
   IBRA subregion. They now take the IBRA values of their nearest matched
   location, as documented (#97).
