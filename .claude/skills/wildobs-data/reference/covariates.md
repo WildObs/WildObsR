@@ -1,7 +1,8 @@
 # `covariates` — full field reference
 
-Source of truth: `WildObs_cam-DB/code_mongoDB/apply_covariates_schema.js`.
-Empirical coverage: `$sample` of 3,000 of 18,770 documents (16%) on the PUBLIC mirror.
+Source of truth: `camdb_mongodb/code_mongoDB/apply_covariates_schema.js`.
+Empirical coverage: **full scan of all 19,736 documents** on LOCAL (2026-10-02); 19,736 distinct
+`deploymentID`, so the 1:1 join to `deployments` holds.
 
 **127 fields.** In the validator, `required` means *the key must be present* — every covariate
 also permits `null`, so a required field can still be null. "Coverage" below is the % of
@@ -41,7 +42,7 @@ Coverage is listed in scale order: point / 1km2 / 3km2 / 5km2 / 10km2.
 
 | Family | BSON type | Valid range | Required | Coverage | Meaning |
 |---|---|---|---|---|---|
-| `FLII_*` | double/int/null | 0–10 | yes | 75.4% / 77.5% / 77.5% / 77.9% / 77.9% | Forest Landscape Integrity Index — composite of direct and indirect pressure on forest ecosystems. Higher = more intact. |
+| `FLII_*` | double/int/null | 0–10 | yes | 75.3% / 77.6% / 77.6% / 78.1% / 78.1% | Forest Landscape Integrity Index — composite of direct and indirect pressure on forest ecosystems. Higher = more intact. |
 | `human_footprint_*` | double/int/null | 0–50 | yes | 100% / 100% / 100% / 100% / 100% | Human Footprint Index — cumulative human pressure on nature. Higher = more pressure. |
 | `altitude_*` | double/int/null | 0–2250 | yes | 100% / 100% / 100% / 100% / 100% | Elevation in metres, from 3-second SRTM derived DEM v1.0. |
 | `ecoregion_intactness_*` | double/int/null | 0–1 | yes | 100% / 100% / 100% / 100% / 100% | Ecoregion Intactness Index — habitat extent, quality and fragmentation combined. |
@@ -50,9 +51,9 @@ Coverage is listed in scale order: point / 1km2 / 3km2 / 5km2 / 10km2.
 | `nighttime_lights_*` | double/int/null | ≥0 | yes | 100% / 100% / 100% / 100% / 100% | VIIRS Day/Night Band annual mean radiance, stray-light/moonlight/fire removed. Urbanisation proxy. |
 | `human_population_density_*` | double/int/null | ≥0 | yes | 100% / 100% / 100% / 100% / 100% | Resident population per 1 km² cell, ABS 2023 reference year, modelled to the National Nested Grid. |
 | `protected_areas_*` | double/int/null | 0–1 | yes | 100% / 100% / 100% / 100% / 100% | Proportion of the buffer inside a WDPA protected area: 0 = none, 1 = fully inside. |
-| `GEEBAM_fire_severity_2020_*` | double/int/null | — | no | 99.8% / 100% / 99.8% / 99.7% / 99.8% | Modal 2019/20 bushfire severity class in the buffer: 0 unburnt, 1 very low, 2 low, 3 moderate, 4 high, 5 very high/extreme. |
+| `GEEBAM_fire_severity_2020_*` | double/int/null | — | no | 99.8% / 99.9% / 99.9% / 99.8% / 99.9% | Modal 2019/20 bushfire severity class in the buffer: 0 unburnt, 1 very low, 2 low, 3 moderate, 4 high, 5 very high/extreme. |
 | `fire_events_count_*` | int/double/null | ≥0 | no | 100% / 100% / 100% / 100% / 100% | Count of distinct fire events detected in the buffer. |
-| `days_since_recent_fire_*` | int/double/null | ≥0 | no | 52.4% / 58.2% / 60.2% / 61.2% / 62.4% | Days between the deployment and the most recent detected fire in the buffer. |
+| `days_since_recent_fire_*` | int/double/null | ≥0 | no | 50.7% / 57.8% / 60.1% / 61.3% / 62.8% | Days between the deployment and the most recent detected fire in the buffer. |
 | `HCAS_static_*` | double/int/null | 0–1 | yes | 100% / 100% / 100% / 100% / 100% | Habitat Condition Assessment System — static habitat condition score. |
 | `NDVI_*` | double/int/null | 0–1 | yes | 100% / 100% / 100% / 100% / 100% | Normalised Difference Vegetation Index — greenness / productivity proxy. |
 | `terrain_ruggedness_index_*` | double/int/null | 0–2250 | yes | 100% / 100% / 100% / 100% / 100% | Terrain Ruggedness Index — local elevation heterogeneity. |
@@ -67,13 +68,25 @@ Coverage is listed in scale order: point / 1km2 / 3km2 / 5km2 / 10km2.
 Each holds the percentage of buffer area in that severity class; across the six classes at a
 given scale the values sum to 100. Type `int/double`, not required, 100% coverage.
 
-Note the validator descriptions for these 24 fields are copy-paste damaged: several state
-"calculated with a NA meter buffer". The scale is carried by the field name, not the prose.
+The field metadata for these 24 fields (in `metadata.resources[covariates].schema.fields`) is
+damaged: descriptions open with "calculated with a meter buffer" (number missing), and
+`custom.spatial.buffer_m` is misaligned — the five `_1km2` fields carry the five-scale cycle
+`1, 564.2, 977.2, 1261.6, 1784`, and the 3/5/10 km² fields carry an empty object. **The scale
+is carried reliably by the field-name suffix only.**
+
+## Field-level `custom` metadata
+
+Every covariate field in the package schema carries a WildObs `custom` object:
+`{spatial: {resolution, buffer_m}, source: {doi, url, citation}}`. `source` gives the citation
+for the underlying spatial product (e.g. CHIRPS, ANUClimate 2.0, HCAS 3.1). `resolution` is the
+native raster resolution (`"10m"`, `"90m"`, `"1000m"`, `"polygons"`, …). See the GEEBAM note
+above before trusting `buffer_m`; `IBRAsubRegionName` has the string `"1"` and
+`IBRAbioRegionName` an empty object.
 
 ## Categorical covariates
 
 | Field | BSON type | Required | Coverage | Distinct | Meaning |
 |---|---|---|---|---|---|
 | `IBRAbioRegionName` | string | yes | 100% | 41 | IBRA7 bioregion (Australian bioregionalisation). |
-| `IBRAsubRegionName` | string | yes | 100% | 85 | IBRA7 subregion, nested inside the bioregion. |
-| `Olson_global_ecoregion` | string/null | yes | 92.5% | 26 | Olson et al. global terrestrial ecoregion. |
+| `IBRAsubRegionName` | string | yes | 100% | 89 | IBRA7 subregion, nested inside the bioregion. |
+| `Olson_global_ecoregion` | string/null | yes | 93.0% | 26 | Olson et al. global terrestrial ecoregion. |
