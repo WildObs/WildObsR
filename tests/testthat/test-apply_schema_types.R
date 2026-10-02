@@ -313,6 +313,15 @@ test_that("apply_schema_types never deletes a datetime column it cannot parse", 
   expect_identical(result$ts, data$ts)
 })
 
+test_that("apply_schema_types leaves an 'any' field unchanged without warning", {
+  # Camtrap DP declares media exifData as type "any"
+  data <- data.frame(exifData = c('{"Make": "RECONYX"}', NA), stringsAsFactors = FALSE)
+  schema <- list(fields = list(list(name = "exifData", type = "any")))
+
+  expect_no_warning(result <- apply_schema_types(data, schema))
+  expect_identical(result$exifData, data$exifData)
+})
+
 test_that("apply_schema_types returns data frame with same structure", {
   data <- data.frame(
     col1 = c(1, 2, 3),

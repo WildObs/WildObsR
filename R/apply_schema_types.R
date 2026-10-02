@@ -18,6 +18,7 @@
 #'   \item \code{"boolean"}: Converts logical-like strings (e.g., 'TRUE', 'FALSE', 'T', 'F') to logical.
 #'   \item \code{"string"}: Converts to character, optionally factoring if an enum constraint is present.
 #'   \item \code{"factor"}: Converts to factor.
+#'   \item \code{"any"}: Left unchanged, since Frictionless allows any type (e.g. Camtrap DP's `exifData`).
 #' }
 #'
 #' If an unknown field type is encountered, a warning is issued.
@@ -106,6 +107,10 @@ apply_schema_types <- function(data, schema, timezone = "UTC") {
       } else if (col_type == "factor") {
         # Convert to factor
         data[[col_name]] <- as.factor(data[[col_name]])
+
+      } else if (col_type == "any") {
+        # frictionless "any" means the values can be of any type, so leave them as they are
+
 
       } else {
         warning(paste("Unknown field type:", col_type, "for column:", col_name))

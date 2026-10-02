@@ -77,6 +77,8 @@ stops with a clear message when given no IDs, including the old `""` (#129).
   warning if it still cannot parse it (#129).
 - `wildobs_dp_download()` no longer hides warnings from typing the tables, so a
   column that fails to convert is reported rather than passed on silently (#129).
+- `apply_schema_types()` accepts the Frictionless `any` type and leaves such columns
+  unchanged, so media downloads no longer warn about `exifData`.
 - `wildobs_mongo_query()` checks a `spatial` bounding box before querying and names
   any missing or non-numeric corner, instead of failing with an internal tibble
   error (#129).
