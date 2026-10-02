@@ -27,6 +27,11 @@ handles both shapes.
 
 ## New
 
+- `wildobs_media_download()` downloads the image files listed in a media table into
+  `out_dir/<projectName>/<deploymentID>/<mediaID>.<ext>`, and reports what happened
+  to each file. Publicly hosted files (`filePublic = TRUE`) download for anyone;
+  files on your own computer are copied; private Google Cloud files can be fetched
+  with a `gcs_token` if you have access. Re-running fetches only what is missing.
 - `install_claude_skill()` installs `wildobsr-data`, a Claude skill describing how
   WildObs data packages are structured and what the data can support, so Claude can
   help with your analysis. See "Help Claude understand WildObs data" in the README.

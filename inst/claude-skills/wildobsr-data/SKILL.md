@@ -175,6 +175,27 @@ spatial product. Cite those sources when you use the covariates. Read the buffer
 the field-name suffix, not from `custom$spatial$buffer_m`, which is not reliable for every field.
 See [`reference/tables.md`](reference/tables.md) for ranges and meanings.
 
+## Getting the image files
+
+`wildobs_media_download(media, out_dir)` fetches the files listed in a media table and
+returns the table with `localPath`, `downloadStatus` (`downloaded`, `copied`,
+`already_exists`, `skipped`, `failed`) and `downloadNote` columns. Files are saved as
+`out_dir/<projectName>/<deploymentID>/<mediaID>.<ext>`, and re-running it only fetches
+what is missing.
+
+What can actually be fetched depends on `filePath`:
+
+| `filePath` looks like | Share of media (approx.) | What happens |
+|---|---|---|
+| `https://data.wildobs.org.au/...` | ~1% | Downloads. These are exactly the `filePublic = TRUE` files, part of the WildObs Tagged Image Repository (`TIR`). |
+| `gs://<bucket>/...` | ~60% | Images held in a Wildlife Insights cloud bucket. Private: fails with HTTP 403 unless you pass `gcs_token` for an account with read access to that bucket. |
+| `https://volunteer.ala.org.au/validate/task/...` | ~2.5% | A DigiVol task web page, not an image file, so it is reported as failed. |
+| A drive path (`F:\...`, `/Users/...`) | ~16% | The contributor's own computer. Copied if the file exists on *your* computer (i.e. you are that contributor), otherwise skipped. |
+| `not_provided` and similar | ~20% | No image was shared. Skipped. |
+
+So for most users, filter to public files first: `media[media$filePublic, ]`. Start with a
+few rows (`head(..., 20)`) to check the result before downloading thousands.
+
 ## Practical cautions
 
 - **Sensitive species.** Coordinates and species names are not obscured. Do not publish
@@ -182,10 +203,8 @@ See [`reference/tables.md`](reference/tables.md) for ranges and meanings.
 - **Free-text fields need cleaning** before grouping: `cameraModel` (many spellings of one
   model), `habitat`, `deploymentTags` and `observationTags` (`key: value | key: value` pairs
   whose keys differ between projects).
-- **Media files are mostly private.** About 99% of media have `filePublic = FALSE`; the media
-  table describes images, it does not give you the images. Roughly 5% of media have a
-  placeholder `fileMediatype` such as `image/not_provided` (tabular data was shared without
-  the image files).
+- **Media files are mostly private.** The media table describes images; it does not contain
+  them. See "Getting the image files" below.
 - **Projects differ in effort and design.** Check `project$samplingDesign`, `baitUse`, and
   `WildObsMetadata` (`deploymentClusters`, `thinnedMedia`, `groupSizes`) before pooling.
 - **Cite the data.** Each package's `bibliographicCitation` is the citation to use, and

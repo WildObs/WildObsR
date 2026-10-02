@@ -187,6 +187,24 @@ contributors <- extract_metadata(dp_list, "contributors")
 projects     <- extract_metadata(dp_list, "project")
 ```
 
+### Download images
+
+Most WildObs images are held privately by their contributors or by Wildlife
+Insights, but files with `filePublic = TRUE` are openly hosted and can be
+downloaded. Requires `media = TRUE` in `wildobs_dp_download()`.
+
+```r
+# Grab the media table and keep only the publicly hosted files
+media <- dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]]$data$media
+media_public <- media[media$filePublic, ]
+
+# Download a small test batch into project/deployment folders
+result <- wildobs_media_download(head(media_public, 20), out_dir = "camera_images")
+
+# See what happened to each file
+table(result$downloadStatus)
+```
+
 ### Spatially resample data 
 
 ```r
@@ -316,7 +334,7 @@ camtrapR::surveyDashboard(CTtable = covs,                                   ## i
 
 | Category | Functions |
 |----------|-----------|
-| **Data Access** | `wildobs_mongo_query()`, `wildobs_dp_download()`, `extract_metadata()` |
+| **Data Access** | `wildobs_mongo_query()`, `wildobs_dp_download()`, `wildobs_media_download()`, `extract_metadata()` |
 | **Spatial** | `AUS_state_locator()`, `ibra_classification()`, `locationName_buffer_CAPAD()`
 | **Data Wrangling** | `survey_and_deployment_generator()`, `resample_covariates_and_observations()`, `matrix_generator()` |
 | **Quality Control** | `check_schema()`, `apply_schema_types()` |

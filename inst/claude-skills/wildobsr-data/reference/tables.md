@@ -75,8 +75,8 @@ data: `dp$resources[[i]]$schema$fields`.
 | `observationID` | character | 100% | **WildObs.** The observation this image belongs to (Camtrap DP has no such link). |
 | `captureMethod` | character | ~96% | `activityDetection` (motion-triggered); `timeLapse` has not been observed. |
 | `timestamp` | POSIXct | 100% | Capture time, local. |
-| `filePath` | character | 100% | Path or URL of the file. |
-| `filePublic` | logical | 100% | ~99% `FALSE`: the file itself is not publicly available. |
+| `filePath` | character | 100% | Where the file lives: a public WildObs URL, a private Wildlife Insights `gs://` bucket, a DigiVol task page, a contributor's drive, or a placeholder. See "Getting the image files" in SKILL.md. |
+| `filePublic` | logical | 100% | `TRUE` (~1%) exactly for files hosted at `data.wildobs.org.au`, which `wildobs_media_download()` can fetch. |
 | `fileName` | character | — | Withheld (`NA`) for public users. |
 | `fileMediatype` | character | 100% | `image/jpeg` (~94%), `video/mp4` (rare), or a `…not_provided` placeholder (~5%). |
 | `exifData` | character | ~0% | EXIF metadata as text. |
