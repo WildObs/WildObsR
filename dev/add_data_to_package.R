@@ -120,3 +120,66 @@ sf::st_crs(capad)$epsg           # MUST BE 4326
 ### Save data to the R package
 ## xz compression gives the smallest .rda for polygon data
 usethis::use_data(ibra, capad, overwrite = TRUE, compress = "xz")
+
+
+
+#
+##
+### Camtrap DP profiles for as_camtrapdp() ----
+
+## as_camtrapdp() converts a WildObs data package to canonical Camtrap DP (#113). It
+## reads what "canonical" means from the official TDWG profile and table schemas, and
+## which removals are expected WildObs extensions from the WildObs flavour generated in
+## camDB. Both are vendored into inst/profiles/ so the conversion runs offline and gives
+## the same answer on every machine.
+
+## camDB's profiles folder, in the cam-DB repo cloned beside this one:
+## upstream copies at the top, the WildObs flavour in wildobs/
+## TODO: point this at the public camDB repo once it is published (cam-DB #259)
+camdb_profiles <- normalizePath(here::here("..", "WildObs_cam-DB", "code_data cleaning", "utils", "profiles"),
+                                mustWork = TRUE)
+
+## where the package keeps them
+pkg_profiles <- here::here("inst", "profiles")
+dir.create(file.path(pkg_profiles, "wildobs"), recursive = TRUE, showWarnings = FALSE)
+
+### Copy the upstream and WildObs files from camDB
+# the upstream TDWG and frictionless copies camDB validates against
+upstream_files <- c("camtrap-dp-profile-1.0.1.json", "camtrap-dp-profile-1.0.2.json",
+                    "camtrap-dp-deployments-table-schema-1.0.2.json",
+                    "camtrap-dp-media-table-schema-1.0.2.json",
+                    "camtrap-dp-observations-table-schema-1.0.2.json",
+                    "frictionless-data-package.json", "geojson.json")
+file.copy(file.path(camdb_profiles, upstream_files), pkg_profiles, overwrite = TRUE)
+# and every generated WildObs flavour file, with its README
+wildobs_files <- list.files(file.path(camdb_profiles, "wildobs"), pattern = "\\.(json|md)$")
+file.copy(file.path(camdb_profiles, "wildobs", wildobs_files),
+          file.path(pkg_profiles, "wildobs"), overwrite = TRUE)
+
+### camDB does not vendor the 1.0.1 table schemas, so fetch them from TDWG
+## they are field-for-field identical to 1.0.2, but each version cites its own URLs
+for (resource in c("deployments", "media", "observations")) {
+  download.file(sprintf("https://raw.githubusercontent.com/tdwg/camtrap-dp/1.0.1/%s-table-schema.json", resource),
+                file.path(pkg_profiles, sprintf("camtrap-dp-%s-table-schema-1.0.1.json", resource)),
+                quiet = TRUE)
+} # end per resource
+
+### Inspect: every upstream copy must be byte-identical to what TDWG publishes
+## a vendored file that has drifted would make the conversion quietly wrong
+tdwg_url <- function(f) {
+  # the version and file name TDWG publishes it under
+  v <- sub(".*-(1\\.0\\.[0-9])\\.json$", "\\1", f)
+  base <- sub("^camtrap-dp-", "", sub("-1\\.0\\.[0-9]\\.json$", ".json", f))
+  sprintf("https://raw.githubusercontent.com/tdwg/camtrap-dp/%s/%s",
+          v, if (grepl("^profile", base)) "camtrap-dp-profile.json" else base)
+} # end url helper
+tdwg_files <- list.files(pkg_profiles, pattern = "^camtrap-dp-.*-1\\.0\\.[0-9]\\.json$")
+identical_to_tdwg <- vapply(tdwg_files, function(f) {
+  # fetch TDWG's copy and compare bytes
+  tmp <- tempfile(fileext = ".json")
+  download.file(tdwg_url(f), tmp, quiet = TRUE)
+  identical(unname(tools::md5sum(tmp)), unname(tools::md5sum(file.path(pkg_profiles, f))))
+}, logical(1))
+identical_to_tdwg               # MUST BE all TRUE
+all(identical_to_tdwg)          # MUST BE TRUE
+list.files(pkg_profiles, recursive = TRUE)

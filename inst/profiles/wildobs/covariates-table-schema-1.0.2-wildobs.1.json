@@ -1,0 +1,2504 @@
+{
+  "name": "covariates",
+  "title": "Covariates (WildObs)",
+  "description": "WildObs extension resource. One row per deployment, carrying the environmental and anthropogenic covariates that vary through space and time, which WildObs extracts at a set of buffer distances around each camera. Each covariate field records the  source dataset, its DOI or URL, the raster resolution and the buffer radius under `custom`. Absent from canonical camtrap-DP, which permits an extra resource of any name.",
+  "missingValues": [
+    "",
+    "NA",
+    "NaN",
+    "nan"
+  ],
+  "primaryKey": "deploymentID",
+  "fields": [
+    {
+      "name": "deploymentID",
+      "description": "Unique identifier of the deployment.",
+      "skos:broadMatch": "http://rs.tdwg.org/dwc/terms/eventID",
+      "type": "string",
+      "constraints": {
+        "required": true,
+        "unique": true
+      }
+    },
+    {
+      "name": "locationID",
+      "description": "Identifier of the deployment location.",
+      "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/locationID",
+      "type": "string",
+      "constraints": {
+        "required": false
+      }
+    },
+    {
+      "name": "locationName",
+      "description": "Name given to the deployment location. Grouping rules are set per survey and recorded in the deployments resource of each package; see the WildObs verified spatial hierarchy for the column each package was grouped against.",
+      "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/locality",
+      "type": "string",
+      "constraints": {
+        "required": false
+      }
+    },
+    {
+      "name": "latitude",
+      "description": "Latitude of the deployment location in decimal degrees, using the WGS84 datum.",
+      "skos:broadMatch": "http://rs.tdwg.org/dwc/terms/decimalLatitude",
+      "type": "number",
+      "constraints": {
+        "required": true,
+        "minimum": -90,
+        "maximum": 90
+      }
+    },
+    {
+      "name": "longitude",
+      "description": "Longitude of the deployment location in decimal degrees, using the WGS84 datum.",
+      "skos:broadMatch": "http://rs.tdwg.org/dwc/terms/decimalLongitude",
+      "type": "number",
+      "constraints": {
+        "required": true,
+        "minimum": -180,
+        "maximum": 180
+      }
+    },
+    {
+      "name": "deploymentStart",
+      "description": "Date and time at which the deployment was started. Formatted as an ISO 8601 string with timezone designator (`YYYY-MM-DDThh:mm:ssZ` or `YYYY-MM-DDThh:mm:ss±hh:mm`).",
+      "skos:broadMatch": "http://rs.tdwg.org/dwc/terms/eventDate",
+      "type": "datetime",
+      "format": "%Y-%m-%dT%H:%M:%S%z",
+      "constraints": {
+        "required": true
+      }
+    },
+    {
+      "name": "deploymentEnd",
+      "description": "Date and time at which the deployment was ended. Formatted as an ISO 8601 string with timezone designator (`YYYY-MM-DDThh:mm:ssZ` or `YYYY-MM-DDThh:mm:ss±hh:mm`).",
+      "skos:broadMatch": "http://rs.tdwg.org/dwc/terms/eventDate",
+      "type": "datetime",
+      "format": "%Y-%m-%dT%H:%M:%S%z",
+      "constraints": {
+        "required": true
+      }
+    },
+    {
+      "name": "deploymentGroups",
+      "description": "Deployment group(s) associated with the deployment. Deployment groups can have a spatial (arrays, grids, clusters), temporal (sessions, seasons, months, years) or other context. Formatted as a pipe (`|`) separated list for multiple values, with values preferably formatted as `key:value` pairs. \n\n In this data, deploymentGroups have been spatially defined to occur within a single locationName, which is assumed to be spatially distinct. DeploymentGroups have been made temporally distinct using a maximum duration of 100 days.",
+      "type": "string",
+      "constraints": {
+        "required": false
+      }
+    },
+    {
+      "name": "FLII_point",
+      "type": "number",
+      "description": "The Forest Landscape Integirty Index (FLII) value calculated with a meter buffer around each deploymentID. The FLII is a globally consistent composite metric that captures direct and indirect pressures on forest ecosystems. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 10
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/s41467-020-19493-3",
+          "url": "https://www.forestlandscapeintegrity.com",
+          "citation": "Grantham, H.S., Duncan, A., Evans, T.D., Jones, K.R., Beyer, H.L., Schuster, R. et al. (2020). Anthropogenic modification of forests means only 40% of remaining forests have high ecosystem integrity. Nature Communications, 11, 5978."
+        }
+      }
+    },
+    {
+      "name": "FLII_1km2",
+      "type": "number",
+      "description": "The Forest Landscape Integirty Index (FLII) value calculated with a meter buffer around each deploymentID. The FLII is a globally consistent composite metric that captures direct and indirect pressures on forest ecosystems. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 10
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/s41467-020-19493-3",
+          "url": "https://www.forestlandscapeintegrity.com",
+          "citation": "Grantham, H.S., Duncan, A., Evans, T.D., Jones, K.R., Beyer, H.L., Schuster, R. et al. (2020). Anthropogenic modification of forests means only 40% of remaining forests have high ecosystem integrity. Nature Communications, 11, 5978."
+        }
+      }
+    },
+    {
+      "name": "FLII_3km2",
+      "type": "number",
+      "description": "The Forest Landscape Integirty Index (FLII) value calculated with a meter buffer around each deploymentID. The FLII is a globally consistent composite metric that captures direct and indirect pressures on forest ecosystems. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 10
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/s41467-020-19493-3",
+          "url": "https://www.forestlandscapeintegrity.com",
+          "citation": "Grantham, H.S., Duncan, A., Evans, T.D., Jones, K.R., Beyer, H.L., Schuster, R. et al. (2020). Anthropogenic modification of forests means only 40% of remaining forests have high ecosystem integrity. Nature Communications, 11, 5978."
+        }
+      }
+    },
+    {
+      "name": "FLII_5km2",
+      "type": "number",
+      "description": "The Forest Landscape Integirty Index (FLII) value calculated with a meter buffer around each deploymentID. The FLII is a globally consistent composite metric that captures direct and indirect pressures on forest ecosystems. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 10
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/s41467-020-19493-3",
+          "url": "https://www.forestlandscapeintegrity.com",
+          "citation": "Grantham, H.S., Duncan, A., Evans, T.D., Jones, K.R., Beyer, H.L., Schuster, R. et al. (2020). Anthropogenic modification of forests means only 40% of remaining forests have high ecosystem integrity. Nature Communications, 11, 5978."
+        }
+      }
+    },
+    {
+      "name": "FLII_10km2",
+      "type": "number",
+      "description": "The Forest Landscape Integirty Index (FLII) value calculated with a meter buffer around each deploymentID. The FLII is a globally consistent composite metric that captures direct and indirect pressures on forest ecosystems. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 10
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/s41467-020-19493-3",
+          "url": "https://www.forestlandscapeintegrity.com",
+          "citation": "Grantham, H.S., Duncan, A., Evans, T.D., Jones, K.R., Beyer, H.L., Schuster, R. et al. (2020). Anthropogenic modification of forests means only 40% of remaining forests have high ecosystem integrity. Nature Communications, 11, 5978."
+        }
+      }
+    },
+    {
+      "name": "human_footprint_point",
+      "type": "number",
+      "description": "The Human Footprint Index (human_footprint) value calculated with a meter buffer around each deploymentID. The Human Footprint Index is a globally consistent composite metric that captures direct and indirect pressures from cumulative human effects on nature. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 50
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/ncomms12558",
+          "url": "https://sedac.ciesin.columbia.edu/",
+          "citation": "Venter, O., Sanderson, E.W., Magrach, A., Allan, J.R., Beher, J., Jones, K.R. et al. (2016). Sixteen years of change in the global terrestrial human footprint and implications for biodiversity conservation. Nature Communications, 7, 12558."
+        }
+      }
+    },
+    {
+      "name": "human_footprint_1km2",
+      "type": "number",
+      "description": "The Human Footprint Index (human_footprint) value calculated with a meter buffer around each deploymentID. The Human Footprint Index is a globally consistent composite metric that captures direct and indirect pressures from cumulative human effects on nature. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 50
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/ncomms12558",
+          "url": "https://sedac.ciesin.columbia.edu/",
+          "citation": "Venter, O., Sanderson, E.W., Magrach, A., Allan, J.R., Beher, J., Jones, K.R. et al. (2016). Sixteen years of change in the global terrestrial human footprint and implications for biodiversity conservation. Nature Communications, 7, 12558."
+        }
+      }
+    },
+    {
+      "name": "human_footprint_3km2",
+      "type": "number",
+      "description": "The Human Footprint Index (human_footprint) value calculated with a meter buffer around each deploymentID. The Human Footprint Index is a globally consistent composite metric that captures direct and indirect pressures from cumulative human effects on nature. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 50
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/ncomms12558",
+          "url": "https://sedac.ciesin.columbia.edu/",
+          "citation": "Venter, O., Sanderson, E.W., Magrach, A., Allan, J.R., Beher, J., Jones, K.R. et al. (2016). Sixteen years of change in the global terrestrial human footprint and implications for biodiversity conservation. Nature Communications, 7, 12558."
+        }
+      }
+    },
+    {
+      "name": "human_footprint_5km2",
+      "type": "number",
+      "description": "The Human Footprint Index (human_footprint) value calculated with a meter buffer around each deploymentID. The Human Footprint Index is a globally consistent composite metric that captures direct and indirect pressures from cumulative human effects on nature. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 50
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/ncomms12558",
+          "url": "https://sedac.ciesin.columbia.edu/",
+          "citation": "Venter, O., Sanderson, E.W., Magrach, A., Allan, J.R., Beher, J., Jones, K.R. et al. (2016). Sixteen years of change in the global terrestrial human footprint and implications for biodiversity conservation. Nature Communications, 7, 12558."
+        }
+      }
+    },
+    {
+      "name": "human_footprint_10km2",
+      "type": "number",
+      "description": "The Human Footprint Index (human_footprint) value calculated with a meter buffer around each deploymentID. The Human Footprint Index is a globally consistent composite metric that captures direct and indirect pressures from cumulative human effects on nature. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 50
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.1038/ncomms12558",
+          "url": "https://sedac.ciesin.columbia.edu/",
+          "citation": "Venter, O., Sanderson, E.W., Magrach, A., Allan, J.R., Beher, J., Jones, K.R. et al. (2016). Sixteen years of change in the global terrestrial human footprint and implications for biodiversity conservation. Nature Communications, 7, 12558."
+        }
+      }
+    },
+    {
+      "name": "altitude_point",
+      "type": "number",
+      "description": "The elevation/altitude (expressed in meters) calculated with a meter buffer around each deploymentID. Elevation was derived from 3 Second SRTM Derived Digital Elevation Models (DEM, DEM-S, DSM) Version 1.0 This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "altitude_1km2",
+      "type": "number",
+      "description": "The elevation/altitude (expressed in meters) calculated with a meter buffer around each deploymentID. Elevation was derived from 3 Second SRTM Derived Digital Elevation Models (DEM, DEM-S, DSM) Version 1.0 This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "altitude_3km2",
+      "type": "number",
+      "description": "The elevation/altitude (expressed in meters) calculated with a meter buffer around each deploymentID. Elevation was derived from 3 Second SRTM Derived Digital Elevation Models (DEM, DEM-S, DSM) Version 1.0 This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "altitude_5km2",
+      "type": "number",
+      "description": "The elevation/altitude (expressed in meters) calculated with a meter buffer around each deploymentID. Elevation was derived from 3 Second SRTM Derived Digital Elevation Models (DEM, DEM-S, DSM) Version 1.0 This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "altitude_10km2",
+      "type": "number",
+      "description": "The elevation/altitude (expressed in meters) calculated with a meter buffer around each deploymentID. Elevation was derived from 3 Second SRTM Derived Digital Elevation Models (DEM, DEM-S, DSM) Version 1.0 This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "ecoregion_intactness_point",
+      "type": "number",
+      "description": "The Ecoregion Intactness Index (ecoregion_intactness) values calcuated with a meter buffer around each deploymentID. This index is a simplistic binary characterisation of habitat and non-habitat with a focus on change in habitat extent has dominated conservation assessments across different spatial scales. This metric captures both habitat loss, quality and fragmentation effects and is calculated using continuous measures of habitat quality. The index is applied at a global scale to quantify changes in intactness of the world's terrestrial ecoregions over a 16 year period. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.14264/uql.2019.773",
+          "url": "https://ecoregions2017.appspot.com",
+          "citation": "Beyer, H.L., Venter, O., Grantham, H.S. & Watson, J.E.M. (2019) Substantial losses in ecoregion intactness highlights urgency of globally coordinated action. Conservation Letters. Volume 13, Issue 2"
+        }
+      }
+    },
+    {
+      "name": "ecoregion_intactness_1km2",
+      "type": "number",
+      "description": "The Ecoregion Intactness Index (ecoregion_intactness) values calcuated with a meter buffer around each deploymentID. This index is a simplistic binary characterisation of habitat and non-habitat with a focus on change in habitat extent has dominated conservation assessments across different spatial scales. This metric captures both habitat loss, quality and fragmentation effects and is calculated using continuous measures of habitat quality. The index is applied at a global scale to quantify changes in intactness of the world's terrestrial ecoregions over a 16 year period. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.14264/uql.2019.773",
+          "url": "https://ecoregions2017.appspot.com",
+          "citation": "Beyer, H.L., Venter, O., Grantham, H.S. & Watson, J.E.M. (2019) Substantial losses in ecoregion intactness highlights urgency of globally coordinated action. Conservation Letters. Volume 13, Issue 2"
+        }
+      }
+    },
+    {
+      "name": "ecoregion_intactness_3km2",
+      "type": "number",
+      "description": "The Ecoregion Intactness Index (ecoregion_intactness) values calcuated with a meter buffer around each deploymentID. This index is a simplistic binary characterisation of habitat and non-habitat with a focus on change in habitat extent has dominated conservation assessments across different spatial scales. This metric captures both habitat loss, quality and fragmentation effects and is calculated using continuous measures of habitat quality. The index is applied at a global scale to quantify changes in intactness of the world's terrestrial ecoregions over a 16 year period. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.14264/uql.2019.773",
+          "url": "https://ecoregions2017.appspot.com",
+          "citation": "Beyer, H.L., Venter, O., Grantham, H.S. & Watson, J.E.M. (2019) Substantial losses in ecoregion intactness highlights urgency of globally coordinated action. Conservation Letters. Volume 13, Issue 2"
+        }
+      }
+    },
+    {
+      "name": "ecoregion_intactness_5km2",
+      "type": "number",
+      "description": "The Ecoregion Intactness Index (ecoregion_intactness) values calcuated with a meter buffer around each deploymentID. This index is a simplistic binary characterisation of habitat and non-habitat with a focus on change in habitat extent has dominated conservation assessments across different spatial scales. This metric captures both habitat loss, quality and fragmentation effects and is calculated using continuous measures of habitat quality. The index is applied at a global scale to quantify changes in intactness of the world's terrestrial ecoregions over a 16 year period. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.14264/uql.2019.773",
+          "url": "https://ecoregions2017.appspot.com",
+          "citation": "Beyer, H.L., Venter, O., Grantham, H.S. & Watson, J.E.M. (2019) Substantial losses in ecoregion intactness highlights urgency of globally coordinated action. Conservation Letters. Volume 13, Issue 2"
+        }
+      }
+    },
+    {
+      "name": "ecoregion_intactness_10km2",
+      "type": "number",
+      "description": "The Ecoregion Intactness Index (ecoregion_intactness) values calcuated with a meter buffer around each deploymentID. This index is a simplistic binary characterisation of habitat and non-habitat with a focus on change in habitat extent has dominated conservation assessments across different spatial scales. This metric captures both habitat loss, quality and fragmentation effects and is calculated using continuous measures of habitat quality. The index is applied at a global scale to quantify changes in intactness of the world's terrestrial ecoregions over a 16 year period. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.14264/uql.2019.773",
+          "url": "https://ecoregions2017.appspot.com",
+          "citation": "Beyer, H.L., Venter, O., Grantham, H.S. & Watson, J.E.M. (2019) Substantial losses in ecoregion intactness highlights urgency of globally coordinated action. Conservation Letters. Volume 13, Issue 2"
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_precipitation_point",
+      "type": "number",
+      "description": "The mean monthly precipitation (in milimeters) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1b",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_precipitation_1km2",
+      "type": "number",
+      "description": "The mean monthly precipitation (in milimeters) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1b",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_precipitation_3km2",
+      "type": "number",
+      "description": "The mean monthly precipitation (in milimeters) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1b",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_precipitation_5km2",
+      "type": "number",
+      "description": "The mean monthly precipitation (in milimeters) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1b",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_precipitation_10km2",
+      "type": "number",
+      "description": "The mean monthly precipitation (in milimeters) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1b",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_temperature_point",
+      "type": "number",
+      "description": "The mean monthly temperature (in Celsius) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_temperature_1km2",
+      "type": "number",
+      "description": "The mean monthly temperature (in Celsius) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_temperature_3km2",
+      "type": "number",
+      "description": "The mean monthly temperature (in Celsius) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_temperature_5km2",
+      "type": "number",
+      "description": "The mean monthly temperature (in Celsius) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "mean_monthly_temperature_10km2",
+      "type": "number",
+      "description": "The mean monthly temperature (in Celsius) calculated with a buffer around each deploymentID. This data has been derived from the ANU Climate 2.0, including Rainfall grids are generated from 1900 to December 2022. Any values past 2022 have the value for 2022. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://dx.doi.org/10.25914/60a10aa56dd1",
+          "url": "https://geonetwork.nci.org.au/geonetwork/srv/eng/catalog.search#/metadata/f2576_7854_4065_1457",
+          "citation": "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
+        }
+      }
+    },
+    {
+      "name": "nighttime_lights_point",
+      "type": "number",
+      "description": "The annual mean radiance of nighttime lights detected by the VIIRS Day/Night Band, processed to exclude stray-light, moonlight, lightning, clouds, fires, aurora and background noise (i.e. a \"night-time lights\" metric representing stable lit areas annually). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "500m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.3390/rs13050922",
+          "url": "https://eogdata.mines.edu/products/vnl/",
+          "citation": "Elvidge C. D., Zhizhin M., Ghosh T., Hsu F. C., & Taneja J. (2021). Annual time series of global VIIRS nighttime lights derived from monthly averages: 2012 to 2019. Remote Sensing, 13(5), 922."
+        }
+      }
+    },
+    {
+      "name": "nighttime_lights_1km2",
+      "type": "number",
+      "description": "The annual mean radiance of nighttime lights detected by the VIIRS Day/Night Band, processed to exclude stray-light, moonlight, lightning, clouds, fires, aurora and background noise (i.e. a \"night-time lights\" metric representing stable lit areas annually). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "500m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.3390/rs13050922",
+          "url": "https://eogdata.mines.edu/products/vnl/",
+          "citation": "Elvidge C. D., Zhizhin M., Ghosh T., Hsu F. C., & Taneja J. (2021). Annual time series of global VIIRS nighttime lights derived from monthly averages: 2012 to 2019. Remote Sensing, 13(5), 922."
+        }
+      }
+    },
+    {
+      "name": "nighttime_lights_3km2",
+      "type": "number",
+      "description": "The annual mean radiance of nighttime lights detected by the VIIRS Day/Night Band, processed to exclude stray-light, moonlight, lightning, clouds, fires, aurora and background noise (i.e. a \"night-time lights\" metric representing stable lit areas annually). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "500m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.3390/rs13050922",
+          "url": "https://eogdata.mines.edu/products/vnl/",
+          "citation": "Elvidge C. D., Zhizhin M., Ghosh T., Hsu F. C., & Taneja J. (2021). Annual time series of global VIIRS nighttime lights derived from monthly averages: 2012 to 2019. Remote Sensing, 13(5), 922."
+        }
+      }
+    },
+    {
+      "name": "nighttime_lights_5km2",
+      "type": "number",
+      "description": "The annual mean radiance of nighttime lights detected by the VIIRS Day/Night Band, processed to exclude stray-light, moonlight, lightning, clouds, fires, aurora and background noise (i.e. a \"night-time lights\" metric representing stable lit areas annually). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "500m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.3390/rs13050922",
+          "url": "https://eogdata.mines.edu/products/vnl/",
+          "citation": "Elvidge C. D., Zhizhin M., Ghosh T., Hsu F. C., & Taneja J. (2021). Annual time series of global VIIRS nighttime lights derived from monthly averages: 2012 to 2019. Remote Sensing, 13(5), 922."
+        }
+      }
+    },
+    {
+      "name": "nighttime_lights_10km2",
+      "type": "number",
+      "description": "The annual mean radiance of nighttime lights detected by the VIIRS Day/Night Band, processed to exclude stray-light, moonlight, lightning, clouds, fires, aurora and background noise (i.e. a \"night-time lights\" metric representing stable lit areas annually). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "500m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.3390/rs13050922",
+          "url": "https://eogdata.mines.edu/products/vnl/",
+          "citation": "Elvidge C. D., Zhizhin M., Ghosh T., Hsu F. C., & Taneja J. (2021). Annual time series of global VIIRS nighttime lights derived from monthly averages: 2012 to 2019. Remote Sensing, 13(5), 922."
+        }
+      }
+    },
+    {
+      "name": "human_population_density_point",
+      "type": "number",
+      "description": "Estimated resident population density per 1km x 1km grid cell across Australia for the reference year 2023, derived from Australian Bureau of Statistics Estimated Resident Population at Statistical Area Level 1 and spatially modelled to the National Nested Grid 1km resolution This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "",
+          "url": "https://digital.atlas.gov.au/maps/digitalatlas::abs-australian-population-grid-2023/about",
+          "citation": "Australian Bureau of Statistics. (2025). Australian Population Grid 2023 (derived from Estimated Resident Population at Statistical Area Level 1, Australian Statistical Geography Standard Edition 3). Retrieved from the Digital Atlas of Australia and ArcGIS Online."
+        }
+      }
+    },
+    {
+      "name": "human_population_density_1km2",
+      "type": "number",
+      "description": "Estimated resident population density per 1km x 1km grid cell across Australia for the reference year 2023, derived from Australian Bureau of Statistics Estimated Resident Population at Statistical Area Level 1 and spatially modelled to the National Nested Grid 1km resolution This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "",
+          "url": "https://digital.atlas.gov.au/maps/digitalatlas::abs-australian-population-grid-2023/about",
+          "citation": "Australian Bureau of Statistics. (2025). Australian Population Grid 2023 (derived from Estimated Resident Population at Statistical Area Level 1, Australian Statistical Geography Standard Edition 3). Retrieved from the Digital Atlas of Australia and ArcGIS Online."
+        }
+      }
+    },
+    {
+      "name": "human_population_density_3km2",
+      "type": "number",
+      "description": "Estimated resident population density per 1km x 1km grid cell across Australia for the reference year 2023, derived from Australian Bureau of Statistics Estimated Resident Population at Statistical Area Level 1 and spatially modelled to the National Nested Grid 1km resolution This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "",
+          "url": "https://digital.atlas.gov.au/maps/digitalatlas::abs-australian-population-grid-2023/about",
+          "citation": "Australian Bureau of Statistics. (2025). Australian Population Grid 2023 (derived from Estimated Resident Population at Statistical Area Level 1, Australian Statistical Geography Standard Edition 3). Retrieved from the Digital Atlas of Australia and ArcGIS Online."
+        }
+      }
+    },
+    {
+      "name": "human_population_density_5km2",
+      "type": "number",
+      "description": "Estimated resident population density per 1km x 1km grid cell across Australia for the reference year 2023, derived from Australian Bureau of Statistics Estimated Resident Population at Statistical Area Level 1 and spatially modelled to the National Nested Grid 1km resolution This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "",
+          "url": "https://digital.atlas.gov.au/maps/digitalatlas::abs-australian-population-grid-2023/about",
+          "citation": "Australian Bureau of Statistics. (2025). Australian Population Grid 2023 (derived from Estimated Resident Population at Statistical Area Level 1, Australian Statistical Geography Standard Edition 3). Retrieved from the Digital Atlas of Australia and ArcGIS Online."
+        }
+      }
+    },
+    {
+      "name": "human_population_density_10km2",
+      "type": "number",
+      "description": "Estimated resident population density per 1km x 1km grid cell across Australia for the reference year 2023, derived from Australian Bureau of Statistics Estimated Resident Population at Statistical Area Level 1 and spatially modelled to the National Nested Grid 1km resolution This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "1000m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "",
+          "url": "https://digital.atlas.gov.au/maps/digitalatlas::abs-australian-population-grid-2023/about",
+          "citation": "Australian Bureau of Statistics. (2025). Australian Population Grid 2023 (derived from Estimated Resident Population at Statistical Area Level 1, Australian Statistical Geography Standard Edition 3). Retrieved from the Digital Atlas of Australia and ArcGIS Online."
+        }
+      }
+    },
+    {
+      "name": "protected_areas_point",
+      "type": "number",
+      "description": "Proportion of the surrounding area (at a given spatial scale) that overlaps a protected area listed in the World Database on Protected Areas (WDPA). Values range from 0 to 1, where: 0 = no overlap with protected area, 1 = fully within protected area, and intermediate values = partial coverage within buffer. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.34892/CF8P-8D35",
+          "url": "https://resources.unep-wcmc.org/products/WCMC_CB007",
+          "citation": "UNEP-WCMC (2019). WDPA & WDOECM User Manual v1.6. Cambridge, UK: UNEP-WCMC. Available at: http://wcmc.io/WDPA_Manual"
+        }
+      }
+    },
+    {
+      "name": "protected_areas_1km2",
+      "type": "number",
+      "description": "Proportion of the surrounding area (at a given spatial scale) that overlaps a protected area listed in the World Database on Protected Areas (WDPA). Values range from 0 to 1, where: 0 = no overlap with protected area, 1 = fully within protected area, and intermediate values = partial coverage within buffer. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.34892/CF8P-8D35",
+          "url": "https://resources.unep-wcmc.org/products/WCMC_CB007",
+          "citation": "UNEP-WCMC (2019). WDPA & WDOECM User Manual v1.6. Cambridge, UK: UNEP-WCMC. Available at: http://wcmc.io/WDPA_Manual"
+        }
+      }
+    },
+    {
+      "name": "protected_areas_3km2",
+      "type": "number",
+      "description": "Proportion of the surrounding area (at a given spatial scale) that overlaps a protected area listed in the World Database on Protected Areas (WDPA). Values range from 0 to 1, where: 0 = no overlap with protected area, 1 = fully within protected area, and intermediate values = partial coverage within buffer. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.34892/CF8P-8D35",
+          "url": "https://resources.unep-wcmc.org/products/WCMC_CB007",
+          "citation": "UNEP-WCMC (2019). WDPA & WDOECM User Manual v1.6. Cambridge, UK: UNEP-WCMC. Available at: http://wcmc.io/WDPA_Manual"
+        }
+      }
+    },
+    {
+      "name": "protected_areas_5km2",
+      "type": "number",
+      "description": "Proportion of the surrounding area (at a given spatial scale) that overlaps a protected area listed in the World Database on Protected Areas (WDPA). Values range from 0 to 1, where: 0 = no overlap with protected area, 1 = fully within protected area, and intermediate values = partial coverage within buffer. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.34892/CF8P-8D35",
+          "url": "https://resources.unep-wcmc.org/products/WCMC_CB007",
+          "citation": "UNEP-WCMC (2019). WDPA & WDOECM User Manual v1.6. Cambridge, UK: UNEP-WCMC. Available at: http://wcmc.io/WDPA_Manual"
+        }
+      }
+    },
+    {
+      "name": "protected_areas_10km2",
+      "type": "number",
+      "description": "Proportion of the surrounding area (at a given spatial scale) that overlaps a protected area listed in the World Database on Protected Areas (WDPA). Values range from 0 to 1, where: 0 = no overlap with protected area, 1 = fully within protected area, and intermediate values = partial coverage within buffer. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "300m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.34892/CF8P-8D35",
+          "url": "https://resources.unep-wcmc.org/products/WCMC_CB007",
+          "citation": "UNEP-WCMC (2019). WDPA & WDOECM User Manual v1.6. Cambridge, UK: UNEP-WCMC. Available at: http://wcmc.io/WDPA_Manual"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_2020_point",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the most frequently occurring fire severity class (mode) within the buffer area surrounding each camera deployment. A score of 0 means unburnt, 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_2020_1km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the most frequently occurring fire severity class (mode) within the buffer area surrounding each camera deployment. A score of 0 means unburnt, 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_2020_3km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the most frequently occurring fire severity class (mode) within the buffer area surrounding each camera deployment. A score of 0 means unburnt, 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_2020_5km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the most frequently occurring fire severity class (mode) within the buffer area surrounding each camera deployment. A score of 0 means unburnt, 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_2020_10km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the most frequently occurring fire severity class (mode) within the buffer area surrounding each camera deployment. A score of 0 means unburnt, 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_0_percent_1km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_1_percent_1km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_2_percent_1km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_3_percent_1km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_4_percent_1km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_5_percent_1km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_0_percent_3km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_1_percent_3km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_2_percent_3km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_3_percent_3km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_4_percent_3km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_5_percent_3km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_0_percent_5km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_1_percent_5km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_2_percent_5km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_3_percent_5km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_4_percent_5km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_5_percent_5km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_0_percent_10km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_1_percent_10km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_2_percent_10km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_3_percent_10km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_4_percent_10km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "GEEBAM_fire_severity_5_percent_10km2",
+      "type": "number",
+      "description": "Dominant fire severity class for each location based on the Australian Google Earth Engine Burnt Area Map (AUS GEEBAM), produced after the 2019/20 bushfire season. Values represent the percentage of area per each fire severity classification within a  buffer around each deploymentID. Across the 5 fire severity percentage columns, each coordinate totals to 100%. A fire severity of 1 = very low burn, 2 = low burn, 3 = moderate burn, 4 = high burn, 5 = very high/extreme burn. The AUS GEEBAM dataset was developed using Sentinel-2 satellite imagery and represents fire severity across the National Indicative Aggregated Fire Extent Dataset (NIAFED) as of 25 February 2020. Values are derived from a categorical classification and not continuous metrics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "10m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://datasets.seed.nsw.gov.au/dataset/google-earth-engine-burnt-area-map-geebam",
+          "citation": "NSW Department of Climate Change, Energy, the Environment and Water asserts the right to be attributed as author of the original material in the following manner: (C) State Government of NSW and NSW Department of Climate Change, Energy, the Environment and Water 2020"
+        }
+      }
+    },
+    {
+      "name": "fire_events_count_point",
+      "type": "integer",
+      "description": "Count of historical fire events intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "fire_events_count_1km2",
+      "type": "integer",
+      "description": "Count of historical fire events intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "fire_events_count_3km2",
+      "type": "integer",
+      "description": "Count of historical fire events intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "fire_events_count_5km2",
+      "type": "integer",
+      "description": "Count of historical fire events intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "fire_events_count_10km2",
+      "type": "integer",
+      "description": "Count of historical fire events intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "days_since_recent_fire_point",
+      "type": "integer",
+      "description": "The number of days since the most recent fire was detected intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "days_since_recent_fire_1km2",
+      "type": "integer",
+      "description": "The number of days since the most recent fire was detected intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "days_since_recent_fire_3km2",
+      "type": "integer",
+      "description": "The number of days since the most recent fire was detected intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "days_since_recent_fire_5km2",
+      "type": "integer",
+      "description": "The number of days since the most recent fire was detected intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "days_since_recent_fire_10km2",
+      "type": "integer",
+      "description": "The number of days since the most recent fire was detected intersecting a buffer around each camera deployment location. Fire events are derived from the combined Australian Fire Boundaries dataset, which integrates Geoscience Australia's Historical Bushfire Boundaries (Version 2.0, covering 1899-2023) and Near Real-Time Bushfire Boundaries (covering 2025-present). Each fire polygon represents either a bushfire or prescribed burn boundary as mapped by state/territory fire management agencies. The count includes all fires (both bushfires and prescribed burns) whose boundaries intersect the buffer area, regardless of fire size or date. Note: Northern Territory fires are not included in the historical dataset, and 2024 data is unavailable due to a gap between datasets. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": false,
+        "minimum": 0
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "polygons",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.26186/149017",
+          "url": "https://digital.atlas.gov.au/pages/national-bushfire-data",
+          "citation": "Foo, A., Coghlan, R., Orr, K. (2023). Historical Bushfire Boundaries - Version 2.0. Commonwealth of Australia (Geoscience Australia). https://doi.org/10.26186/149017; Geoscience Australia (2025). Near Real-Time Bushfire Boundaries. Commonwealth of Australia."
+        }
+      }
+    },
+    {
+      "name": "HCAS_static_point",
+      "type": "number",
+      "description": "This variable represents the long-term (1988-2022) estimate of habitat condition across Australia, derived from the Habitat Condition Assessment System (HCAS v3.1). Condition values are calculated using a nationally consistent ecological model that incorporates vegetation structure, land use, connectivity, and degradation pressure, and are scaled from 0 to 1, where 1 = very high integrity and 0 = very low integrity. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.25919/a3h3-bs84",
+          "url": "https://data.csiro.au/collection/csiro:62484",
+          "citation": "Valavi R., Williams K.J., Liu N., Levick S. R., Giljohann K. M., Johnson S., Botha E.J., Munroe S.E.M., Lehmann E.A., Collings S., Searle R., Van Niel T.G., Newnham G., Paget M., Joehnk K., Hosack G.R., Harwood T.D., Malley C., Gunawardana D., Sivanandam P., Richards A.E., Tetreault Campbell S., Schmidt B.K., & Ferrier S. (2025). HCAS 3.1 (1988-2022) base model estimate of habitat condition (90m grid), National Connectivity Index (NCI) v2.0, annual epochs from 1990 to 2022 for continental Australia. CSIRO Data Collection 63571."
+        }
+      }
+    },
+    {
+      "name": "HCAS_static_1km2",
+      "type": "number",
+      "description": "This variable represents the long-term (1988-2022) estimate of habitat condition across Australia, derived from the Habitat Condition Assessment System (HCAS v3.1). Condition values are calculated using a nationally consistent ecological model that incorporates vegetation structure, land use, connectivity, and degradation pressure, and are scaled from 0 to 1, where 1 = very high integrity and 0 = very low integrity. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.25919/a3h3-bs84",
+          "url": "https://data.csiro.au/collection/csiro:62484",
+          "citation": "Valavi R., Williams K.J., Liu N., Levick S. R., Giljohann K. M., Johnson S., Botha E.J., Munroe S.E.M., Lehmann E.A., Collings S., Searle R., Van Niel T.G., Newnham G., Paget M., Joehnk K., Hosack G.R., Harwood T.D., Malley C., Gunawardana D., Sivanandam P., Richards A.E., Tetreault Campbell S., Schmidt B.K., & Ferrier S. (2025). HCAS 3.1 (1988-2022) base model estimate of habitat condition (90m grid), National Connectivity Index (NCI) v2.0, annual epochs from 1990 to 2022 for continental Australia. CSIRO Data Collection 63571."
+        }
+      }
+    },
+    {
+      "name": "HCAS_static_3km2",
+      "type": "number",
+      "description": "This variable represents the long-term (1988-2022) estimate of habitat condition across Australia, derived from the Habitat Condition Assessment System (HCAS v3.1). Condition values are calculated using a nationally consistent ecological model that incorporates vegetation structure, land use, connectivity, and degradation pressure, and are scaled from 0 to 1, where 1 = very high integrity and 0 = very low integrity. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.25919/a3h3-bs84",
+          "url": "https://data.csiro.au/collection/csiro:62484",
+          "citation": "Valavi R., Williams K.J., Liu N., Levick S. R., Giljohann K. M., Johnson S., Botha E.J., Munroe S.E.M., Lehmann E.A., Collings S., Searle R., Van Niel T.G., Newnham G., Paget M., Joehnk K., Hosack G.R., Harwood T.D., Malley C., Gunawardana D., Sivanandam P., Richards A.E., Tetreault Campbell S., Schmidt B.K., & Ferrier S. (2025). HCAS 3.1 (1988-2022) base model estimate of habitat condition (90m grid), National Connectivity Index (NCI) v2.0, annual epochs from 1990 to 2022 for continental Australia. CSIRO Data Collection 63571."
+        }
+      }
+    },
+    {
+      "name": "HCAS_static_5km2",
+      "type": "number",
+      "description": "This variable represents the long-term (1988-2022) estimate of habitat condition across Australia, derived from the Habitat Condition Assessment System (HCAS v3.1). Condition values are calculated using a nationally consistent ecological model that incorporates vegetation structure, land use, connectivity, and degradation pressure, and are scaled from 0 to 1, where 1 = very high integrity and 0 = very low integrity. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.25919/a3h3-bs84",
+          "url": "https://data.csiro.au/collection/csiro:62484",
+          "citation": "Valavi R., Williams K.J., Liu N., Levick S. R., Giljohann K. M., Johnson S., Botha E.J., Munroe S.E.M., Lehmann E.A., Collings S., Searle R., Van Niel T.G., Newnham G., Paget M., Joehnk K., Hosack G.R., Harwood T.D., Malley C., Gunawardana D., Sivanandam P., Richards A.E., Tetreault Campbell S., Schmidt B.K., & Ferrier S. (2025). HCAS 3.1 (1988-2022) base model estimate of habitat condition (90m grid), National Connectivity Index (NCI) v2.0, annual epochs from 1990 to 2022 for continental Australia. CSIRO Data Collection 63571."
+        }
+      }
+    },
+    {
+      "name": "HCAS_static_10km2",
+      "type": "number",
+      "description": "This variable represents the long-term (1988-2022) estimate of habitat condition across Australia, derived from the Habitat Condition Assessment System (HCAS v3.1). Condition values are calculated using a nationally consistent ecological model that incorporates vegetation structure, land use, connectivity, and degradation pressure, and are scaled from 0 to 1, where 1 = very high integrity and 0 = very low integrity. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "90m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.25919/a3h3-bs84",
+          "url": "https://data.csiro.au/collection/csiro:62484",
+          "citation": "Valavi R., Williams K.J., Liu N., Levick S. R., Giljohann K. M., Johnson S., Botha E.J., Munroe S.E.M., Lehmann E.A., Collings S., Searle R., Van Niel T.G., Newnham G., Paget M., Joehnk K., Hosack G.R., Harwood T.D., Malley C., Gunawardana D., Sivanandam P., Richards A.E., Tetreault Campbell S., Schmidt B.K., & Ferrier S. (2025). HCAS 3.1 (1988-2022) base model estimate of habitat condition (90m grid), National Connectivity Index (NCI) v2.0, annual epochs from 1990 to 2022 for continental Australia. CSIRO Data Collection 63571."
+        }
+      }
+    },
+    {
+      "name": "Olson_global_ecoregion",
+      "type": "string",
+      "description": "Categorical variable identifying the terrestrial ecoregion in which a camera deployment falls. Ecoregions are large geographic units of land that share similar climate, ecological communities, and environmental conditions, as defined in Terrestrial Ecoregions of the World: A New Map of Life on Earth (Olson et al., 2001). Each ecoregion is part of a biome and realm, and has a unique name and numeric code. The classification includes 867 terrestrial ecoregions, covering the globe. This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "50000m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.1641/0006-3568(2001)051[0933:TEOTWA]2.0.CO;2",
+          "url": "https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world",
+          "citation": "Olson, D.M., Dinerstein, E., Wikramanayake, E.D., Burgess, N.D., Powell, G.V.N., Underwood, E.C., D'Amico, J.A., Itoua, I., Strand, H.E., Morrison, J.C., Loucks, C. ., Allnutt, T.F., Ricketts, T H., Kura, Y., Lamoreux, J.F., Wettengel, W.W., Hedao, P., & Kassem, K.R. (2001). Terrestrial ecoregions of the world: A new map of life on Earth. BioScience, 51(11), 933-938."
+        }
+      }
+    },
+    {
+      "name": "NDVI_point",
+      "type": "number",
+      "description": "Mean NDVI (Normalized Difference Vegetation Index) extracted from a 1 km resolution raster layer representing vegetation density across Australia. NDVI reflects vegetation greenness and health and is widely used in ecological and land surface monitoring. The raster stores a focal mean of NDVI calculated using a 5km circular window, derived from the National Forest and Sparse Woody Vegetation dataset (2021). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "",
+          "url": "https://data.gov.au/data/dataset/national-forest-and-sparse-woody-vegetation-data-version-7-0-2022-release",
+          "citation": "Department of Climate Change, Energy, the Environment and Water (DCCEEW). (2022). National Forest and Sparse Woody Vegetation Data. Version 7.0."
+        }
+      }
+    },
+    {
+      "name": "NDVI_1km2",
+      "type": "number",
+      "description": "Mean NDVI (Normalized Difference Vegetation Index) extracted from a 1 km resolution raster layer representing vegetation density across Australia. NDVI reflects vegetation greenness and health and is widely used in ecological and land surface monitoring. The raster stores a focal mean of NDVI calculated using a 5km circular window, derived from the National Forest and Sparse Woody Vegetation dataset (2021). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "",
+          "url": "https://data.gov.au/data/dataset/national-forest-and-sparse-woody-vegetation-data-version-7-0-2022-release",
+          "citation": "Department of Climate Change, Energy, the Environment and Water (DCCEEW). (2022). National Forest and Sparse Woody Vegetation Data. Version 7.0."
+        }
+      }
+    },
+    {
+      "name": "NDVI_3km2",
+      "type": "number",
+      "description": "Mean NDVI (Normalized Difference Vegetation Index) extracted from a 1 km resolution raster layer representing vegetation density across Australia. NDVI reflects vegetation greenness and health and is widely used in ecological and land surface monitoring. The raster stores a focal mean of NDVI calculated using a 5km circular window, derived from the National Forest and Sparse Woody Vegetation dataset (2021). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "",
+          "url": "https://data.gov.au/data/dataset/national-forest-and-sparse-woody-vegetation-data-version-7-0-2022-release",
+          "citation": "Department of Climate Change, Energy, the Environment and Water (DCCEEW). (2022). National Forest and Sparse Woody Vegetation Data. Version 7.0."
+        }
+      }
+    },
+    {
+      "name": "NDVI_5km2",
+      "type": "number",
+      "description": "Mean NDVI (Normalized Difference Vegetation Index) extracted from a 1 km resolution raster layer representing vegetation density across Australia. NDVI reflects vegetation greenness and health and is widely used in ecological and land surface monitoring. The raster stores a focal mean of NDVI calculated using a 5km circular window, derived from the National Forest and Sparse Woody Vegetation dataset (2021). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "",
+          "url": "https://data.gov.au/data/dataset/national-forest-and-sparse-woody-vegetation-data-version-7-0-2022-release",
+          "citation": "Department of Climate Change, Energy, the Environment and Water (DCCEEW). (2022). National Forest and Sparse Woody Vegetation Data. Version 7.0."
+        }
+      }
+    },
+    {
+      "name": "NDVI_10km2",
+      "type": "number",
+      "description": "Mean NDVI (Normalized Difference Vegetation Index) extracted from a 1 km resolution raster layer representing vegetation density across Australia. NDVI reflects vegetation greenness and health and is widely used in ecological and land surface monitoring. The raster stores a focal mean of NDVI calculated using a 5km circular window, derived from the National Forest and Sparse Woody Vegetation dataset (2021). This variable has been calculated with a buffer around each deploymentID. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 1
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "",
+          "url": "https://data.gov.au/data/dataset/national-forest-and-sparse-woody-vegetation-data-version-7-0-2022-release",
+          "citation": "Department of Climate Change, Energy, the Environment and Water (DCCEEW). (2022). National Forest and Sparse Woody Vegetation Data. Version 7.0."
+        }
+      }
+    },
+    {
+      "name": "terrain_ruggedness_index_point",
+      "type": "number",
+      "description": "Terrain Ruggedness Index (TRI) calculated from the 1-Second SRTM-derived Digital Elevation Model (DEM-S) Version 1.0. TRI represents the mean of the absolute differences between the elevation of a cell and its eight surrounding cells, summarised as the mean within a buffer around each deploymentID. Higher values indicate more rugged terrain. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "30m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "terrain_ruggedness_index_1km2",
+      "type": "number",
+      "description": "Terrain Ruggedness Index (TRI) calculated from the 1-Second SRTM-derived Digital Elevation Model (DEM-S) Version 1.0. TRI represents the mean of the absolute differences between the elevation of a cell and its eight surrounding cells, summarised as the mean within a buffer around each deploymentID. Higher values indicate more rugged terrain. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "30m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "terrain_ruggedness_index_3km2",
+      "type": "number",
+      "description": "Terrain Ruggedness Index (TRI) calculated from the 1-Second SRTM-derived Digital Elevation Model (DEM-S) Version 1.0. TRI represents the mean of the absolute differences between the elevation of a cell and its eight surrounding cells, summarised as the mean within a buffer around each deploymentID. Higher values indicate more rugged terrain. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "30m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "terrain_ruggedness_index_5km2",
+      "type": "number",
+      "description": "Terrain Ruggedness Index (TRI) calculated from the 1-Second SRTM-derived Digital Elevation Model (DEM-S) Version 1.0. TRI represents the mean of the absolute differences between the elevation of a cell and its eight surrounding cells, summarised as the mean within a buffer around each deploymentID. Higher values indicate more rugged terrain. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "30m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "terrain_ruggedness_index_10km2",
+      "type": "number",
+      "description": "Terrain Ruggedness Index (TRI) calculated from the 1-Second SRTM-derived Digital Elevation Model (DEM-S) Version 1.0. TRI represents the mean of the absolute differences between the elevation of a cell and its eight surrounding cells, summarised as the mean within a buffer around each deploymentID. Higher values indicate more rugged terrain. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 2250
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "30m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://pid.geoscience.gov.au/dataset/ga/66006",
+          "url": "https://ecat.ga.gov.au/geonetwork/srv/eng/catalog.search#/metadata/66006",
+          "citation": "ANZLIC unique identifier: ANZCW0703014217. Title: 1 Second SRTM Derived 3 second Smoothed Digital Elevation Model (DEM-S) version 1.0"
+        }
+      }
+    },
+    {
+      "name": "standardized_precipitation_index_point",
+      "type": "number",
+      "description": "The Standardized Precipitation Index (SPI-12), a unitless z-score representing the precipitation anomaly over the preceding 12 months, calculated with a buffer around each deploymentID. Values are derived from the CHIRPS v2.0 dataset, which provides quasi-global 0.05 degree (~5 km) gridded precipitation estimates from 1981 to near-present. Positive SPI values indicate wetter-than-normal conditions, negative values indicate drier-than-normal conditions, and values near zero indicate average conditions. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": -3.7,
+        "maximum": 3.7
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.3133/ds832",
+          "url": "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_monthly/tifs/",
+          "citation": "Funk, C.C., Peterson, P.J., Landsfeld, M.F., Pedreros, D.H., Verdin, J.P., Rowland, J.D., Romero, B.E., Husak, G.J., Michaelsen, J.C., & Verdin, A.P. (2015). A quasi-global precipitation time series for drought monitoring. U.S. Geological Survey Data Series 832."
+        }
+      }
+    },
+    {
+      "name": "standardized_precipitation_index_1km2",
+      "type": "number",
+      "description": "The Standardized Precipitation Index (SPI-12), a unitless z-score representing the precipitation anomaly over the preceding 12 months, calculated with a buffer around each deploymentID. Values are derived from the CHIRPS v2.0 dataset, which provides quasi-global 0.05 degree (~5 km) gridded precipitation estimates from 1981 to near-present. Positive SPI values indicate wetter-than-normal conditions, negative values indicate drier-than-normal conditions, and values near zero indicate average conditions. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": -3.7,
+        "maximum": 3.7
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.3133/ds832",
+          "url": "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_monthly/tifs/",
+          "citation": "Funk, C.C., Peterson, P.J., Landsfeld, M.F., Pedreros, D.H., Verdin, J.P., Rowland, J.D., Romero, B.E., Husak, G.J., Michaelsen, J.C., & Verdin, A.P. (2015). A quasi-global precipitation time series for drought monitoring. U.S. Geological Survey Data Series 832."
+        }
+      }
+    },
+    {
+      "name": "standardized_precipitation_index_3km2",
+      "type": "number",
+      "description": "The Standardized Precipitation Index (SPI-12), a unitless z-score representing the precipitation anomaly over the preceding 12 months, calculated with a buffer around each deploymentID. Values are derived from the CHIRPS v2.0 dataset, which provides quasi-global 0.05 degree (~5 km) gridded precipitation estimates from 1981 to near-present. Positive SPI values indicate wetter-than-normal conditions, negative values indicate drier-than-normal conditions, and values near zero indicate average conditions. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": -3.7,
+        "maximum": 3.7
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.3133/ds832",
+          "url": "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_monthly/tifs/",
+          "citation": "Funk, C.C., Peterson, P.J., Landsfeld, M.F., Pedreros, D.H., Verdin, J.P., Rowland, J.D., Romero, B.E., Husak, G.J., Michaelsen, J.C., & Verdin, A.P. (2015). A quasi-global precipitation time series for drought monitoring. U.S. Geological Survey Data Series 832."
+        }
+      }
+    },
+    {
+      "name": "standardized_precipitation_index_5km2",
+      "type": "number",
+      "description": "The Standardized Precipitation Index (SPI-12), a unitless z-score representing the precipitation anomaly over the preceding 12 months, calculated with a buffer around each deploymentID. Values are derived from the CHIRPS v2.0 dataset, which provides quasi-global 0.05 degree (~5 km) gridded precipitation estimates from 1981 to near-present. Positive SPI values indicate wetter-than-normal conditions, negative values indicate drier-than-normal conditions, and values near zero indicate average conditions. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": -3.7,
+        "maximum": 3.7
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.3133/ds832",
+          "url": "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_monthly/tifs/",
+          "citation": "Funk, C.C., Peterson, P.J., Landsfeld, M.F., Pedreros, D.H., Verdin, J.P., Rowland, J.D., Romero, B.E., Husak, G.J., Michaelsen, J.C., & Verdin, A.P. (2015). A quasi-global precipitation time series for drought monitoring. U.S. Geological Survey Data Series 832."
+        }
+      }
+    },
+    {
+      "name": "standardized_precipitation_index_10km2",
+      "type": "number",
+      "description": "The Standardized Precipitation Index (SPI-12), a unitless z-score representing the precipitation anomaly over the preceding 12 months, calculated with a buffer around each deploymentID. Values are derived from the CHIRPS v2.0 dataset, which provides quasi-global 0.05 degree (~5 km) gridded precipitation estimates from 1981 to near-present. Positive SPI values indicate wetter-than-normal conditions, negative values indicate drier-than-normal conditions, and values near zero indicate average conditions. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": -3.7,
+        "maximum": 3.7
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "5000m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.3133/ds832",
+          "url": "https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_monthly/tifs/",
+          "citation": "Funk, C.C., Peterson, P.J., Landsfeld, M.F., Pedreros, D.H., Verdin, J.P., Rowland, J.D., Romero, B.E., Husak, G.J., Michaelsen, J.C., & Verdin, A.P. (2015). A quasi-global precipitation time series for drought monitoring. U.S. Geological Survey Data Series 832."
+        }
+      }
+    },
+    {
+      "name": "HIF_point",
+      "type": "number",
+      "description": "Human Industrial Footprint (HIF) index value representing cumulative human industrial pressure on the landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The HIF was computed by summing 16 nationally relevant scored pressure layers (each scaled 0-10), including intensive land uses, buildings, mining, human population density, croplands, pasturelands, forestry plantations, reservoirs, farm dams, roads, railways, energy transmission lines, oil pipelines, gas pipelines, hiking trails, and navigable waterways. Higher values indicate greater industrial pressure. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "HIF_1km2",
+      "type": "number",
+      "description": "Human Industrial Footprint (HIF) index value representing cumulative human industrial pressure on the landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The HIF was computed by summing 16 nationally relevant scored pressure layers (each scaled 0-10), including intensive land uses, buildings, mining, human population density, croplands, pasturelands, forestry plantations, reservoirs, farm dams, roads, railways, energy transmission lines, oil pipelines, gas pipelines, hiking trails, and navigable waterways. Higher values indicate greater industrial pressure. This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "HIF_3km2",
+      "type": "number",
+      "description": "Human Industrial Footprint (HIF) index value representing cumulative human industrial pressure on the landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The HIF was computed by summing 16 nationally relevant scored pressure layers (each scaled 0-10), including intensive land uses, buildings, mining, human population density, croplands, pasturelands, forestry plantations, reservoirs, farm dams, roads, railways, energy transmission lines, oil pipelines, gas pipelines, hiking trails, and navigable waterways. Higher values indicate greater industrial pressure. This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "HIF_5km2",
+      "type": "number",
+      "description": "Human Industrial Footprint (HIF) index value representing cumulative human industrial pressure on the landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The HIF was computed by summing 16 nationally relevant scored pressure layers (each scaled 0-10), including intensive land uses, buildings, mining, human population density, croplands, pasturelands, forestry plantations, reservoirs, farm dams, roads, railways, energy transmission lines, oil pipelines, gas pipelines, hiking trails, and navigable waterways. Higher values indicate greater industrial pressure. This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "HIF_10km2",
+      "type": "number",
+      "description": "Human Industrial Footprint (HIF) index value representing cumulative human industrial pressure on the landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The HIF was computed by summing 16 nationally relevant scored pressure layers (each scaled 0-10), including intensive land uses, buildings, mining, human population density, croplands, pasturelands, forestry plantations, reservoirs, farm dams, roads, railways, energy transmission lines, oil pipelines, gas pipelines, hiking trails, and navigable waterways. Higher values indicate greater industrial pressure. This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "EII_point",
+      "type": "number",
+      "description": "Ecological Intactness Index (EII) value representing the degree of ecological intactness of the surrounding landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The EII is derived from the Human Industrial Footprint (HIF) and is parameterised to be proportional to habitat area when there is no fragmentation, to decline monotonically as fragmentation increases (sensitive to both the number of nearby patches and separation between patches), and to be proportional to habitat quality for a given total habitat area and degree of fragmentation. Values range from 0 (no intactness) to 1 (fully intact). This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 1
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "EII_1km2",
+      "type": "number",
+      "description": "Ecological Intactness Index (EII) value representing the degree of ecological intactness of the surrounding landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The EII is derived from the Human Industrial Footprint (HIF) and is parameterised to be proportional to habitat area when there is no fragmentation, to decline monotonically as fragmentation increases (sensitive to both the number of nearby patches and separation between patches), and to be proportional to habitat quality for a given total habitat area and degree of fragmentation. Values range from 0 (no intactness) to 1 (fully intact). This variable has been calculated with a 564.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 564.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "EII_3km2",
+      "type": "number",
+      "description": "Ecological Intactness Index (EII) value representing the degree of ecological intactness of the surrounding landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The EII is derived from the Human Industrial Footprint (HIF) and is parameterised to be proportional to habitat area when there is no fragmentation, to decline monotonically as fragmentation increases (sensitive to both the number of nearby patches and separation between patches), and to be proportional to habitat quality for a given total habitat area and degree of fragmentation. Values range from 0 (no intactness) to 1 (fully intact). This variable has been calculated with a 977.2 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 977.2
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "EII_5km2",
+      "type": "number",
+      "description": "Ecological Intactness Index (EII) value representing the degree of ecological intactness of the surrounding landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The EII is derived from the Human Industrial Footprint (HIF) and is parameterised to be proportional to habitat area when there is no fragmentation, to decline monotonically as fragmentation increases (sensitive to both the number of nearby patches and separation between patches), and to be proportional to habitat quality for a given total habitat area and degree of fragmentation. Values range from 0 (no intactness) to 1 (fully intact). This variable has been calculated with a 1261.6 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 1261.6
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "EII_10km2",
+      "type": "number",
+      "description": "Ecological Intactness Index (EII) value representing the degree of ecological intactness of the surrounding landscape, extracted from a 100 m resolution raster mapped in Albers Equal Area projection (EPSG:3577). The EII is derived from the Human Industrial Footprint (HIF) and is parameterised to be proportional to habitat area when there is no fragmentation, to decline monotonically as fragmentation increases (sensitive to both the number of nearby patches and separation between patches), and to be proportional to habitat quality for a given total habitat area and degree of fragmentation. Values range from 0 (no intactness) to 1 (fully intact). This variable has been calculated with a 1784 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true,
+        "minimum": 0,
+        "maximum": 160
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": 1784
+        },
+        "source": {
+          "doi": "https://doi.org/10.5194/essd-2025-393",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Venegas-Li, R., Atkinson, S. C., Aurelio Uba de Andrade Junior, M., Fletcher, R., Owen, P., Morales Barquero, L., Aska, B., Arias-Patino, M., Grantham, H., Possingham, H., Venter, O., Ward, M., & Watson, J. (2025). Australia's terrestrial industrial footprint and ecological intactness [Data set]. Zenodo. https://doi.org/10.5281/zenodo.15833395"
+        }
+      }
+    },
+    {
+      "name": "IBRAsubRegionName",
+      "type": "string",
+      "description": "Categorical variable representing the Interim Biogeographic Regionalisation for Australia (IBRA) Bioregion in which a location falls. Bioregions are large, ecologically distinct areas based on climate, geology, landform, native vegetation, and species distribution. Australia is divided into 89 IBRA bioregions, which form the foundation for biodiversity planning and reporting. This variable is from Version 7. This variable has been calculated with a 1 meter buffer around each deploymentID. Each of the 89 IBRA bioregions is further divided into 419 subregions representing more refined ecological characteristics. This variable has been calculated with a 1 meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": "1"
+        },
+        "source": {
+          "doi": "",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Department of Climate Change, Energy, the Environment and Water (DCCEEW). (2020). Interim Biogeographic Regionalisation for Australia (IBRA), Version 7 (Subregions). Australian Government."
+        }
+      }
+    },
+    {
+      "name": "IBRAbioRegionName",
+      "type": "string",
+      "description": "Categorical variable representing the Interim Biogeographic Regionalisation for Australia (IBRA) Bioregion in which a location falls. Bioregions are large, ecologically distinct areas based on climate, geology, landform, native vegetation, and species distribution. Australia is divided into 89 IBRA bioregions, which form the foundation for biodiversity planning and reporting. This variable is from Version 7. This variable has been calculated with a 1 meter buffer around each deploymentID. Each of the 89 IBRA bioregions is further divided into 419 subregions representing more refined ecological characteristics. This variable has been calculated with a NA meter buffer around each deploymentID.",
+      "constraints": {
+        "required": true
+      },
+      "custom": {
+        "spatial": {
+          "resolution": "100m",
+          "buffer_m": null
+        },
+        "source": {
+          "doi": "",
+          "url": "https://zenodo.org/records/15833395",
+          "citation": "Department of Climate Change, Energy, the Environment and Water (DCCEEW). (2020). Interim Biogeographic Regionalisation for Australia (IBRA), Version 7 (Subregions). Australian Government."
+        }
+      }
+    }
+  ],
+  "foreignKeys": [
+    {
+      "fields": "deploymentID",
+      "reference": {
+        "resource": "deployments",
+        "fields": "deploymentID"
+      }
+    }
+  ]
+}

@@ -1,0 +1,622 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Camera Trap Data Package (WildObs)",
+  "description": "WildObs extension of Camtrap DP 1.0.2 - the data exchange format used and curated by the Wildlife Observatory of Australia. Everything canonical Camtrap DP requires is still required here. This profile additionally declares the WildObs extensions, so a WildObs package validates against a schema that knows about them. Canonical Camtrap DP: <https://camtrap-dp.tdwg.org>. WildObs: <https://wildobs.org.au>.",
+  "type": "object",
+  "$defs": {
+    "version": {
+      "pattern": "1\\.0\\.2"
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "https://specs.frictionlessdata.io/schemas/data-package.json"
+    },
+    {
+      "required": [
+        "resources",
+        "profile",
+        "created",
+        "contributors",
+        "project",
+        "spatial",
+        "temporal",
+        "taxonomic"
+      ],
+      "properties": {
+        "resources": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#resource-information). Camtrap DP further requires each object to be a [Tabular Data Resource](https://specs.frictionlessdata.io/tabular-data-resource/) with a specific `name` and `schema`. See [Data](https://camtrap-dp.tdwg.org/data) for the requirements for those resources.",
+          "minItems": 3,
+          "items": {
+            "oneOf": [
+              {
+                "required": [
+                  "name",
+                  "path",
+                  "profile",
+                  "schema"
+                ],
+                "properties": {
+                  "name": {
+                    "description": "Identifier of the resource.",
+                    "enum": [
+                      "deployments",
+                      "media",
+                      "observations"
+                    ]
+                  },
+                  "path": {
+                    "description": "Path or URL to the data file."
+                  },
+                  "profile": {
+                    "description": "[Profile](https://specs.frictionlessdata.io/profiles/) of the resource.",
+                    "enum": [
+                      "tabular-data-resource"
+                    ]
+                  },
+                  "schema": {
+                    "description": "URL of the Camtrap DP or WildObs table schema for this resource, OR an inline Table Schema object. WildObs packages carry the object: it declares the WildObs extension columns and is what the frictionless readers type the CSV with. A published equivalent of each is at https://raw.githubusercontent.com/WildObs/cam-DB/profiles/1.0.2-wildobs.1/.",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "fields"
+                        ],
+                        "properties": {
+                          "fields": {
+                            "type": "array",
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "not": {
+                      "enum": [
+                        "deployments",
+                        "media",
+                        "observations"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "profile": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#profile). Camtrap DP further requires this to be the URL of the used Camtrap DP Profile version (e.g. `https://raw.githubusercontent.com/tdwg/camtrap-dp/1.0/camtrap-dp-profile.json`).",
+          "format": "uri"
+        },
+        "name": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#name)."
+        },
+        "id": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#id)."
+        },
+        "created": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#created). Camtrap DP makes this a required property."
+        },
+        "title": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#title). Not to be confused with the title of the project that originated the package (`package.project.title`)."
+        },
+        "contributors": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#contributors). Camtrap DP makes this a required property and restricts `role` values. Can include people and organizations.",
+          "items": {
+            "properties": {
+              "role": {
+                "description": "Role of the contributor. Defaults to `contributor`.",
+                "enum": [
+                  "contact",
+                  "principalInvestigator",
+                  "rightsHolder",
+                  "publisher",
+                  "contributor"
+                ]
+              },
+              "ROR": {
+                "description": "WildObs extension. Research Organization Registry identifier for the contributor's organization, as a full https://ror.org/ URI. Optional. Recommended on the principalInvestigator, since without it a RAiD carries no Lead Research Organisation, but its absence is reported rather than blocking. Omitted entirely when unknown. Absent from canonical camtrap-DP.",
+                "type": "string",
+                "pattern": "^https://ror\\.org/0[a-hj-km-np-tv-z0-9]{6}[0-9]{2}$"
+              },
+              "path": {
+                "description": "ORCID iD of the contributor, stored bare (e.g. 0000-0002-8398-2059) with no https://orcid.org/ prefix, and an upper case X checksum. WildObs constrains this more tightly than the Data Package specification, which permits any URL or path. Omitted entirely when the contributor has no ORCID -- never null, and never a placeholder string.",
+                "type": "string",
+                "pattern": "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$"
+              }
+            }
+          }
+        },
+        "description": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#description). Not to be confused with the description of the project that originated the package (`package.project.description`)."
+        },
+        "version": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#version)."
+        },
+        "keywords": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#keywords)."
+        },
+        "image": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#image)."
+        },
+        "homepage": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#homepage)."
+        },
+        "sources": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#sources). Can include the data management platform from which the package was derived (e.g. Agouti, Trapper, Wildlife Insights).",
+          "items": {
+            "properties": {
+              "version": {
+                "description": "Version of the source.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "licenses": {
+          "description": "See [Data Package specification](https://specs.frictionlessdata.io/data-package/#licenses). If provided, Camtrap DP further requires at least a license for the content of the package and one for the media files.",
+          "minItems": 2,
+          "items": {
+            "required": [
+              "scope"
+            ],
+            "properties": {
+              "scope": {
+                "description": "Scope of the license. `data` applies to the content of the package and resources, `media` to the (locally or externally hosted) media files referenced in `media.filePath`.",
+                "type": "string",
+                "enum": [
+                  "data",
+                  "media"
+                ]
+              }
+            }
+          }
+        },
+        "bibliographicCitation": {
+          "description": "Bibliographic/recommended citation for the package.",
+          "skos:exactMatch": "http://purl.org/dc/terms/bibliographicCitation",
+          "type": "string"
+        },
+        "project": {
+          "description": "Camera trap project or study that originated the package.",
+          "type": "object",
+          "required": [
+            "title",
+            "samplingDesign",
+            "captureMethod",
+            "individualAnimals",
+            "observationLevel"
+          ],
+          "properties": {
+            "id": {
+              "description": "Unique identifier of the project.",
+              "type": "string"
+            },
+            "title": {
+              "description": "Title of the project. Not to be confused with the title of the package (`package.title`).",
+              "type": "string"
+            },
+            "acronym": {
+              "description": "Project acronym.",
+              "type": "string"
+            },
+            "description": {
+              "description": "Description of the project. Preferably formatted as [Markdown](http://commonmark.org/). Not to be confused with the description of the package (`package.description`).",
+              "type": "string"
+            },
+            "path": {
+              "description": "Project website.",
+              "type": "string",
+              "format": "uri"
+            },
+            "samplingDesign": {
+              "description": "Type of a sampling design/layout. The values are based on [Wearn & Glover-Kapfer (2017)](https://doi.org/10.13140/RG.2.2.23409.17767), pages 80-82: `simple random`: random distribution of sampling locations; `systematic random`: random distribution of sampling locations, but arranged in a regular pattern; `clustered random`: random distribution of sampling locations, but clustered in arrays; `experimental`: non-random distribution aimed to study an effect, including the before-after control-impact (BACI) design; `targeted`: non-random distribution optimized for capturing specific target species (often using various bait types); `opportunistic`: opportunistic camera trapping (usually with a small number of cameras).",
+              "skos:broadMatch": "http://rs.tdwg.org/eco/terms/inventoryTypes",
+              "type": "string",
+              "enum": [
+                "simpleRandom",
+                "systematicRandom",
+                "clusteredRandom",
+                "experimental",
+                "targeted",
+                "opportunistic"
+              ]
+            },
+            "captureMethod": {
+              "description": "Method(s) used to capture the media files.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "activityDetection",
+                  "timeLapse"
+                ]
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            "individualAnimals": {
+              "description": "`true` if the project includes marked or recognizable individuals. See also `observations.individualID`.",
+              "type": "boolean"
+            },
+            "observationLevel": {
+              "description": "Level at which observations are provided. See also `observations.observationLevel`.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "media",
+                  "event"
+                ]
+              }
+            },
+            "DPID": {
+              "description": "WildObs extension. The WildObs data package identifier, repeated on the project block so a project can be traced to its package. Absent from canonical camtrap-DP.",
+              "type": "string"
+            }
+          }
+        },
+        "coordinatePrecision": {
+          "description": "Least precise coordinate precision of the `deployments.latitude` and `deployments.longitude` (e.g. `0.01` for coordinates with a precision of 0.01 and 0.001 degree). Especially relevant when coordinates have been rounded to protect sensitive species.",
+          "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/coordinatePrecision",
+          "type": "number",
+          "example": 0.001
+        },
+        "spatial": {
+          "description": "Spatial coverage of the package, expressed as GeoJSON.",
+          "skos:exactMatch": "http://purl.org/dc/terms/spatial",
+          "type": "object",
+          "$ref": "http://json.schemastore.org/geojson.json"
+        },
+        "temporal": {
+          "description": "Temporal coverage of the package. WildObs additionally records one {start, end} block per deploymentGroup and the survey time zone, alongside the package-level extent the standard requires. The package-level start and end are the minimum and maximum across those blocks.",
+          "skos:exactMatch": "http://purl.org/dc/terms/temporal",
+          "type": "object",
+          "required": [
+            "start",
+            "end"
+          ],
+          "properties": {
+            "start": {
+              "description": "Start date of the first deployment. Formatted as an ISO 8601 string (`YYYY-MM-DD`).",
+              "type": "string",
+              "format": "date"
+            },
+            "end": {
+              "description": "End date of the last (completed) deployment. Formatted as an ISO 8601 string (`YYYY-MM-DD`).",
+              "type": "string",
+              "format": "date"
+            },
+            "timeZone": {
+              "description": "WildObs extension. IANA time zone the survey's timestamps are recorded in, e.g. `Australia/Brisbane`.",
+              "type": "string"
+            }
+          },
+          "patternProperties": {
+            "^(?!start$|end$|timeZone$).+$": {
+              "description": "WildObs extension. Temporal extent of one deploymentGroup, keyed by the deploymentGroup identifier.",
+              "type": "object",
+              "required": [
+                "start",
+                "end"
+              ],
+              "properties": {
+                "start": {
+                  "description": "Start date of the first deployment in this group.",
+                  "type": "string",
+                  "format": "date"
+                },
+                "end": {
+                  "description": "End date of the last deployment in this group.",
+                  "type": "string",
+                  "format": "date"
+                }
+              }
+            }
+          }
+        },
+        "taxonomic": {
+          "description": "Taxonomic coverage of the package, based on the unique `observations.scientificName`.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "scientificName"
+            ],
+            "properties": {
+              "scientificName": {
+                "description": "Scientific name of the taxon.",
+                "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/scientificName",
+                "type": "string",
+                "example": "Canis lupus"
+              },
+              "taxonID": {
+                "description": "Unique identifier of the taxon. Preferably a global unique identifier issued by an authoritative checklist.",
+                "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/taxonID",
+                "type": "string",
+                "example": "https://www.checklistbank.org/dataset/COL2023/taxon/QLXL"
+              },
+              "taxonRank": {
+                "description": "Taxonomic rank of the scientific name. WildObs adds the intermediate ranks, so a taxon whose true rank is a subclass or suborder is recorded as one rather than rounded to its parent rank.",
+                "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/taxonRank",
+                "type": "string",
+                "enum": [
+                  "kingdom",
+                  "phylum",
+                  "class",
+                  "order",
+                  "family",
+                  "genus",
+                  "species",
+                  "subspecies",
+                  "superclass",
+                  "subclass",
+                  "superorder",
+                  "suborder",
+                  "superfamily",
+                  "subfamily",
+                  "tribe"
+                ],
+                "example": "species"
+              },
+              "kingdom": {
+                "description": "Kingdom in which the taxon is classified.",
+                "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/kingdom",
+                "type": "string",
+                "example": "Animalia"
+              },
+              "phylum": {
+                "description": "Phylum or division in which the taxon is classified",
+                "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/phylum",
+                "type": "string",
+                "example": "Chordata"
+              },
+              "class": {
+                "description": "Class in which the taxon is classified.",
+                "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/class",
+                "type": "string",
+                "example": "Mammalia"
+              },
+              "order": {
+                "description": "Order in which the taxon is classified.",
+                "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/order",
+                "type": "string",
+                "example": "Carnivora"
+              },
+              "family": {
+                "description": "Family in which the taxon is classified.",
+                "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/family",
+                "type": "string",
+                "example": "Canidae"
+              },
+              "genus": {
+                "description": "Genus in which the taxon is classified.",
+                "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/genus",
+                "type": "string",
+                "example": "Canis"
+              },
+              "vernacularNames": {
+                "description": "Common or vernacular names of the taxon, as `languageCode: vernacular name` pairs. Language codes should follow ISO 693-3 (e.g. `eng` for English).",
+                "type": "object",
+                "patternProperties": {
+                  "^[a-z]{3}$": {
+                    "description": "Common or vernacular name of the taxon in that language.",
+                    "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/vernacularName",
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false,
+                "example": "{'eng': 'wolf', 'fra': 'loup gris'}"
+              },
+              "vernacularNamesEnglish": {
+                "description": "WildObs extension. Common name of the taxon in English, as a single string. WildObs curates English names only, so this flattens camtrap-DP's language-keyed `vernacularNames` object. `Not known in online database` where no common name was found.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "relatedIdentifiers": {
+          "description": "Identifiers of resources related to the package (e.g. papers, project pages, derived datasets, APIs, etc.).",
+          "type": "array",
+          "items": {
+            "description": "Related identifier.",
+            "required": [
+              "relationType",
+              "relatedIdentifier",
+              "relatedIdentifierType"
+            ],
+            "properties": {
+              "relationType": {
+                "description": "Description of the relationship between the resource (the package) and the related resource.",
+                "skos:exactMatch": "https://schema.datacite.org/meta/kernel-4.4/include/datacite-relationType-v4.xsd",
+                "type": "string",
+                "enum": [
+                  "IsCitedBy",
+                  "Cites",
+                  "IsSupplementTo",
+                  "IsSupplementedBy",
+                  "IsContinuedBy",
+                  "Continues",
+                  "IsNewVersionOf",
+                  "IsPreviousVersionOf",
+                  "IsPartOf",
+                  "HasPart",
+                  "IsPublishedIn",
+                  "IsReferencedBy",
+                  "References",
+                  "IsDocumentedBy",
+                  "Documents",
+                  "IsCompiledBy",
+                  "Compiles",
+                  "IsVariantFormOf",
+                  "IsOriginalFormOf",
+                  "IsIdenticalTo",
+                  "HasMetadata",
+                  "IsMetadataFor",
+                  "Reviews",
+                  "IsReviewedBy",
+                  "IsDerivedFrom",
+                  "IsSourceOf",
+                  "Describes",
+                  "IsDescribedBy",
+                  "HasVersion",
+                  "IsVersionOf",
+                  "Requires",
+                  "IsRequiredBy",
+                  "Obsoletes",
+                  "IsObsoletedBy"
+                ]
+              },
+              "relatedIdentifier": {
+                "description": "Unique identifier of the related resource (e.g. a DOI or URL).",
+                "type": "string"
+              },
+              "resourceTypeGeneral": {
+                "description": "General type of the related resource.",
+                "skos:exactMatch": "https://schema.datacite.org/meta/kernel-4.4/include/datacite-resourceType-v4.xsd",
+                "type": "string",
+                "enum": [
+                  "Audiovisual",
+                  "Book",
+                  "BookChapter",
+                  "Collection",
+                  "ComputationalNotebook",
+                  "ConferencePaper",
+                  "ConferenceProceeding",
+                  "DataPaper",
+                  "Dataset",
+                  "Dissertation",
+                  "Event",
+                  "Image",
+                  "InteractiveResource",
+                  "Journal",
+                  "JournalArticle",
+                  "Model",
+                  "OutputManagementPlan",
+                  "PeerReview",
+                  "PhysicalObject",
+                  "Preprint",
+                  "Report",
+                  "Service",
+                  "Software",
+                  "Sound",
+                  "Standard",
+                  "Text",
+                  "Workflow",
+                  "Other"
+                ]
+              },
+              "relatedIdentifierType": {
+                "description": "Type of the `RelatedIdentifier`. WildObs adds `RAiD`, which is not a DataCite identifier type: a RAiD identifies a research activity rather than a digital object. Map it to `Handle` when producing a canonical camtrap-DP export.",
+                "skos:exactMatch": "https://schema.datacite.org/meta/kernel-4.4/include/datacite-relatedIdentifierType-v4.xsd",
+                "type": "string",
+                "enum": [
+                  "ARK",
+                  "arXiv",
+                  "bibcode",
+                  "DOI",
+                  "EAN13",
+                  "EISSN",
+                  "Handle",
+                  "IGSN",
+                  "ISBN",
+                  "ISSN",
+                  "ISTC",
+                  "LISSN",
+                  "LSID",
+                  "PMID",
+                  "PURL",
+                  "UPC",
+                  "URL",
+                  "URN",
+                  "w3id",
+                  "RAiD"
+                ]
+              }
+            }
+          }
+        },
+        "references": {
+          "description": "List of references related to the package (e.g. references cited in `package.project.description`). References preferably include a DOI.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "WildObsMetadata": {
+          "description": "WildObs extension. Project-level information WildObs collects at mobilisation, covering how the data may be shared, what the provider wants back, and how the survey was run. Absent from canonical camtrap-DP.",
+          "type": "object",
+          "properties": {
+            "DPID": {
+              "description": "WildObs data package identifier, matching the package `id`.",
+              "type": "string"
+            },
+            "WildObsContribution": {
+              "description": "The WildObs initiative this data was contributed for.",
+              "type": "string"
+            },
+            "tabularSharingPreference": {
+              "description": "How the data provider agreed their tabular data may be shared.",
+              "type": "string",
+              "enum": ["closed", "partial", "open"],
+              "required": true
+            },
+            "embargoPeriodMonths": {
+              "description": "Months from curation during which the data stays embargoed. 0 means no embargo.",
+              "type": "number",
+              "minimum": 0,
+              "required": true
+            },
+            "desiredOutputs": {
+              "description": "What the data provider asked to receive back from WildObs.",
+              "type": "string"
+            },
+            "fundingAgency": {
+              "description": "Funding source(s) for the survey, as a semicolon- or comma-separated list.",
+              "type": "string"
+            },
+            "deploymentTags": {
+              "description": "Semicolon-separated tags describing fields that were measured in deployments beyond the camtrap-DP standard.",
+              "type": "string"
+            },
+            "deploymentClusters": {
+              "description": "TRUE when deployments were placed in clusters rather than independently.",
+              "type": "boolean"
+            },
+            "thinnedMedia": {
+              "description": "TRUE when the media set was thinned before mobilisation.",
+              "type": "boolean"
+            },
+            "groupSizes": {
+              "description": "TRUE when observations record group sizes rather than presence alone.",
+              "type": "boolean"
+            }
+          }
+        },
+        "versionControlWildObs": {
+          "description": "WildObs extension. The WildObs version of this data package, distinct from `version`, which carries the camtrap-DP version the package conforms to. Bumped by the pipeline when a correction changes the data. Absent from canonical camtrap-DP.",
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      }
+    }
+  ],
+  "x-wildobs": {
+    "version": "1.0.2-wildobs.1",
+    "upstreamVersion": "1.0.2",
+    "upstreamProfile": "https://raw.githubusercontent.com/tdwg/camtrap-dp/1.0.2/camtrap-dp-profile.json",
+    "generatedBy": "code_data cleaning/utils/profiles/wildobs/build_wildobs_schemas.R"
+  }
+}
