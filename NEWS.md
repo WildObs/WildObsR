@@ -1,3 +1,52 @@
+# WildObsR 0.3.0
+
+The WildObs database now follows the Camtrap DP standard more closely, and
+earlier versions of WildObsR cannot read it: `wildobs_dp_download()` stops with
+`incorrect number of dimensions`. **Update WildObsR to download data again.**
+
+```r
+devtools::install_github("WildObs/WildObsR")
+```
+
+## Breaking changes
+
+### `dp$temporal` keeps the database's shape
+
+Downloaded packages now store `temporal` exactly as the database does: the
+package-level `start`, `end` and `timeZone` once at the top, then one
+`{start, end}` block per deploymentGroup. Previously `timeZone` was copied into
+every group. Code that read `dp$temporal[[1]]$timeZone` should read
+`dp$temporal$timeZone` instead, or use `extract_metadata(dp, "temporal")`, which
+handles both shapes.
+
+### `dp$sources` is a list of sources
+
+`sources` is now an array of source objects, as Camtrap DP specifies, so
+`dp$sources[[1]]$title` replaces `dp$sources$title`.
+`extract_metadata(dp, "sources")` returns one row per source.
+
+## New
+
+- `extract_metadata(dp, "temporal")` gains `packageStart` and `packageEnd`
+  columns holding the package-level temporal extent (#137).
+- Downloaded packages now include `versionControlWildObs`, the WildObs version
+  of the package.
+- Covariate fields in downloaded schemas now carry a `custom` block with the
+  source citation and resolution of the spatial product behind each covariate,
+  and media fields keep their `pattern` constraints.
+
+## Fixed
+
+- `wildobs_dp_download()` reads the updated database structure.
+- `wildobs_mongo_query(temporal = ...)` no longer errors on the package-level
+  temporal extent, and still matches projects on when each deploymentGroup ran.
+- `extract_metadata()` still reads data packages saved by earlier versions.
+
+## Internal
+
+- The update notice now only appears for a new major or minor release, not for
+  patch releases.
+
 # WildObsR 0.2.0
 
 This is a breaking release. Some functions you may have called directly are no
