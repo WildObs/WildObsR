@@ -156,21 +156,23 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     proj_meta = meta_list[names(meta_list) %in% c("profile","name","created","title",
                                                   "contributors","description","version",
                                                   "keywords","image","homepage","sources",
-                                                  "licenses","bibliographicCitation", "directory",
+                                                  "licenses","bibliographicCitation",
                                                   "coordinatePrecision","relatedIdentifiers",
-                                                  "references","id","project","WildObsMetadata")]
+                                                  "references","id","project","WildObsMetadata",
+                                                  "versionControlWildObs")]
 
     # use custom function where needed
     proj_meta$contributors = convert_df_to_list(proj_meta$contributors)
     proj_meta$licenses = convert_df_to_list(proj_meta$licenses)
     proj_meta$project = convert_df_to_list(proj_meta$project)
     proj_meta$WildObsMetadata = convert_df_to_list(proj_meta$WildObsMetadata)
+    # sources is an array of source objects, so it gets the same treatment as contributors
+    proj_meta$sources <- convert_df_to_list(proj_meta$sources)
 
     ## apply a few quick fixes to unlist or list things
     proj_meta$keywords = unlist(proj_meta$keywords)
     proj_meta$homepage = unlist(proj_meta$homepage)
     proj_meta$references = proj_meta$references[[1]] # come here, this might change!
-    proj_meta$sources = as.list(proj_meta$sources[1, ])
 
     # "relatedIdentifiers", "temporal","spatial", and "taxonomic" need special attention!
     ## resources is the specific schema for each resource (figured out below).
@@ -257,14 +259,29 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     # extract tzone
     tz = t_clean$timeZone
 
-    # Convert dataframe format into nested named lists
-    t_nested = purrr::map(t_clean[names(t_clean) != "timeZone"], function(df) {
+    ## deploymentGroups arrive as one-row data frames, while the package-level
+    ## start, end and timeZone arrive as plain strings, so tell them apart by structure
+    groups <- t_clean[vapply(t_clean, is.data.frame, logical(1))]
+    # convert each deploymentGroup into a simple start/end list
+    group_list <- purrr::map(groups, function(df) {
       list(
-        timeZone = tz,                      # save timezone as a character
-        start = as.character(df$start[1]),  # Extract first row start date
-        end = as.character(df$end[1])       # Extract first row end date
+        start = as.character(df$start[1]), # first row start date
+        end = as.character(df$end[1])      # first row end date
       )
-    })
+    }) # end per group
+
+    ## rebuild temporal in the same shape as the database:
+    ## package-level extent and timeZone first, then one block per deploymentGroup
+    t_nested <- c(
+      list(
+        start = t_clean[["start"]],
+        end = t_clean[["end"]],
+        timeZone = tz
+      ),
+      group_list
+    )
+    # drop the package-level start/end if this package doesnt carry them
+    t_nested <- Filter(Negate(is.null), t_nested)
 
     # save it in the project metadata
     proj_meta$temporal = t_nested
@@ -809,8 +826,8 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
     # Extract timezone from temporal metadata for proper datetime handling
     # Get timezone from temporal metadata to ensure all datetime columns use the correct local timezone
-    project_timezone <- if(!is.null(formatted_metadata[[proj]]$project_level_metadata$temporal[[1]]$timeZone)) {
-      formatted_metadata[[proj]]$project_level_metadata$temporal[[1]]$timeZone
+    project_timezone <- if(!is.null(formatted_metadata[[proj]]$project_level_metadata$temporal$timeZone)) {
+      formatted_metadata[[proj]]$project_level_metadata$temporal$timeZone
     } else {
       "UTC"  # Fallback to UTC if timezone not specified
     }
