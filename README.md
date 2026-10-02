@@ -367,6 +367,11 @@ Location enrichment functions utilize authoritative Australian spatial datasets:
 - **[IBRA7](https://www.dcceew.gov.au/environment/land/nrs/science/ibra)**: Interim Biogeographic Regionalisation for Australia
 - **Australian State Boundaries**: Official administrative boundaries
 
+The CAPAD 2022 terrestrial and IBRA7 subregion layers ship with the package as the
+datasets `capad` and `ibra` (`sf` objects, simplified for size), so the functions
+that use them work without downloading any shapefiles. Both are © Commonwealth of
+Australia (DCCEEW), licensed under Creative Commons Attribution.
+
 ---
 
 ## WildObs Platform

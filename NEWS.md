@@ -19,6 +19,19 @@ every group. Code that read `dp$temporal[[1]]$timeZone` should read
 `dp$temporal$timeZone` instead, or use `extract_metadata(dp, "temporal")`, which
 handles both shapes.
 
+### Spatial functions no longer take a shapefile path
+
+`ibra_classification()`, `locationName_verification_CAPAD()` and
+`locationName_buffer_CAPAD()` now use the IBRA7 and CAPAD 2022 layers that ship
+with the package, so they work on any computer. The `ibra_file_path` and
+`capad_file_path` arguments are gone: remove them from your calls. The layers
+are available directly as the datasets `ibra` and `capad` (#11, #122).
+
+`locationName_verification_CAPAD()` now measures `CAPADminDistance` in true metres.
+Previously it measured in web Mercator units, which overstate distances in
+Australia by roughly 10–40% depending on latitude, so values will be smaller
+than before and the 1–5 km / 5–10 km / >10 km notes may change category.
+
 ### `dp$sources` is a list of sources
 
 `sources` is now an array of source objects, as Camtrap DP specifies, so
@@ -45,6 +58,15 @@ handles both shapes.
 
 ## Fixed
 
+- `ibra_classification()` no longer drops locations that fall just outside every
+  IBRA subregion. They now take the IBRA values of their nearest matched
+  location, as documented (#97).
+- `locationName_buffer_CAPAD()` generates UTM coordinates when they are missing.
+  Its check matched any column name containing "x" or "y", including
+  `deploymentID`, so it always skipped generation and stopped with
+  "No unique UTM zones found".
+- `locationName_verification_CAPAD()` no longer leaves its internal `ID`, `lat2`
+  and `long2` columns in the output.
 - `wildobs_dp_download()` reads the updated database structure.
 - `wildobs_mongo_query(temporal = ...)` no longer errors on the package-level
   temporal extent, and still matches projects on when each deploymentGroup ran.
