@@ -205,7 +205,10 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   if(!missing(temporal) && !is.null(temporal) && length(temporal) > 0){
     # extract the data frame from the meta
     temporal_df = metadata$temporal
-    temporal_df$timeZone = NULL # dont want this rn
+    ## keep only the deploymentGroup blocks, which arrive as data frame columns,
+    ## dropping the package-level start, end and timeZone strings
+    ## so projects are matched on when each survey actually ran
+    temporal_df <- temporal_df[, vapply(temporal_df, is.data.frame, logical(1)), drop = FALSE]
 
     # Track row indices to associate with project ID
     temporal_df <- temporal_df %>%
