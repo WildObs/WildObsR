@@ -61,6 +61,9 @@ than before and the 1–5 km / 5–10 km / >10 km notes may change category.
 - `wildobs_dp_download()` skips project IDs it cannot find, with one warning naming
   them, and downloads the rest. It stops only when none are found. Previously an
   unknown ID failed with "subscript out of bounds" (#129).
+- `apply_schema_types()` gives empty `datetime` columns the `POSIXct` type, and
+  converts partly empty ones. Previously a column with any empty cell was treated as
+  unparseable and left as text, or as `logical` if wholly empty (#129).
 - `ibra_classification()` no longer drops locations that fall just outside every
   IBRA subregion. They now take the IBRA values of their nearest matched
   location, as documented (#97).

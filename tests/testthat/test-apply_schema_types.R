@@ -268,6 +268,31 @@ test_that("apply_schema_types warns when datetime parsing fails completely", {
   )
 })
 
+test_that("apply_schema_types gives an all-empty datetime column the POSIXct type", {
+  data <- data.frame(ts = c(NA, NA))
+  schema <- list(fields = list(list(name = "ts", type = "datetime",
+                                    format = "%Y-%m-%dT%H:%M:%S%z")))
+
+  # nothing to parse is not a failure, so no warning
+  expect_no_warning(result <- apply_schema_types(data, schema, timezone = "Australia/Brisbane"))
+  # an empty datetime is still a datetime, in the requested timezone
+  expect_s3_class(result$ts, "POSIXct")
+  expect_equal(attr(result$ts, "tzone"), "Australia/Brisbane")
+  expect_true(all(is.na(result$ts)))
+})
+
+test_that("apply_schema_types converts a partly empty datetime column", {
+  data <- data.frame(ts = c("2024-01-15T08:00:00+1000", NA), stringsAsFactors = FALSE)
+  schema <- list(fields = list(list(name = "ts", type = "datetime",
+                                    format = "%Y-%m-%dT%H:%M:%S%z")))
+
+  # empty cells are not parse failures, so the real value converts and no warning fires
+  expect_no_warning(result <- apply_schema_types(data, schema))
+  expect_s3_class(result$ts, "POSIXct")
+  expect_false(is.na(result$ts[1]))
+  expect_true(is.na(result$ts[2]))
+})
+
 test_that("apply_schema_types returns data frame with same structure", {
   data <- data.frame(
     col1 = c(1, 2, 3),

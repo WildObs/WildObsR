@@ -38,27 +38,40 @@ apply_schema_types <- function(data, schema, timezone = "UTC") {
       if (col_type == "datetime") {
         # Use provided timezone parameter (from temporal metadata) for proper timezone handling
         tz <- timezone
+        # the cells that hold a value; empty cells stay NA whatever the format
+        has_value <- !is.na(data[[col_name]])
+
+        ## an empty column has nothing to parse, so give it the right empty type
+        if (!any(has_value)) {
+          data[[col_name]] <- as.POSIXct(rep(NA, nrow(data)), tz = tz)
+          next
+        } # end empty column condition
+
+        ## a parse has failed if nothing came back, or a real value came back NA
+        parse_failed <- function(p) is.null(p) || any(is.na(p[has_value]))
+
         # parse the date to posixct safely
         parsed <- tryCatch(
           as.POSIXct(data[[col_name]], format = col_format, tz = tz),
           error = function(e) NULL
         )
 
-        ## check for common formats if there are NA values in the conversion
-        if (any(is.na(parsed))) {
+        ## check for common formats if the declared format did not fit
+        if (parse_failed(parsed)) {
           common_formats <- c("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S%z")
           for (fmt in common_formats) {
             parsed <- tryCatch(as.POSIXct(data[[col_name]], format = fmt, tz = tz), error = function(e) NULL)
-            if (!any(is.na(parsed))) break
-          }
-        }
-        if (any(is.na(parsed))) {
+            if (!parse_failed(parsed)) break
+          } # end per format
+        } # end fallback condition
+
+        ## leave the column untouched rather than half-convert it
+        if (parse_failed(parsed)) {
           warning(paste("Failed to parse datetime for column:", col_name, "Please convert to common format (e.g., %Y-%m-%d %H:%M:%S)"))
         } else {
-          # UPDATED: Store as POSIXct instead of converting to character string
-          # This ensures proper date-time handling with timezone information
+          # store as POSIXct so date-times keep their timezone information
           data[[col_name]] <- parsed
-        }
+        } # end parse result condition
 
       } else if (col_type == "date") {
         # Try parsing date

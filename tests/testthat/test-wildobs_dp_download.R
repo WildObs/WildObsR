@@ -246,11 +246,6 @@ test_that("wildobs_dp_download applies the types declared in the schema", {
       # grab the column the schema is describing
       column <- dp$data[[resource]][[field]]
 
-      ## a column holding no values at all cannot demonstrate a type: R gives an
-      ## empty column the all-NA logical it uses for everything, whatever the
-      ## schema declared. Skip those so this test only claims what it can prove.
-      if (all(is.na(column))) next
-
       # datetimes have to come back timezone-aware, not as bare strings, since
       # every temporal calculation downstream depends on it
       if (declared[[field]] == "datetime") {
