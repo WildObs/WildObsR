@@ -66,6 +66,23 @@ about whether you need to act:
 The practical rule: **if the first number changes, update before you download data
 again.** Otherwise you can update at your own pace.
 
+### Help Claude understand WildObs data
+
+If you use [Claude](https://claude.ai) to help with your analysis, WildObsR ships a
+skill that teaches it how WildObs data packages are structured: how the tables join,
+what each field means, why to filter out blank observations, and which analyses the
+data can and cannot support. Install it once:
+
+```r
+WildObsR::install_claude_skill()
+```
+
+This copies the `wildobsr-data` skill into `~/.claude/skills`, where Claude Code finds
+it in every project; start a new Claude Code session to use it. After updating
+WildObsR, run `install_claude_skill(overwrite = TRUE)` to get the matching version.
+The skill is plain documentation, with no code, so you can read it first at
+`system.file("claude-skills", "wildobsr-data", package = "WildObsR")`.
+
 ---
 
 ## Getting Database Access
@@ -303,6 +320,7 @@ camtrapR::surveyDashboard(CTtable = covs,                                   ## i
 | **Spatial** | `AUS_state_locator()`, `ibra_classification()`, `locationName_buffer_CAPAD()`
 | **Data Wrangling** | `survey_and_deployment_generator()`, `resample_covariates_and_observations()`, `matrix_generator()` |
 | **Quality Control** | `check_schema()`, `apply_schema_types()` |
+| **Working with Claude** | `install_claude_skill()` |
 
 ---
 

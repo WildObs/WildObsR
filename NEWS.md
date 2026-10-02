@@ -27,6 +27,9 @@ handles both shapes.
 
 ## New
 
+- `install_claude_skill()` installs `wildobsr-data`, a Claude skill describing how
+  WildObs data packages are structured and what the data can support, so Claude can
+  help with your analysis. See "Help Claude understand WildObs data" in the README.
 - `extract_metadata(dp, "temporal")` gains `packageStart` and `packageEnd`
   columns holding the package-level temporal extent (#137).
 - Downloaded packages now include `versionControlWildObs`, the WildObs version
