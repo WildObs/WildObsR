@@ -106,7 +106,7 @@ clean_list_recursive <- function(x) {
 #' Reformat Schema Fields for Frictionless Data Package
 #'
 #' This function is used internally in the wildobs_dp_download() function to take a set of schema fields and reformats them to ensure proper structure for use in a Frictionless Data Package.
-#' It processes constraints dynamically, removing `NULL` and `NA` values, and retains relevant metadata such as descriptions, units, and formats.
+#' It processes constraints dynamically (including `pattern`), removing `NULL` and `NA` values, and retains relevant metadata such as descriptions, units, formats, and the WildObs `custom` block (each covariate's source citation and spatial resolution).
 #' @seealso \code{\link{wildobs_dp_download}} for downloading and bundling data packages.
 #'
 #' @param fields A dataframe containing schema field information, including constraints,
@@ -122,6 +122,20 @@ reformat_fields <- function(fields) {
   ## can load data for testing.
   # fields = resources[resources$name == "deployments",]
   # fields = fields$schema$fields[[1]]
+
+  ## a quick helper to pull row l out of a nested data frame as a nested list,
+  ## used for the WildObs `custom` block where columns are data frames or list-columns
+  row_to_list <- function(df, l) {
+    lapply(df, function(col) {
+      # nested data frame, so recurse into it
+      if (is.data.frame(col)) return(row_to_list(col, l))
+      # list-column (e.g. mixed-type buffer_m), so grab this row's element
+      if (is.list(col)) return(col[[l]])
+      # plain vector, so grab this row's value
+      col[l]
+    }) # end per column
+  } # end row helper
+
   purrr::map(seq_along(fields$name), function(l) {
 
     # Build constraints dynamically (only include non-empty constraints)
@@ -130,7 +144,8 @@ reformat_fields <- function(fields) {
       unique = if (!is.null(fields$constraints$unique[l]) && !is.na(fields$constraints$unique[l])) fields$constraints$unique[l],
       minimum = if (!is.null(fields$constraints$minimum[l]) && !is.na(fields$constraints$minimum[l])) fields$constraints$minimum[l],
       maximum = if (!is.null(fields$constraints$maximum[l]) && !is.na(fields$constraints$maximum[l])) fields$constraints$maximum[l],
-      enum = if (!is.null(fields$constraints$enum[l]) && !is.na(fields$constraints$enum[l])) fields$constraints$enum[l]
+      enum = if (!is.null(fields$constraints$enum[l]) && !is.na(fields$constraints$enum[l])) fields$constraints$enum[l],
+      pattern = if (!is.null(fields$constraints$pattern[l]) && !is.na(fields$constraints$pattern[l])) fields$constraints$pattern[l]
     )
 
     # Remove empty (NULL & NA) constraints
@@ -147,7 +162,9 @@ reformat_fields <- function(fields) {
       constraints = if (length(constraints) > 0) constraints else NULL,  # Only include constraints if non-empty
       example = fields$example[l],
       format = if(length(fields$format[l]) > 0) fields$format[l] else NULL,
-      type = if(length(fields$type[l]) > 0) fields$type[l] else NULL
+      type = if(length(fields$type[l]) > 0) fields$type[l] else NULL,
+      # WildObs extension carrying each covariate's source citation and spatial resolution
+      custom = if (is.data.frame(fields$custom)) row_to_list(fields$custom, l) else NULL
     )
     # Clean recursively to remove NULL and NA values at all levels
     clean_list_recursive(field_list)
