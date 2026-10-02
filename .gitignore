@@ -21,3 +21,5 @@ config_private/
 .claude/settings.local.json
 # ignore personal R style guides
 docs/style/*
+# internal R&D skill for camDB development; the public skill ships in inst/claude-skills/
+.claude/skills/wildobs-data-internal/
