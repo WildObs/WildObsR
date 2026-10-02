@@ -10,7 +10,7 @@ quietly picking one.
 
 | What it governs | Path |
 |---|---|
-| All R code | `docs/style/AI formatting style guides/zachary_amir_R_coding_style.md` |
+| All R code | `docs/style/zachary_amir_R_coding_style.md` |
 | All R comments | `docs/style/zachary_amir_R_commenting_style_guide.md` |
 
 The short version of the code rules, which does not replace reading the guides:
