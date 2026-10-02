@@ -38,6 +38,8 @@ Imports:
     utils,
     vegan
 Suggests:
+    camtrapdp (>= 0.5.0),
+    jsonvalidate,
     testthat (>= 3.0.0)
 Depends: 
     R (>= 3.5)
