@@ -43,6 +43,16 @@
 #' directly via \code{dp$spatial} and convert to an sf object using
 #' \code{geojson_list_to_sf(dp$spatial)}.
 #'
+#' @section Temporal data:
+#' The \code{"temporal"} element returns one row per deploymentGroup, with columns
+#' \code{deploymentGroup}, \code{start}, \code{end}, \code{timeZone},
+#' \code{packageStart}, \code{packageEnd} and \code{DPID}. \code{packageStart} and
+#' \code{packageEnd} hold the package-level temporal extent that Camtrap DP requires,
+#' repeated on every row, and are \code{NA} for packages that do not carry it. A
+#' package with no deploymentGroup blocks returns a single row with
+#' \code{deploymentGroup = NA}. Packages saved by earlier WildObsR versions, which stored
+#' \code{timeZone} inside each deploymentGroup, are still read correctly.
+#'
 #' @examples
 #' \dontrun{
 #' # Load a single data package
@@ -192,24 +202,45 @@ extract_metadata <- function(dp_list, elements = c("contributors", "sources", "l
       ## Add a special condition for temporal to accommodate timezones
       else if (elements[i] == "temporal") {
 
-        # Extract timeZone if present
-        tz <- el_list$timeZone %||% NA
-        el_list$timeZone <- NULL  # remove before flattening
+        ### A deploymentGroup is any entry whose value is a list
+        ## the package-level start, end and timeZone are plain strings, so filtering on
+        ## structure means a field added to temporal later cant be mistaken for a survey
+        groups <- el_list[vapply(el_list, is.list, logical(1))]
 
-        # Each remaining element should represent a deployment group
-        res <- purrr::map_dfr(names(el_list), function(nm) {
-          val <- el_list[[nm]]
-          data.frame(
-            deploymentGroup = nm,
-            start = val$start %||% NA,
-            end = val$end %||% NA
-          )
-        })
+        # build one row per deploymentGroup
+        if (length(groups) > 0) {
+          res <- purrr::map_dfr(names(groups), function(nm) {
+            # grab this group's start/end block
+            val <- groups[[nm]]
+            data.frame(
+              deploymentGroup = nm,
+              # [[ ]] rather than $, so a group named "start_2022" cant partial-match "start"
+              start = val[["start"]] %||% NA,
+              end = val[["end"]] %||% NA,
+              stringsAsFactors = FALSE
+            )
+          }) # end per group
+        } else {
+          # a package carrying only the package-level extent still gets one row
+          res <- data.frame(deploymentGroup = NA_character_, start = NA_character_,
+                            end = NA_character_, stringsAsFactors = FALSE)
+        } # end group presence condition
 
-        # Add timezone and DP ID
-        res$timeZone <- tz
+        ## timeZone sits at the package level, but packages saved by older
+        ## WildObsR versions stored it inside each group instead
+        tz <- el_list[["timeZone"]]
+        # so if its missing up top, fall back to the first group that carries one
+        if (is.null(tz)) {
+          tz <- purrr::detect(groups, function(g) !is.null(g[["timeZone"]]))[["timeZone"]]
+        } # end old timeZone condition
+
+        # add the package-level fields, repeated per row so the table reads on its own
+        res$timeZone <- tz %||% NA
+        res$packageStart <- el_list[["start"]] %||% NA
+        res$packageEnd <- el_list[["end"]] %||% NA
+        # and dont forget the id
         res$DPID <- dp$id
-      }
+      } # end temporal condition
       ## but if the element is NOT temporal or spatial,
       else{
         # handle all other elements normally!
