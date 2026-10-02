@@ -56,6 +56,10 @@ original file extension. Characters that are not allowed in file names are
 replaced with \verb{_}. A file already on disk is not fetched again unless
 \code{overwrite = TRUE}, so an interrupted run can simply be repeated.
 
+Files are downloaded in batches of 100, several at a time within each batch, with a
+60 second connection timeout. Queueing every file at once made later files time out
+while they waited for a connection to \code{data.wildobs.org.au}.
+
 A download only counts as successful if the server answered with a 2xx status
 and did not send back a web page. Anything else is recorded as \code{failed}, and the
 partial file is deleted.

@@ -24,6 +24,10 @@
 #' replaced with `_`. A file already on disk is not fetched again unless
 #' `overwrite = TRUE`, so an interrupted run can simply be repeated.
 #'
+#' Files are downloaded in batches of 100, several at a time within each batch, with a
+#' 60 second connection timeout. Queueing every file at once made later files time out
+#' while they waited for a connection to `data.wildobs.org.au`.
+#'
 #' A download only counts as successful if the server answered with a 2xx status
 #' and did not send back a web page. Anything else is recorded as `failed`, and the
 #' partial file is deleted.
@@ -200,9 +204,27 @@ wildobs_media_download <- function(media, out_dir, overwrite = FALSE, gcs_token 
       character(0)
     } # end token condition
 
-    ## fetch them all, several at a time, with a progress bar in interactive sessions
-    res <- curl::multi_download(url[i], local_path[i], progress = interactive(),
-                                httpheader = headers)
+    ### fetch them in batches of 100, several at a time within each batch
+    ## curl's connect timeout also counts the time a file waits in line for a free
+    ## connection, so queueing thousands at once makes the late ones time out with
+    ## "0 bytes received". Small batches keep every wait short, and the 60 second
+    ## timeout gives a slow server time to answer.
+    batches <- split(i, ceiling(seq_along(i) / 100))
+    res <- NULL
+    for (b in seq_along(batches)) {
+      # rows in this batch
+      rows <- batches[[b]]
+      # download them, sending the token header only for Google Cloud
+      batch_res <- curl::multi_download(url[rows], local_path[rows], progress = FALSE,
+                                        connecttimeout = 60, httpheader = headers)
+      # and stack the results in the same order as i
+      res <- rbind(res, batch_res)
+      # report progress on long runs
+      if (length(batches) > 1) {
+        message(sprintf("  %s files: %d of %d done", if (k == "web") "web" else "Google Cloud",
+                        min(b * 100, length(i)), length(i)))
+      } # end progress condition
+    } # end per batch
 
     ## curl calls a request successful whenever the server answered, even with a
     ## 403, so judge by the status code, and reject web pages posing as media
