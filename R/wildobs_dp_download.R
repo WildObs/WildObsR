@@ -89,6 +89,15 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
   ## Silent when up to date, and never blocks the download.
   .check_wildobs_version()
 
+  ## there has to be at least one project to download
+  # ignore blanks, e.g. the "" older versions of wildobs_mongo_query() returned for no match
+  if (!missing(project_ids)) project_ids <- project_ids[!is.na(project_ids) & nzchar(project_ids)]
+  if (missing(project_ids) || length(project_ids) == 0) {
+    stop("No project IDs were provided to wildobs_dp_download().\n",
+         "If they came from wildobs_mongo_query(), it found no matching projects: ",
+         "try broader search criteria.", call. = FALSE)
+  } # end empty project_ids condition
+
   ### Resolve database access and credentials using a utility helper function
   access    <- resolve_db_access(api_key = api_key, db_url = db_url)
   ## pull out T/F API access

@@ -32,6 +32,14 @@ Previously it measured in web Mercator units, which overstate distances in
 Australia by roughly 10–40% depending on latitude, so values will be smaller
 than before and the 1–5 km / 5–10 km / >10 km notes may change category.
 
+### `wildobs_mongo_query()` returns an empty vector when nothing matches
+
+When no project matches, `wildobs_mongo_query()` now returns `character(0)` rather
+than `""`, still with a warning. `length(result) > 0` is now `FALSE`, and loops over
+the result no longer run once with a blank ID. Code that tested
+`result == ""` should test `length(result) == 0` instead. `wildobs_dp_download()`
+stops with a clear message when given no IDs, including the old `""` (#129).
+
 ### `dp$sources` is a list of sources
 
 `sources` is now an array of source objects, as Camtrap DP specifies, so

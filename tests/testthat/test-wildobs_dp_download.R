@@ -80,6 +80,15 @@ test_that("wildobs_dp_download errors when neither api_key nor db_url provided",
   )
 })
 
+test_that("wildobs_dp_download stops clearly when given no project IDs", {
+  # an empty result from wildobs_mongo_query(), or the "" older versions returned,
+  # must stop before any network call with a message saying what to do
+  expect_error(wildobs_dp_download(api_key = "unused", project_ids = character(0)),
+               "No project IDs were provided")
+  expect_error(wildobs_dp_download(api_key = "unused", project_ids = ""),
+               "No project IDs were provided")
+})
+
 test_that("wildobs_dp_download errors with invalid db_url format", {
   # a malformed URI is caught by pattern before any connection is attempted, so
   # the user is told their string is wrong rather than that the server is down

@@ -59,7 +59,8 @@
 #'  can access 'closed' data, but if admin credentials have not been provided,
 #'  'closed' data will be removed from the projects list.  Only projects with
 #'  these preferences are returned.
-#' @return A character vector of project IDs matching the specified criteria.
+#' @return A character vector of project IDs matching the specified criteria, or an
+#'   empty character vector (`character(0)`), with a warning, if nothing matches.
 #' @examples
 #' \dontrun{
 #' # Load API key from .Renviron
@@ -399,16 +400,14 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## Take the intersection of all queries
   proj_ids <- Reduce(intersect, id_lists)
 
-  # but if there are no conditions met, provide all open and partial options
-  # accommodate NO returns and NO intersections
-  # if(any(proj_ids == "" | length(proj_ids) == 0)){
+  ## no filters given, or no project passes them all
   if(length(proj_ids) == 0 || any(proj_ids == "")){
-    # print a message
-    warning("There were no matches in our database of the specific parameters",
-            "provided in your function. \nThis will return an empty vector",
+    # say so, since an empty result is easy to miss
+    warning("There were no matches in our database of the specific parameters ",
+            "provided in your function. \nThis will return an empty vector ",
             "instead of any projectIDs.")
-    # Make it empty
-    proj_ids = "" #metadata$id
+    # and hand back a genuinely empty vector, so length() and for loops behave
+    proj_ids = character(0)
   }
 
   # return the vector

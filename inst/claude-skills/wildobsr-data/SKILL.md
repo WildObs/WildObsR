@@ -51,8 +51,8 @@ covs <- dp$data$covariates
 meta <- extract_metadata(dp_list, c("contributors", "temporal", "taxonomic"))
 ```
 
-- `wildobs_mongo_query()` returns a character vector of project IDs (an empty string, with a
-  warning, if nothing matches). The temporal filter matches a project if **any of its
+- `wildobs_mongo_query()` returns a character vector of project IDs (an empty vector,
+  `character(0)`, with a warning, if nothing matches). The temporal filter matches a project if **any of its
   deploymentGroups** overlaps the window, not just its overall date range.
 - `media = TRUE` adds the media table. It is by far the largest table (often hundreds of
   thousands of rows per project) and is downloaded in batches, so leave it off unless you
