@@ -43,3 +43,80 @@ anyNA(species_traits$epbc_category) # MUST BE F
 usethis::use_data(species_traits, overwrite = TRUE)
 
 
+
+
+
+#
+##
+### Spatial layers: IBRA7 subregions and CAPAD 2022 terrestrial ----
+
+## Bundles the two layers used by ibra_classification(), locationName_buffer_CAPAD()
+## and locationName_verification_CAPAD(), so users no longer need the ECL Dropbox (#11, #122).
+## Each layer is trimmed to the columns those functions read, simplified so the package
+## stays installable, and stored as an sf object in EPSG:4326 (WGS84) to match
+## deployment coordinates. sf is used rather than terra because a SpatVector cannot be
+## saved to .rda; the functions convert with terra::vect() when they run.
+
+### Simplification tolerances, in metres
+## chosen 2026-10-02 by comparing point lookups for all 19,736 LOCAL deployments:
+## IBRA at 25 m changed none; CAPAD at 5 m changed 4 (no park-to-park switches)
+ibra_tolerance_m <- 25
+capad_tolerance_m <- 5
+
+## folder holding both shapefiles in the shared ECL Dropbox
+spatial_dir <- file.path(personal_path, "ECL spatial layers repository",
+                         "Australian spatial layers GIS data", "AUS")
+
+## a quick helper to fix, simplify and reproject one layer
+## simplifying happens in Australian Albers (EPSG:3577) so the tolerance is in metres
+prepare_layer <- function(layer, keep_cols, tolerance_m) {
+  simple <- layer |>
+    # keep only the columns the package functions use
+    dplyr::select(dplyr::all_of(keep_cols)) |>
+    # repair the few self-intersecting polygons in the source data
+    sf::st_make_valid() |>
+    # move to an equal-area projection measured in metres
+    sf::st_transform(3577) |>
+    # drop vertices closer than the tolerance, without breaking polygon topology
+    sf::st_simplify(preserveTopology = TRUE, dTolerance = tolerance_m) |>
+    # and back to WGS84 longitude/latitude, matching deployment coordinates
+    sf::st_transform(4326)
+
+  ## simplifying and reprojecting can leave a few self-crossing rings; repair them
+  ## with terra, since terra's flat-geometry validity is what the package functions use
+  simple <- sf::st_as_sf(terra::makeValid(terra::vect(simple)))
+
+  return(simple)
+} # end layer helper
+
+## IBRA7 subregions (419 polygons, GDA94 in the source file)
+ibra_raw <- sf::st_read(file.path(spatial_dir, "IBRA7_bioregions", "ibra7_subregions.shp"),
+                        quiet = TRUE)
+ibra <- prepare_layer(ibra_raw,
+                      keep_cols = c("SUB_CODE_7", "SUB_NAME_7", "REG_CODE_7", "REG_NAME_7", "HECTARES"),
+                      tolerance_m = ibra_tolerance_m)
+
+## CAPAD 2022 terrestrial protected areas (14,234 polygons, web Mercator in the source file)
+capad_raw <- sf::st_read(file.path(spatial_dir, "CAPAD_Terrestrial_land_use",
+                                   "Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial",
+                                   "Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp"),
+                         quiet = TRUE)
+capad <- prepare_layer(capad_raw,
+                       keep_cols = c("NAME", "TYPE_ABBR", "IUCN"),
+                       tolerance_m = capad_tolerance_m)
+
+### Inspect data
+## every source polygon must survive, with nothing empty or invalid
+nrow(ibra) == nrow(ibra_raw)     # MUST BE TRUE
+nrow(capad) == nrow(capad_raw)   # MUST BE TRUE
+any(sf::st_is_empty(ibra))       # MUST BE FALSE
+any(sf::st_is_empty(capad))      # MUST BE FALSE
+## validity as terra sees it (flat geometry), since that is what the functions use
+all(terra::is.valid(terra::vect(ibra)))   # MUST BE TRUE
+all(terra::is.valid(terra::vect(capad)))  # MUST BE TRUE
+sf::st_crs(ibra)$epsg            # MUST BE 4326
+sf::st_crs(capad)$epsg           # MUST BE 4326
+
+### Save data to the R package
+## xz compression gives the smallest .rda for polygon data
+usethis::use_data(ibra, capad, overwrite = TRUE, compress = "xz")
