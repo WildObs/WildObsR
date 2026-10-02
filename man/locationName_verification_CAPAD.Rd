@@ -4,47 +4,35 @@
 \alias{locationName_verification_CAPAD}
 \title{Verify Location Names Using the Collaborative Australian Protected Areas Database}
 \usage{
-locationName_verification_CAPAD(
-  dep,
-  capad_file_path =
-    "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp"
-)
+locationName_verification_CAPAD(dep)
 }
 \arguments{
 \item{dep}{A dataframe containing coordinates (in latitude and longitude), and a unique identifier for each sampling location.}
-
-\item{capad_file_path}{A character string specifying the file path to the CAPAD shapefile.
-Defaults to \verb{~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp}.}
+}
+\value{
+A dataframe with the original columns and two additional columns:
+\itemize{
+\item \code{CAPADlocationName}: The name of the protected area assigned to each coordinate. Names are formatted to replace spaces with underscores.
+\item \code{CAPADminDistance}: The distance (in meters) to the nearest protected area, for coordinates outside every protected area; zero for coordinates inside one. Only added when at least one coordinate falls outside every protected area.
+}
 }
 \description{
-This function verifies whether a set of coordinates intersects with the Collaborative Australian Protected Areas Database (CAPAD) 2022 shapefile and assigns the corresponding protected area's name. For coordinates that do not match any protected area, the nearest protected area name is determined using Euclidean distance.
+This function verifies whether a set of coordinates intersects with the Collaborative Australian Protected Areas Database (CAPAD) 2022 terrestrial layer bundled with the package (\code{\link{capad}}) and assigns the corresponding protected area's name. For coordinates that do not match any protected area, the nearest protected area is used instead.
 }
 \details{
 The function performs the following steps:
 \enumerate{
-\item Imports the CAPAD shapefile and standardizes its column names.
+\item Loads the bundled CAPAD layer and standardizes its column names.
 \item Converts the input dataframe \code{dep} into a spatial object using latitude and longitude.
-\item Re-projects the spatial object to match the CAPAD shapefile's CRS.
-\item Determines the intersection of the coordinates with the CAPAD shapefile.
-\item For coordinates with no match, finds the nearest protected area using Euclidean distance and prints out warning messages if the updated location name is far from the original coordinate (1-5 km, 5-10 km, >10 km).
+\item Determines the intersection of the coordinates with the CAPAD layer.
+\item For coordinates with no match, finds the nearest protected area (distance in metres) and prints out warning messages if the updated location name is far from the original coordinate (1-5 km, 5-10 km, >10 km).
 \item Returns the modified dataframe with a new column \code{CAPADlocationName} containing the matched or nearest protected area's name.
 }
-
-#' @return A dataframe with the original columns and two additional columns:
-\itemize{
-\item \code{CAPADlocationName}: The name of the protected area assigned to each coordinate. Names are formatted to replace spaces with underscores.
-\item \code{CAPADminDistance}: The minimum distance (in meters) to the nearest feature in the CAPAD shapefile. Defaults to zero is a value is produced and is useful for inspecting values that generated NA.
-}
-}
-\note{
-The CAPAD shapefile must be downloaded and available at the specified \code{capad_file_path}. If you have a CAPAD shapefile saved in a different locaiton on your computer, please edit the path accordingly.
-This function assumes the \code{NAME} and \code{TYPE_ABBR} fields exist in the CAPAD shapefile for location name extraction.
 }
 \examples{
 \dontrun{
-# Example usage
 dep <- data.frame(
-  locationID = c("Loc1", "Loc2", "Loc3"),
+  deploymentID = c("dep1", "dep2", "dep3"),
   Latitude = c(-35.5, -23.2, -30.7),
   Longitude = c(149.0, 133.5, 141.8)
 )

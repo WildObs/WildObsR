@@ -51,7 +51,6 @@ test_that("ibra_classification errors when long_col name is incorrect", {
 })
 
 test_that("ibra_classification handles custom column names", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = "loc1",
@@ -67,7 +66,6 @@ test_that("ibra_classification handles custom column names", {
 })
 
 test_that("ibra_classification returns expected columns", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = "sydney",
@@ -84,7 +82,6 @@ test_that("ibra_classification returns expected columns", {
 })
 
 test_that("ibra_classification preserves original data columns", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = "loc1",
@@ -103,7 +100,6 @@ test_that("ibra_classification preserves original data columns", {
 })
 
 test_that("ibra_classification removes ID column", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = "loc1",
@@ -118,7 +114,6 @@ test_that("ibra_classification removes ID column", {
 })
 
 test_that("ibra_classification handles multiple locations", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = c("loc1", "loc2", "loc3"),
@@ -133,7 +128,6 @@ test_that("ibra_classification handles multiple locations", {
 })
 
 test_that("ibra_classification handles tibble input", {
-  skip("Requires IBRA7 shapefile")
   skip_if_not_installed("tibble")
 
   data <- tibble::tibble(
@@ -149,7 +143,6 @@ test_that("ibra_classification handles tibble input", {
 })
 
 test_that("ibra_classification produces character IBRA names", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = "loc1",
@@ -164,7 +157,6 @@ test_that("ibra_classification produces character IBRA names", {
 })
 
 test_that("ibra_classification handles single location", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = "single",
@@ -179,7 +171,6 @@ test_that("ibra_classification handles single location", {
 })
 
 test_that("ibra_classification handles decimal precision", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = c("precise1", "precise2"),
@@ -193,24 +184,7 @@ test_that("ibra_classification handles decimal precision", {
   expect_true(all(!is.na(result$IBRAbioRegionName)))
 })
 
-test_that("ibra_classification errors with default path when file not found", {
-  skip("IBRA shapefile may be available on some systems")
-
-  data <- data.frame(
-    deploymentID = "loc1",
-    latitude = -33.8688,
-    longitude = 151.2093
-  )
-
-  # Most systems won't have the default IBRA file path
-  expect_error(
-    ibra_classification(data, lat_col = "latitude", long_col = "longitude"),
-    class = "error"
-  )
-})
-
 test_that("ibra_classification handles locations across different bioregions", {
-  skip("Requires IBRA7 shapefile")
 
   # Locations in different Australian bioregions
   data <- data.frame(
@@ -227,7 +201,6 @@ test_that("ibra_classification handles locations across different bioregions", {
 })
 
 test_that("ibra_classification does not modify original data frame", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = "loc1",
@@ -246,7 +219,6 @@ test_that("ibra_classification does not modify original data frame", {
 })
 
 test_that("ibra_classification handles NA coordinates gracefully", {
-  skip("Requires IBRA7 shapefile")
 
   data <- data.frame(
     deploymentID = c("loc1", "loc2"),
@@ -261,20 +233,3 @@ test_that("ibra_classification handles NA coordinates gracefully", {
   )
 })
 
-test_that("ibra_classification with custom IBRA file path parameter", {
-  skip("Requires custom IBRA7 shapefile")
-
-  data <- data.frame(
-    deploymentID = "loc1",
-    latitude = -33.8688,
-    longitude = 151.2093
-  )
-
-  custom_path <- "/custom/path/to/ibra7_subregions.shp"
-
-  expect_error(
-    ibra_classification(data, lat_col = "latitude", long_col = "longitude",
-                       ibra_file_path = custom_path),
-    class = "error"  # Will error because custom path doesn't exist
-  )
-})

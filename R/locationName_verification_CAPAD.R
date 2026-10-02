@@ -1,29 +1,25 @@
 #' Verify Location Names Using the Collaborative Australian Protected Areas Database
 #'
-#' This function verifies whether a set of coordinates intersects with the Collaborative Australian Protected Areas Database (CAPAD) 2022 shapefile and assigns the corresponding protected area's name. For coordinates that do not match any protected area, the nearest protected area name is determined using Euclidean distance.
+#' This function verifies whether a set of coordinates intersects with the Collaborative Australian Protected Areas Database (CAPAD) 2022 terrestrial layer bundled with the package (\code{\link{capad}}) and assigns the corresponding protected area's name. For coordinates that do not match any protected area, the nearest protected area is used instead.
 #'
 #' @param dep A dataframe containing coordinates (in latitude and longitude), and a unique identifier for each sampling location.
-#' @param capad_file_path A character string specifying the file path to the CAPAD shapefile.
-#' Defaults to `~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp`.
 #'
 #' @details
 #' The function performs the following steps:
-#' 1. Imports the CAPAD shapefile and standardizes its column names.
+#' 1. Loads the bundled CAPAD layer and standardizes its column names.
 #' 2. Converts the input dataframe `dep` into a spatial object using latitude and longitude.
-#' 3. Re-projects the spatial object to match the CAPAD shapefile's CRS.
-#' 4. Determines the intersection of the coordinates with the CAPAD shapefile.
-#' 5. For coordinates with no match, finds the nearest protected area using Euclidean distance and prints out warning messages if the updated location name is far from the original coordinate (1-5 km, 5-10 km, >10 km).
+#' 3. Determines the intersection of the coordinates with the CAPAD layer.
+#' 4. For coordinates with no match, finds the nearest protected area (distance in metres) and prints out warning messages if the updated location name is far from the original coordinate (1-5 km, 5-10 km, >10 km).
 #' 6. Returns the modified dataframe with a new column `CAPADlocationName` containing the matched or nearest protected area's name.
 #'
-#' #' @return A dataframe with the original columns and two additional columns:
+#' @return A dataframe with the original columns and two additional columns:
 #' - `CAPADlocationName`: The name of the protected area assigned to each coordinate. Names are formatted to replace spaces with underscores.
-#' - `CAPADminDistance`: The minimum distance (in meters) to the nearest feature in the CAPAD shapefile. Defaults to zero is a value is produced and is useful for inspecting values that generated NA.
+#' - `CAPADminDistance`: The distance (in meters) to the nearest protected area, for coordinates outside every protected area; zero for coordinates inside one. Only added when at least one coordinate falls outside every protected area.
 #'
 #' @examples
 #' \dontrun{
-#' # Example usage
 #' dep <- data.frame(
-#'   locationID = c("Loc1", "Loc2", "Loc3"),
+#'   deploymentID = c("dep1", "dep2", "dep3"),
 #'   Latitude = c(-35.5, -23.2, -30.7),
 #'   Longitude = c(149.0, 133.5, 141.8)
 #' )
@@ -31,19 +27,15 @@
 #' head(updated_dep)
 #' }
 #'
-#' @note
-#' The CAPAD shapefile must be downloaded and available at the specified `capad_file_path`. If you have a CAPAD shapefile saved in a different locaiton on your computer, please edit the path accordingly.
-#' This function assumes the `NAME` and `TYPE_ABBR` fields exist in the CAPAD shapefile for location name extraction.
-#'
-#' @importFrom terra distance extract crop ext makeValid intersect project crs as.data.frame vect
+#' @importFrom terra distance extract crop ext intersect project crs as.data.frame vect
 #'
 #' @author Tom Bruce & Zachary Amir
 #'
 #' @export
-locationName_verification_CAPAD <- function(dep, capad_file_path = "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp") {
+locationName_verification_CAPAD <- function(dep) {
 
-  ## Import the CAPAD terrestrial database which is a nationwide database of protected areas and their names.
-  layer_data <- terra::vect(file.path(capad_file_path))  # Assuming shapefile format
+  ## grab the CAPAD terrestrial layer bundled with the package, a nationwide database of protected areas and their names
+  layer_data <- terra::vect(WildObsR::capad)
 
   # Rename columns to our standardised format.
   layer_data$name_extract <- layer_data$NAME
@@ -89,9 +81,6 @@ locationName_verification_CAPAD <- function(dep, capad_file_path = "~/Dropbox/EC
   # }
   ### Not useful b/c there are more rigorous NA checks below.
 
-  # Clean layer_data geometries using terra's makeValid function
-  layer_data <- terra::makeValid(layer_data)
-
   # Determine the extent of your data points
   data_extent <- terra::ext(dep_sp)
 
@@ -103,8 +92,9 @@ locationName_verification_CAPAD <- function(dep, capad_file_path = "~/Dropbox/EC
   if(! nrow(layer_data) > 0) {
     print("Provided locations and CAPAD shape file do not intersect.")
     dep[1:nrow(dep),"CAPADlocationName"] = as.character(NA)
+    # drop the internal helper columns before handing back
+    dep[, c("ID", "lat2", "long2")] = NULL
     return(dep)
-    stop("Returning NA values for CAPAD locationName")
   } # end 0 crop condition
 
   # Perform the spatial join using extract
@@ -211,6 +201,9 @@ locationName_verification_CAPAD <- function(dep, capad_file_path = "~/Dropbox/EC
   ## rename the column to be more informative
   names(dep)[grepl("area_name", names(dep))] = "CAPADlocationName"
 
+  # drop the internal helper columns (row ID and coordinate copies)
+  dep[, c("ID", "lat2", "long2")] = NULL
+
   # Return the modified dataframe
   return(dep) #This should always be last.
 
@@ -218,6 +211,6 @@ locationName_verification_CAPAD <- function(dep, capad_file_path = "~/Dropbox/EC
 
 # testing clean up
 # rm(closest_match, closest_match_df, distances, intersection_result, check,
-#    layer_data, missing_point, capad_file_path, crs_info, iucn_levels, dep_sp,
+#    layer_data, missing_point, crs_info, iucn_levels, dep_sp,
 #    lat_col, lon_col, min_distance, min_index, result_column, data_extent,
 #    missing_coords, missing_placename, missing_row, missing_rows, result, dep)

@@ -1,7 +1,6 @@
 ## Tests for locationName_buffer_CAPAD() ----
 
 test_that("locationName_buffer_CAPAD generates UTM coords when missing", {
-  skip("Requires CAPAD shapefile")
 
   # Data without UTM columns
   dep <- data.frame(
@@ -18,7 +17,6 @@ test_that("locationName_buffer_CAPAD generates UTM coords when missing", {
 })
 
 test_that("locationName_buffer_CAPAD accepts data with existing UTM coords", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = c("dep1", "dep2"),
@@ -36,7 +34,6 @@ test_that("locationName_buffer_CAPAD accepts data with existing UTM coords", {
 })
 
 test_that("locationName_buffer_CAPAD handles lowercase latitude/longitude", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -51,7 +48,6 @@ test_that("locationName_buffer_CAPAD handles lowercase latitude/longitude", {
 })
 
 test_that("locationName_buffer_CAPAD handles uppercase Latitude/Longitude", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -66,7 +62,6 @@ test_that("locationName_buffer_CAPAD handles uppercase Latitude/Longitude", {
 })
 
 test_that("locationName_buffer_CAPAD returns CAPADlocationNameBuffer column", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = c("dep1", "dep2"),
@@ -81,7 +76,6 @@ test_that("locationName_buffer_CAPAD returns CAPADlocationNameBuffer column", {
 })
 
 test_that("locationName_buffer_CAPAD preserves original columns", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = c("dep1", "dep2"),
@@ -99,7 +93,6 @@ test_that("locationName_buffer_CAPAD preserves original columns", {
 })
 
 test_that("locationName_buffer_CAPAD accepts custom buffer_size", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -116,7 +109,6 @@ test_that("locationName_buffer_CAPAD accepts custom buffer_size", {
 })
 
 test_that("locationName_buffer_CAPAD handles single UTM zone", {
-  skip("Requires CAPAD shapefile")
 
   # All locations in same UTM zone (56)
   dep <- data.frame(
@@ -132,7 +124,6 @@ test_that("locationName_buffer_CAPAD handles single UTM zone", {
 })
 
 test_that("locationName_buffer_CAPAD handles multiple UTM zones", {
-  skip("Requires CAPAD shapefile")
 
   # Locations spanning multiple UTM zones
   dep <- data.frame(
@@ -148,7 +139,6 @@ test_that("locationName_buffer_CAPAD handles multiple UTM zones", {
 })
 
 test_that("locationName_buffer_CAPAD errors when no UTM zones found", {
-  skip("Requires CAPAD shapefile")
 
   # Create data that might cause issues
   dep <- data.frame(
@@ -163,7 +153,6 @@ test_that("locationName_buffer_CAPAD errors when no UTM zones found", {
 })
 
 test_that("locationName_buffer_CAPAD handles tibble input", {
-  skip("Requires CAPAD shapefile")
   skip_if_not_installed("tibble")
 
   dep <- tibble::tibble(
@@ -179,7 +168,6 @@ test_that("locationName_buffer_CAPAD handles tibble input", {
 })
 
 test_that("locationName_buffer_CAPAD buffer IDs contain UTM zone prefix", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -194,7 +182,6 @@ test_that("locationName_buffer_CAPAD buffer IDs contain UTM zone prefix", {
 })
 
 test_that("locationName_buffer_CAPAD handles overlapping buffers", {
-  skip("Requires CAPAD shapefile")
 
   # Two very close deployments that will have overlapping buffers
   dep <- data.frame(
@@ -211,7 +198,6 @@ test_that("locationName_buffer_CAPAD handles overlapping buffers", {
 })
 
 test_that("locationName_buffer_CAPAD handles locations outside protected areas", {
-  skip("Requires CAPAD shapefile")
 
   # Remote location likely outside protected areas
   dep <- data.frame(
@@ -229,7 +215,6 @@ test_that("locationName_buffer_CAPAD handles locations outside protected areas",
 })
 
 test_that("locationName_buffer_CAPAD cleans protected area names", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -246,7 +231,6 @@ test_that("locationName_buffer_CAPAD cleans protected area names", {
 })
 
 test_that("locationName_buffer_CAPAD default buffer is 5000m", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -263,22 +247,7 @@ test_that("locationName_buffer_CAPAD default buffer is 5000m", {
                result_explicit$CAPADlocationNameBuffer)
 })
 
-test_that("locationName_buffer_CAPAD errors with invalid capad_file_path", {
-  dep <- data.frame(
-    deploymentID = "dep1",
-    Latitude = -33.8688,
-    Longitude = 151.2093
-  )
-
-  expect_error(
-    locationName_buffer_CAPAD(dep, buffer_size = 5000,
-                             capad_file_path = "/fake/path/to/capad.shp"),
-    class = "error"
-  )
-})
-
 test_that("locationName_buffer_CAPAD handles high precision coordinates", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "precise",
@@ -293,7 +262,6 @@ test_that("locationName_buffer_CAPAD handles high precision coordinates", {
 })
 
 test_that("locationName_buffer_CAPAD preserves row order", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = c("first", "second", "third"),
@@ -308,7 +276,9 @@ test_that("locationName_buffer_CAPAD preserves row order", {
 })
 
 test_that("locationName_buffer_CAPAD handles duplicate deploymentIDs", {
-  skip("Requires CAPAD shapefile")
+  ## identical rows sharing a deploymentID collapse to one when UTMs are merged on
+  ## deploymentID; duplicate IDs break Camtrap DP anyway, so the right behaviour is undecided
+  skip("Undecided: error, warn, or keep duplicate deploymentIDs? See review item S5")
 
   # Same location, duplicate IDs
   dep <- data.frame(
@@ -326,7 +296,6 @@ test_that("locationName_buffer_CAPAD handles duplicate deploymentIDs", {
 })
 
 test_that("locationName_buffer_CAPAD does not modify original data frame", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",

@@ -4,20 +4,13 @@
 \alias{locationName_buffer_CAPAD}
 \title{Generate Location Buffers and Assign CAPAD Protected Area Names}
 \usage{
-locationName_buffer_CAPAD(
-  dep,
-  buffer_size = 5000,
-  capad_file_path =
-    "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp"
-)
+locationName_buffer_CAPAD(dep, buffer_size = 5000)
 }
 \arguments{
 \item{dep}{A dataframe containing deployment data, including columns for \code{latitude}, \code{longitude}, and \code{deploymentID}.
 It may also include \code{UTMzone}, \code{X}, and \code{Y} coordinates. If these are missing, they will be generated using the \code{WildObsR::UTM_coord_generator} function.}
 
 \item{buffer_size}{Numeric value representing the size of the buffer (in meters) around each deployment location. Defaults to 5,000 m (5 km).}
-
-\item{capad_file_path}{File path to the CAPAD shapefile containing protected area boundaries. Defaults to ~/Dropbox/ECL spatial layers repository/, so please ensure you have access or modify the pathway to your local computer to the shapefile location.}
 }
 \value{
 An updated dataframe containing the original deployment data and an additional column,
@@ -34,13 +27,12 @@ This function performs the following steps:
 \item Validates and generates UTM coordinates for the deployment locations, if necessary.
 \item Buffers deployment points within their respective UTM zones, merging results across zones.
 \item Dissolves overlapping buffers and assigns unique IDs to each disaggregated polygon.
-\item Extracts the dominant protected area name for each buffer using the CAPAD shapefile.
+\item Extracts the dominant protected area name for each buffer using the CAPAD 2022 terrestrial layer bundled with the package (\code{\link{capad}}).
 \item For buffers that do not intersect with any protected area, determines the nearest protected area based on centroid distance.
 \item Assigns the final protected area name and buffer ID to the original deployment dataframe.
 }
 }
 \note{
-This function assumes that the CAPAD shapefile is properly formatted and contains fields such as \code{NAME} and \code{TYPE_ABBR}.
 The function uses the \code{terra} package for spatial processing.
 }
 \examples{
@@ -53,8 +45,7 @@ dep <- data.frame(
 )
 
 # Run the function with a 10 km buffer
-buffered_dep <- locationName_buffer_CAPAD(dep, buffer_size = 10000,
-  capad_file_path = "~/path/to/CAPAD.shp")
+buffered_dep <- locationName_buffer_CAPAD(dep, buffer_size = 10000)
 
 # View results
 head(buffered_dep)

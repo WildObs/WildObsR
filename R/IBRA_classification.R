@@ -1,18 +1,15 @@
 #' Determine Interim Biogeographic Regionalisation for Australia (IBRA) bio-regions and subregions
 #'
-#'#' This function identifies the IBRA bio-region and sub-region for a set of coordinates using the IBRA7 sub- and bio-regions shapefile. It validates the geometries of the shapefile, reprojects the data for compatibility, and performs a spatial join. If any coordinates fall outside valid bio-regions, the nearest neighbor's attributes are used to fill in missing values.
+#' This function identifies the IBRA bio-region and sub-region for a set of coordinates using the IBRA7 subregions layer bundled with the package (\code{\link{ibra}}). It performs a spatial join, and if any coordinates fall outside every subregion (e.g. just offshore), the nearest matched location's IBRA values are used instead.
 #'
 #' @param data A dataframe containing at least latitude and longitude columns.
 #' @param lat_col A character string specifying the column name for latitude in the dataframe.
 #' @param long_col A character string specifying the column name for longitude in the dataframe.
-#' @param ibra_file_path A character string specifying the file path to the IBRA7 subregions shapefile. Defaults to "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/IBRA7_bioregions/ibra7_subregions.shp".
 #'
-#'#' @details
+#' @details
 #' The function begins by verifying the presence of the specified latitude and longitude columns in the input dataframe. It then creates a spatial vector from the input coordinates and clips the IBRA shapefile to the extent of the data points for improved performance. Next, the function performs a spatial join to associate each location with its corresponding IBRA bio-region and sub-region.
 #'
-#' If any locations are not assigned a bio-region (i.e., have missing values), the nearest neighbor approach is used to calculate these values. Finally, the function prints a summary table of the number of deployments per IBRA bio-region and sub-region and returns an updated dataframe with additional columns containing IBRA information.
-#'
-#' Note that you must have access to the IBRA7 shapefile for this function to work. Either ensure the default pathway is accurrate and downloaded on your computer, or edit the pathway to work for your local computer.
+#' If any locations are not assigned a bio-region (i.e., have missing values), each takes the IBRA values of its nearest location that was assigned one, and every input row is returned. Finally, the function prints a summary table of the number of deployments per IBRA bio-region and sub-region and returns an updated dataframe with additional columns containing IBRA information.
 #'
 #' @return A dataframe with the original data and additional columns:
 #' - `IBRAsubRegionName`: Name of the IBRA sub-region.
@@ -21,15 +18,12 @@
 #' - `IBRAbioRegionCode`: Code of the IBRA bio-region.
 #'
 #' @examples
-#' \dontrun{
-#' # Example usage:
 #' data <- data.frame(
 #'   deploymentID = 1:3,
 #'   lat = c(-15.5, -23.2, -17.1),
 #'   lon = c(145.7, 133.5, 141.8)
 #' )
 #' result <- ibra_classification(data, lat_col = "lat", long_col = "lon")
-#' }
 #'
 #' @author Zachary Amir
 #' @importFrom terra as.data.frame nearest extract crop intersect project vect
@@ -38,7 +32,7 @@
 #' @export
 #'
 
-ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/IBRA7_bioregions/ibra7_subregions.shp") {
+ibra_classification = function(data, lat_col, long_col) {
 
   ## First, ensure lat and long cols are present in data
   if(! lat_col %in% names(data)){
@@ -64,11 +58,8 @@ ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Drop
   ## Create a spatial vector
   data_sp =  terra::vect(data , geom = c("long2", "lat2"), "EPSG:4326")
 
-  ## import IBRA SUB-regions shape file
-  ibra = terra::vect(file.path(ibra_file_path))
-
-  ## make sure the shapefile has valid geometries.
-  ibra = terra::makeValid(ibra)
+  ## grab the IBRA subregions layer bundled with the package (already validated)
+  ibra = terra::vect(WildObsR::ibra)
 
   ## re-project our data so it matches the shape file
   data_sp = terra::project(data_sp, terra::crs(ibra))
@@ -97,7 +88,7 @@ ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Drop
   result$ID = data_sp$ID[result$id.y]
 
   ## select the relevant info from the IBRA dataset
-  result2 = select(result, ID, SUB_NAME_7,SUB_CODE_7, REG_NAME_7, REG_CODE_7, HECTARES)
+  result2 = dplyr::select(result, ID, SUB_NAME_7,SUB_CODE_7, REG_NAME_7, REG_CODE_7, HECTARES)
 
   ## and merge w/ data_sp
   # but make sure its safe!
@@ -105,70 +96,42 @@ ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Drop
      setdiff(data_sp$ID, result2$ID)) == 0){
     dat_sp_bioregion = merge(result2, data_sp, by = "ID")
   }else{
-    stop(print("Not all locations were found in IBRA shapefile, please inspect this data manually."))
+    stop("Not all locations were found in IBRA shapefile, please inspect this data manually.")
   } # end merging condition
 
-  ## Now verify there are no NA values
-  if(anyNA(dat_sp_bioregion$REG_NAME_7)){
+  ## Locations that fall outside every subregion (e.g. just offshore) take the
+  ## IBRA values of their nearest location that did land in one
+  # the IBRA columns to borrow
+  ibra_cols = c("SUB_NAME_7", "SUB_CODE_7", "REG_NAME_7", "REG_CODE_7", "HECTARES")
+  # flag the rows that missed every subregion
+  is_na = is.na(dat_sp_bioregion$REG_NAME_7)
+  if(any(is_na)){
+
+    # cant borrow from neighbours if there are none
+    if(all(is_na)){
+      stop("None of the provided coordinates fall inside an IBRA7 subregion.\n",
+           "Please check that ", lat_col, " and ", long_col, " hold decimal-degree coordinates in Australia.")
+    } # end all NA condition
 
     ## give us an update
-    print(paste(nrow(dat_sp_bioregion[is.na(dat_sp_bioregion$REG_NAME_7),]), "locations produced NA values for bio-region. These values will be replaced with their nearest neighbors."))
+    message(sum(is_na), " locations produced NA values for bio-region. These values will be replaced with their nearest neighbors.")
 
-    ## isolate which cams have NA values
-    na_values = dat_sp_bioregion[which(is.na(dat_sp_bioregion$REG_NAME_7)), ]
-    ## and make it a spatVect
-    na_values$latitude2 = na_values[, lat_col]; na_values$longitude2 = na_values[, long_col]
-    na_values = terra::vect(na_values , geom = c("longitude2", "latitude2"), "EPSG:4326")
+    # make spatial points for the unmatched and the matched locations
+    na_sp = terra::vect(dat_sp_bioregion[is_na, ], geom = c(long_col, lat_col), crs = "EPSG:4326", keepgeom = TRUE)
+    ok_sp = terra::vect(dat_sp_bioregion[!is_na, ], geom = c(long_col, lat_col), crs = "EPSG:4326", keepgeom = TRUE)
 
-    ## Then gather all the other cams with good values
-    valid_values = dat_sp_bioregion[! is.na(dat_sp_bioregion$REG_NAME_7), ]
-    ## and also make this a spatVect
-    valid_values$latitude2 = valid_values[, lat_col]; valid_values$longitude2 = valid_values[, long_col]
-    valid_values = terra::vect(valid_values , geom = c("longitude2", "latitude2"), "EPSG:4326")
-
-    ## then find the nearest neighbors
-    near = terra::nearest(na_values, valid_values)
-    ## replace from_id w/ na_values ID
-    near$from_id = na_values$ID[near$from_id]
-    ## and the same w/ to_id and valid_values
-    near$to_id = valid_values$ID[near$to_id]
-
-    ## now grab the relevant information form the valid values
-    add = valid_values[valid_values$ID %in% near$to_id, c("ID", "SUB_NAME_7", "SUB_CODE_7", "REG_NAME_7",
-                                                          "REG_CODE_7", "HECTARES")]
-    ## and replace the ID with the missing values
-    add$ID = near$from_id
-
-    ## remove the NA cols from na_values
-    na_values = na_values[, !(names(na_values) %in% c("SUB_NAME_7", "SUB_CODE_7",
-                                                      "REG_NAME_7", "REG_CODE_7",
-                                                      "HECTARES"))]
-    # now merge add to na_values
-    # but ensure its safe
-    if(length(setdiff(na_values$ID, add$ID)) +
-       length(setdiff(add$ID, na_values$ID)) == 0){
-      # do the merge
-      added_values = merge(add, na_values, by = "ID")
-      added_values = as.data.frame(added_values) # no more need for spatvect
-    }else{
-      stop(print("A problem occurred when searching the nearest neighbor, please inspect manually."))
-    } # end merging condition.
-
-    ## Finally, replace these in the final dataset
-    # first remove
-    dat_sp_bioregion = dat_sp_bioregion[! dat_sp_bioregion$ID %in% added_values$ID, ]
-    # and remove duplicated lat/long cols for a clean rbind
-    dat_sp_bioregion$latitude2 = NULL ; dat_sp_bioregion$longitude2 = NULL
-    # and then rbind
-    dat_bioregion = rbind(added_values, dat_sp_bioregion)
-
+    # find the nearest matched location for each unmatched one
+    near = terra::nearest(na_sp, ok_sp)
+    # convert those positions back to rows of dat_sp_bioregion
+    to_row = which(is_na)[near$from_id]
+    from_row = which(!is_na)[near$to_id]
+    # and copy the IBRA values across, row by row, so shared neighbours are handled correctly
+    dat_sp_bioregion[to_row, ibra_cols] = dat_sp_bioregion[from_row, ibra_cols]
 
   } # end NA condition
 
-  ## remove duplicated lat/long cols
-  dat_sp_bioregion$latitude2 = NULL ; dat_sp_bioregion$longitude2 = NULL
-  # and and re-name to match NA condition values and remove the spatial part of datafram e
-  dat_bioregion = terra::as.data.frame(dat_sp_bioregion, geom = F)
+  ## remove the spatial part of the dataframe
+  dat_bioregion = terra::as.data.frame(dat_sp_bioregion, geom = FALSE)
 
   ## now re-name columns to be informative
   names(dat_bioregion)[grepl("SUB_NAME", names(dat_bioregion))] = "IBRAsubRegionName"
@@ -191,5 +154,5 @@ ibra_classification = function(data, lat_col, long_col, ibra_file_path = "~/Drop
 } # end function
 
 # clean up for testing
-# rm(add, added_values, check, dat_bioregion, dat_sp_bioregion, data, data_extent, data_sp, ibra,
-# ibra_clipped, intersection, na_values, near, result, result2, valid_values, lat_col, long_col, ibra_file_path)
+# rm(check, dat_bioregion, dat_sp_bioregion, data, data_extent, data_sp, ibra, ibra_clipped,
+#    is_na, na_sp, ok_sp, near, to_row, from_row, result, result2, lat_col, long_col)
