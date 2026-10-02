@@ -858,20 +858,21 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     }
     if(is.na(project_timezone)){project_timezone = "UTC"} # default to UTC if NA is provided.
 
-    # but before we save, apply schemas to make sure were good!
-    # UPDATED: Pass timezone parameter to apply_schema_types for proper POSIXct datetime handling
-    obs_proj = suppressWarnings(WildObsR::apply_schema_types(obs_proj,
-                                                             formatted_metadata[[proj]]$observations_schema,
-                                                             timezone = project_timezone))
-    deps_proj = suppressWarnings(WildObsR::apply_schema_types(deps_proj,
-                                                              formatted_metadata[[proj]]$deployments_schema,
-                                                              timezone = project_timezone))
-    if(media){media_proj = suppressWarnings(WildObsR::apply_schema_types(media_proj,
-                                                                         formatted_metadata[[proj]]$media_schema,
-                                                                         timezone = project_timezone))}
-    cov_proj = suppressWarnings(WildObsR::apply_schema_types(cov_proj,
-                                                             formatted_metadata[[proj]]$covariates_schema,
-                                                             timezone = project_timezone))
+    ## but before we save, apply schemas to make sure were good!
+    ## warnings are left visible, so a column that fails to type is never hidden
+    # pass the project timezone so datetimes come back as local POSIXct
+    obs_proj = WildObsR::apply_schema_types(obs_proj,
+                                            formatted_metadata[[proj]]$observations_schema,
+                                            timezone = project_timezone)
+    deps_proj = WildObsR::apply_schema_types(deps_proj,
+                                             formatted_metadata[[proj]]$deployments_schema,
+                                             timezone = project_timezone)
+    if(media){media_proj = WildObsR::apply_schema_types(media_proj,
+                                                        formatted_metadata[[proj]]$media_schema,
+                                                        timezone = project_timezone)}
+    cov_proj = WildObsR::apply_schema_types(cov_proj,
+                                            formatted_metadata[[proj]]$covariates_schema,
+                                            timezone = project_timezone)
 
     ## now bundle into a frictionless DP
     # use metadata to create the DP

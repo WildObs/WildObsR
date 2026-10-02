@@ -67,6 +67,8 @@ than before and the 1–5 km / 5–10 km / >10 km notes may change category.
 - `apply_schema_types()` no longer deletes a `datetime` column whose schema field has
   no `format`: it falls back to ISO 8601, and leaves the column unchanged with a
   warning if it still cannot parse it (#129).
+- `wildobs_dp_download()` no longer hides warnings from typing the tables, so a
+  column that fails to convert is reported rather than passed on silently (#129).
 - `ibra_classification()` no longer drops locations that fall just outside every
   IBRA subregion. They now take the IBRA values of their nearest matched
   location, as documented (#97).
