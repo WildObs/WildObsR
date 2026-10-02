@@ -315,16 +315,18 @@ test_that("wildobs_mongo_query treats an empty contributors vector as no filter"
 ### Input validation and failure handling ----
 
 test_that("wildobs_mongo_query validates spatial parameter structure", {
-  skip_if_no_wildobs_api()
+  # checked before any network call, so no API key is needed
 
-  # a bounding box missing its latitude bounds
-  spatial_incomplete <- list(xmin = 145.0, xmax = 147.0)
-
-  ## no regexp here on purpose: an incomplete box currently fails inside
-  ## tibble's row subsetting, so that text belongs to another package and would
-  ## change under us. What matters is that it stops, not how it words it.
+  # a bounding box missing its latitude bounds names both of them
   expect_error(
-    wildobs_mongo_query(api_key = test_api_key, spatial = spatial_incomplete)
+    wildobs_mongo_query(api_key = "unused", spatial = list(xmin = 145.0, xmax = 147.0)),
+    "missing, or has non-numeric: ymin, ymax"
+  )
+  # a corner given as text is rejected too
+  expect_error(
+    wildobs_mongo_query(api_key = "unused",
+                        spatial = list(xmin = "145", xmax = 147, ymin = -29, ymax = -10)),
+    "non-numeric: xmin"
   )
 })
 

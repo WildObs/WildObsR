@@ -108,6 +108,22 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## Silent when up to date, and never blocks the query.
   .check_wildobs_version()
 
+  ## a spatial query needs all four corners of a box, as numbers,
+  ## so check before touching the database
+  if (!is.null(spatial) && length(spatial) > 0) {
+    # the corners every bounding box needs
+    required_bounds <- c("xmin", "xmax", "ymin", "ymax")
+    # which corners are missing, or not a single number
+    bad_bounds <- required_bounds[!vapply(required_bounds, function(b) {
+      is.numeric(spatial[[b]]) && length(spatial[[b]]) == 1 && !is.na(spatial[[b]])
+    }, logical(1))]
+    if (length(bad_bounds) > 0) {
+      stop("Your spatial query is missing, or has non-numeric: ", paste(bad_bounds, collapse = ", "),
+           "\nProvide all four of xmin, xmax, ymin and ymax as numbers in a named list, ",
+           "e.g. list(xmin = 145, xmax = 154, ymin = -29, ymax = -10).", call. = FALSE)
+    } # end bad bounds condition
+  } # end spatial check
+
   # create an empty vector to store project IDs
   proj_ids = c()
 
