@@ -47,70 +47,88 @@
 
 #' Interim Biogeographic Regionalisation for Australia (IBRA7) Subregions
 #'
-#' A spatial dataset (`SpatVector`) representing the *Interim Biogeographic Regionalisation for Australia* (IBRA7) bioregions and subregions.
-#' This shapefile provides the spatial foundation for the \code{\link{ibra_classification}} function, which assigns geographic coordinates to their
-#' corresponding IBRA bio-region and sub-region. It is based on the official IBRA7 dataset maintained by the Australian Government Department of Climate Change,
-#' Energy, the Environment and Water (DCCEEW).
+#' The 419 IBRA7 subregions of Australia, with their parent bioregions, as an `sf`
+#' polygon layer. This is the layer \code{\link{ibra_classification}} uses to assign
+#' coordinates to an IBRA subregion and bioregion.
 #'
-#' @format A `SpatVector` object (from the \pkg{terra} package) with 419 polygons and 16 attributes:
+#' @format An `sf` data frame with 419 rows (one MULTIPOLYGON per subregion) and 5
+#'   attribute columns, in WGS84 longitude/latitude (EPSG:4326):
 #' \describe{
 #'   \item{SUB_CODE_7}{IBRA7 subregion code.}
 #'   \item{SUB_NAME_7}{IBRA7 subregion name.}
 #'   \item{REG_CODE_7}{IBRA7 bioregion code.}
 #'   \item{REG_NAME_7}{IBRA7 bioregion name.}
-#'   \item{HECTARES}{Area of the subregion in hectares.}
-#'   \item{SQ_KM}{Area of the subregion in square kilometres.}
-#'   \item{REC_ID}{Internal record identifier.}
-#'   \item{SUB_CODE_6}{IBRA6 subregion code (legacy).}
-#'   \item{SUB_NAME_6}{IBRA6 subregion name (legacy).}
-#'   \item{SUB_NO_61_}{Numeric subregion identifier.}
-#'   \item{REG_CODE_6}{IBRA6 bioregion code (legacy).}
-#'   \item{REG_NAME_6}{IBRA6 bioregion name (legacy).}
-#'   \item{REG_NO_61}{Numeric bioregion identifier.}
-#'   \item{FEAT_ID}{Unique feature ID.}
-#'   \item{Shape_Leng}{Perimeter length of the polygon feature (metres).}
-#'   \item{Shape_Area}{Area of the polygon feature (square metres).}
+#'   \item{HECTARES}{Area of the subregion in hectares, from the source data.}
 #' }
 #'
 #' @details
-#' The IBRA framework divides Australia into distinct biogeographic regions based on shared ecological, geological,
-#' and climatic characteristics. This dataset corresponds to the seventh version (IBRA7) and is provided in
-#' GDA94 geographic coordinates (EPSG:4283).
+#' Derived from the official IBRA7 subregions shapefile (GDA94, EPSG:4283) by keeping only
+#' the columns above, repairing invalid polygons, simplifying boundaries with a 25 m
+#' tolerance, and reprojecting to EPSG:4326. Simplification was checked against the full
+#' resolution layer: all 19,736 WildObs deployments fall in the same subregion with either.
+#' The build is recorded in `dev/add_data_to_package.R`.
 #'
-#' The dataset is primarily used by the \code{\link{ibra_classification}} function in this package to assign
-#' camera-trap deployments or other georeferenced observations to their respective IBRA subregion and bioregion.
-#' Users can also employ the dataset directly for spatial analysis or visualisation of Australia's ecological regions.
+#' Convert to a `terra` SpatVector with `terra::vect(ibra)` if you prefer `terra`.
 #'
 #' @source
-#' Australian Government Department of Climate Change, Energy, the Environment and Water (DCCEEW).
-#' *Interim Biogeographic Regionalisation for Australia (IBRA), Version 7 (Regions and Subregions)*.
+#' Australian Government Department of Climate Change, Energy, the Environment and Water
+#' (DCCEEW). *Interim Biogeographic Regionalisation for Australia (IBRA), Version 7
+#' (Subregions)*. Licensed under Creative Commons Attribution.
 #' \url{https://www.dcceew.gov.au/environment/land/nrs/science/ibra}
 #'
-#' @seealso
-#' \code{\link{ibra_classification}} for assigning latitude–longitude points to IBRA subregions.
-#' \pkg{terra} for reading and manipulating `SpatVector` data.
+#' @seealso \code{\link{ibra_classification}}, \code{\link{capad}}
 #'
 #' @examples
-#' data(ibra)
+#' # The attribute table, without the polygons
+#' head(sf::st_drop_geometry(ibra))
 #'
-#' # Inspect structure
-#' ibra
-#'
-#' # Plot subregions
-#' if (requireNamespace("terra", quietly = TRUE)) {
-#'   terra::plot(ibra, col = "lightgreen", border = "darkgrey")
-#' }
-#'
-#' # Example use with ibra_classification()
-#' \dontrun{
-#' data <- data.frame(
-#'   deploymentID = 1:3,
-#'   lat = c(-15.5, -23.2, -17.1),
-#'   lon = c(145.7, 133.5, 141.8)
-#' )
-#' result <- ibra_classification(data, lat_col = "lat", long_col = "lon")
-#' head(result)
-#' }
+#' # Map the subregion outlines
+#' plot(sf::st_geometry(ibra))
 #'
 #' @keywords datasets
-# "ibra"
+"ibra"
+
+
+#' Collaborative Australian Protected Areas Database (CAPAD) 2022, Terrestrial
+#'
+#' The 14,234 terrestrial protected areas in CAPAD 2022, as an `sf` polygon layer. This
+#' is the layer \code{\link{locationName_verification_CAPAD}} and
+#' \code{\link{locationName_buffer_CAPAD}} use to name the protected area around each
+#' camera.
+#'
+#' @format An `sf` data frame with 14,234 rows (one POLYGON or MULTIPOLYGON per protected
+#'   area) and 3 attribute columns, in WGS84 longitude/latitude (EPSG:4326):
+#' \describe{
+#'   \item{NAME}{Protected area name.}
+#'   \item{TYPE_ABBR}{Abbreviated protected area type, e.g. `NP` (national park),
+#'     `NR` (nature reserve), `IPA` (Indigenous Protected Area).}
+#'   \item{IUCN}{IUCN protected area management category: `Ia`, `Ib`, `II`, `III`, `IV`,
+#'     `V`, `VI`, `NR` (not reported), `NAS` (not assigned), or `NA` (not applicable).}
+#' }
+#'
+#' @details
+#' Derived from the CAPAD 2022 terrestrial shapefile (web Mercator, EPSG:3857) by keeping
+#' only the columns above, repairing invalid polygons, simplifying boundaries with a 5 m
+#' tolerance, and reprojecting to EPSG:4326. Simplification was checked against the full
+#' resolution layer for all 19,736 WildObs deployments: 4 changed between "inside a
+#' protected area" and "outside", and none switched from one protected area to another.
+#' The build is recorded in `dev/add_data_to_package.R`.
+#'
+#' @source
+#' Australian Government Department of Climate Change, Energy, the Environment and Water
+#' (DCCEEW). *Collaborative Australian Protected Areas Database (CAPAD) 2022 -
+#' Terrestrial*. Commonwealth of Australia. Licensed under CC BY 4.0.
+#' \url{https://www.dcceew.gov.au/environment/land/nrs/science/capad}
+#'
+#' @seealso \code{\link{locationName_verification_CAPAD}},
+#'   \code{\link{locationName_buffer_CAPAD}}, \code{\link{ibra}}
+#'
+#' @examples
+#' # The attribute table, without the polygons
+#' head(sf::st_drop_geometry(capad))
+#'
+#' # How many protected areas of each IUCN category
+#' table(capad$IUCN)
+#'
+#' @keywords datasets
+"capad"
