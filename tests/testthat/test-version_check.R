@@ -36,11 +36,24 @@ test_that(".compare_versions detects a major version gap", {
   expect_type(.compare_versions(installed = "0.2.0", remote = "1.0.0"), "character")
 })
 
+test_that(".compare_versions detects a minor version gap even with a patch ahead", {
+  # 0.2.9 is still behind 0.3.0, because the minor version is what counts
+  expect_type(.compare_versions(installed = "0.2.9", remote = "0.3.0"), "character")
+})
+
 
 ## The installed copy is level or ahead: stay silent ----
 
 test_that(".compare_versions is silent when versions are exactly equal", {
   expect_null(.compare_versions(installed = "0.2.0", remote = "0.2.0"))
+})
+
+test_that(".compare_versions is silent when only the patch version is behind", {
+  # small fixes should not nag users into reinstalling
+  expect_null(.compare_versions(installed = "0.3.0", remote = "0.3.1"))
+  expect_null(.compare_versions(installed = "0.3.0", remote = "0.3.12"))
+  # a bare major.minor counts as patch zero
+  expect_null(.compare_versions(installed = "0.3", remote = "0.3.2"))
 })
 
 test_that(".compare_versions is silent when the installed version is ahead", {
@@ -53,8 +66,8 @@ test_that(".compare_versions is silent when the installed version is ahead", {
 ## Unusable input: stay silent rather than error ----
 
 test_that(".compare_versions returns NULL when the remote version is NULL", {
-  # NULL is what .fetch_remote_version() returns when the network check failed,
-  # including while the repository is still private. That must be silent.
+  # NULL is what .fetch_remote_version() returns when the network check failed.
+  # That must be silent.
   expect_null(.compare_versions(installed = "0.1.0", remote = NULL))
 })
 

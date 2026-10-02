@@ -29,8 +29,8 @@
 #' The URL uses `HEAD` rather than a named branch, so it keeps working if the
 #' default branch is ever renamed between `main` and `master`.
 #'
-#' While the repository is private this returns `NULL`, because GitHub answers
-#' with HTTP 404. That is the expected pre-release state and is handled silently.
+#' Any response other than HTTP 200, such as a 404 if the file moves, returns
+#' `NULL` and is handled silently.
 #'
 #' @return A single version string such as `"0.2.0"`, or `NULL` on any failure.
 #'   Never errors, never warns, never messages.
@@ -89,6 +89,9 @@
 #'   \item Either input is missing, empty, or not a single value.
 #'   \item Either input is not a valid version string.
 #'   \item The installed version is equal to or ahead of the remote version.
+#'   \item The installed version is behind by a patch release only (e.g. 0.3.0
+#'     installed, 0.3.1 released). Only a new major or minor release warns, so
+#'     users are not nagged about every small fix.
 #' }
 #'
 #' @param installed Character string. The installed package version.
@@ -120,8 +123,11 @@
   )
   if (is.null(parsed)) return(NULL)
 
-  # Only speak when the installed copy is genuinely behind the release.
-  if (parsed$installed >= parsed$remote) return(NULL)
+  # Keep only major.minor, padding a bare "1" to "1.0", so patch releases are ignored.
+  major_minor <- function(v) package_version(paste(c(unlist(v), 0, 0)[1:2], collapse = "."))
+
+  # Only speak when the installed copy is behind by a major or minor release.
+  if (major_minor(parsed$installed) >= major_minor(parsed$remote)) return(NULL)
 
   # Plain language first, then the one command to fix it.
   paste0(
@@ -142,8 +148,8 @@
 #' session hit GitHub only once. The cache flag is set *before* the network call,
 #' so even a slow or failing fetch happens at most once per session.
 #'
-#' This warns rather than stops: the current database change is backwards
-#' compatible, so an out-of-date user must still be able to download data.
+#' This warns rather than stops, so an out-of-date user can still reach their
+#' data and a failed check can never block an offline or HPC session.
 #'
 #' @return Invisibly `NULL`. Called for the side effect of warning.
 #'
