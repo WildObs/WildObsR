@@ -14,7 +14,7 @@ RoxygenNote: 7.3.3
 Roxygen: list(markdown = TRUE)
 Imports:
     chron,
-    curl,
+    curl (>= 5.0.0),
     dplyr,
     frictionless,
     geojsonsf,
