@@ -413,18 +413,30 @@ test_that("wildobs_dp_download infers timezone when missing", {
 
   dp <- stable_dp()
 
-  ## the timezone for each deployment group, NA where the entry has none
-  zones <- vapply(
-    dp$temporal,
-    function(x) if (is.null(x$timeZone)) NA_character_ else x$timeZone,
-    character(1)
-  )
+  ## timeZone sits once at the package level, as it does in the database
+  zone <- dp$temporal$timeZone
 
   # a timezone is looked up from the coordinates whenever the project did not
-  # supply one, so every entry must end up with a real zone. Checking all of
-  # them rather than the first, since only one entry is usually short of data.
-  expect_false(any(is.na(zones)))
-  expect_true(all(nzchar(zones)))
+  # supply one, so the package must always end up with a single real zone
+  expect_type(zone, "character")
+  expect_length(zone, 1)
+  expect_false(is.na(zone))
+  expect_true(nzchar(zone))
+})
+
+test_that("wildobs_dp_download keeps deploymentGroups as start/end blocks", {
+  skip_if_no_wildobs_api()
+
+  dp <- stable_dp()
+
+  ## the deploymentGroup blocks are the list entries; start, end and timeZone are strings
+  groups <- Filter(is.list, dp$temporal)
+
+  # every group carries its own dates and nothing else
+  expect_gt(length(groups), 0)
+  for (g in groups) {
+    expect_setequal(names(g), c("start", "end"))
+  } # end per group
 })
 
 test_that("wildobs_dp_download includes taxonomic metadata", {
