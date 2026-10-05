@@ -29,7 +29,7 @@ library(tidyverse)
 db_url <- Sys.getenv("MONGODB_LOCAL_RO_URL")
 
 ### First, grab the API key from R environ
-# api_key <- Sys.getenv("WILDOBSR_API_KEY")
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 
 ## Define a temporal range to query
@@ -73,8 +73,8 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 ### use the output to access data from wildobs_dp_download()
 # set media to FALSE to make a quicker download
 start = Sys.time()
-dp_list = wildobs_dp_download(db_url = db_url,# api_key = api_key,
-                              project_ids = project_ids, media = T,
+dp_list = wildobs_dp_download(api_key = api_key,# db_url = db_url,
+                              project_ids = project_ids, media = F,
                               metadata_only = F)
 end = Sys.time()
 

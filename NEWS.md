@@ -100,6 +100,9 @@ stops with a clear message when given no IDs, including the old `""` (#129).
 - `wildobs_mongo_query(temporal = ...)` no longer errors on the package-level
   temporal extent, and still matches projects on when each deploymentGroup ran.
 - `extract_metadata()` still reads data packages saved by earlier versions.
+- `wildobs_dp_download(api_key = ..., media = TRUE)` no longer fails after the
+  media download with `argument is of length zero`. Public media tables, which
+  withhold `fileName`, get an empty `fileName` column on every route.
 
 ## Internal
 
