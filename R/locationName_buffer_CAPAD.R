@@ -21,6 +21,7 @@
 #'
 #' @return An updated dataframe containing the original deployment data and an additional column,
 #' `CAPADlocationNameBuffer`, which specifies the buffer ID and the corresponding protected area name.
+#' Stops if any `deploymentID` appears more than once.
 #'
 #' @importFrom terra vect project aggregate disagg expanse centroids intersect extract ext crop buffer
 #' @importFrom dplyr distinct
@@ -46,6 +47,16 @@
 #' @author Tom Bruce & Zachary Amir
 #' @export
 locationName_buffer_CAPAD <- function(dep, buffer_size = 5000) {
+
+  ## each row must be its own deployment, because results are matched back by deploymentID
+  # find any deploymentID used more than once
+  dup_ids <- unique(dep$deploymentID[duplicated(dep$deploymentID)])
+  # and stop rather than silently merging those rows together
+  if (length(dup_ids) > 0) {
+    stop(sprintf("%d deploymentID value(s) appear more than once in locationName_buffer_CAPAD(): %s",
+                 length(dup_ids), paste(dup_ids, collapse = ", ")),
+         "\nGive each deployment a unique deploymentID, as Camtrap DP requires, then try again.")
+  } # end duplicate deploymentID check
 
   ## first check if the UTM columns are present in the DF
   ## (matching exact names, since a pattern like "y" also matches deploymentID)

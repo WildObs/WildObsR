@@ -275,24 +275,20 @@ test_that("locationName_buffer_CAPAD preserves row order", {
   expect_equal(result$deploymentID, c("first", "second", "third"))
 })
 
-test_that("locationName_buffer_CAPAD handles duplicate deploymentIDs", {
-  ## identical rows sharing a deploymentID collapse to one when UTMs are merged on
-  ## deploymentID; duplicate IDs break Camtrap DP anyway, so the right behaviour is undecided
-  skip("Undecided: error, warn, or keep duplicate deploymentIDs? See review item S5")
+test_that("locationName_buffer_CAPAD stops on duplicate deploymentIDs", {
 
-  # Same location, duplicate IDs
+  # same location, one deploymentID used twice
   dep <- data.frame(
-    deploymentID = c("dup", "dup"),
-    Latitude = c(-33.8688, -33.8688),
-    Longitude = c(151.2093, 151.2093)
+    deploymentID = c("dup", "dup", "ok"),
+    Latitude = c(-33.8688, -33.8688, -27.4698),
+    Longitude = c(151.2093, 151.2093, 153.0251)
   )
 
-  result <- locationName_buffer_CAPAD(dep, buffer_size = 5000)
-
-  expect_equal(nrow(result), 2)
-  # Both should have same buffer assignment
-  expect_equal(result$CAPADlocationNameBuffer[1],
-               result$CAPADlocationNameBuffer[2])
+  # the error names the duplicated ID and what to do about it
+  expect_error(locationName_buffer_CAPAD(dep, buffer_size = 5000),
+               "1 deploymentID value\\(s\\) appear more than once.*dup")
+  expect_error(locationName_buffer_CAPAD(dep, buffer_size = 5000),
+               "unique deploymentID")
 })
 
 test_that("locationName_buffer_CAPAD does not modify original data frame", {

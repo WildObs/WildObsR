@@ -15,6 +15,7 @@ It may also include \code{UTMzone}, \code{X}, and \code{Y} coordinates. If these
 \value{
 An updated dataframe containing the original deployment data and an additional column,
 \code{CAPADlocationNameBuffer}, which specifies the buffer ID and the corresponding protected area name.
+Stops if any \code{deploymentID} appears more than once.
 }
 \description{
 This function buffers deployment locations, identifies overlapping or nearby protected areas from the Collaborative Australian Protected Areas Database (CAPAD) database,

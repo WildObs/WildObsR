@@ -96,6 +96,8 @@ stops with a clear message when given no IDs, including the old `""` (#129).
   "No unique UTM zones found".
 - `locationName_verification_CAPAD()` no longer leaves its internal `ID`, `lat2`
   and `long2` columns in the output.
+- `locationName_buffer_CAPAD()` stops with an error naming any `deploymentID`
+  used more than once. Previously rows sharing an ID were silently merged into one.
 - `wildobs_dp_download()` reads the updated database structure.
 - `wildobs_mongo_query(temporal = ...)` no longer errors on the package-level
   temporal extent, and still matches projects on when each deploymentGroup ran.
