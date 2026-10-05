@@ -66,9 +66,15 @@
 #'   summarises every removal in one warning. `"none"` never warns; everything is still in
 #'   the report.
 #'
-#' @return A list with three elements:
+#' @return A list with four elements:
 #'   \describe{
-#'     \item{package}{The converted data package, of the same class as `dp`.}
+#'     \item{package}{The converted data package, of the same class as `dp`. Save it with
+#'       `frictionless::write_package()`. Its tables are in `resources`, so the
+#'       \pkg{camtrapdp} print method reports 0 tables; use `camtrapdp` below with that
+#'       package's functions.}
+#'     \item{camtrapdp}{The same package read back with `camtrapdp::read_camtrapdp()`, ready
+#'       for \pkg{camtrapdp} functions such as `camtrapdp::write_dwc()`. `NULL` if
+#'       \pkg{camtrapdp} is not installed or could not read it (see `validation`).}
 #'     \item{report}{A data frame with one row per change: `level` (`package`, `resource`,
 #'       `field`, `value` or `row`), `path`, `action`, `n` (how many values or rows),
 #'       `origin`, and `note`. `origin` is `WildObs extension` when the WildObs flavour of
@@ -95,10 +101,11 @@
 #' out$report
 #' out$validation
 #'
-#' # Save it, then use it with the camtrapdp package, e.g. to export to GBIF
+#' # Use it with the camtrapdp package, e.g. to export Darwin Core for GBIF
+#' camtrapdp::write_dwc(out$camtrapdp, "dwc_export")
+#'
+#' # Or save it as a Camtrap DP package on disk
 #' frictionless::write_package(out$package, "camtrapdp_export")
-#' x <- camtrapdp::read_camtrapdp("camtrapdp_export/datapackage.json")
-#' camtrapdp::write_dwc(x, "dwc_export")
 #' }
 #'
 #' @author Zachary Amir & Claude Opus 5.5
@@ -415,10 +422,14 @@ as_camtrapdp <- function(dp, version = "1.0.2", keep_covariates = FALSE,
   ##
   ### Validate the result ----
 
+  ## read the result back with the camtrapdp package once, so it can be handed to
+  ## camtrapdp functions such as write_dwc() directly, and checked from the same object
+  ctdp <- .read_with_camtrapdp(out)
+
   validation <- NULL
   if (isTRUE(validate)) {
     validation <- list(descriptor = .validate_descriptor(out, target_profile),
-                       camtrapdp = .validate_with_camtrapdp(out))
+                       camtrapdp = .validate_with_camtrapdp(ctdp))
   } # end validate condition
 
   #
@@ -458,7 +469,7 @@ as_camtrapdp <- function(dp, version = "1.0.2", keep_covariates = FALSE,
     } # end all condition
   } # end warn condition
 
-  return(list(package = out, report = report, validation = validation))
+  return(list(package = out, camtrapdp = ctdp$object, report = report, validation = validation))
 } # end function
 
 
@@ -651,19 +662,38 @@ as_camtrapdp <- function(dp, version = "1.0.2", keep_covariates = FALSE,
   return(list(valid = isTRUE(as.logical(result)), messages = messages))
 } # end descriptor validation
 
-## Check the package reads and passes checks in the camtrapdp package, its main consumer.
-.validate_with_camtrapdp <- function(pkg) {
+## Read the package back with the camtrapdp package, its main consumer, giving an object
+## its functions (write_dwc(), filter_observations(), ...) accept. Returns list(object, error).
+.read_with_camtrapdp <- function(pkg) {
+  # without camtrapdp there is nothing to read it into
   if (!requireNamespace("camtrapdp", quietly = TRUE)) {
-    warning("Install the camtrapdp package (>= 0.5.0) to check the result with it.", call. = FALSE)
-    return(list(valid = NA, messages = "camtrapdp not installed"))
+    message("Install the camtrapdp package (>= 0.5.0) to get a camtrapdp object back as well.")
+    return(list(object = NULL, error = "camtrapdp not installed"))
   } # end package check
-  # write to a temporary folder, as a user would before reading it with camtrapdp
+  ### write to a temporary folder, as a user would before reading it with camtrapdp
+  ## the object remembers this folder, so it stays until R removes its temp folder at exit
   dir <- tempfile("as_camtrapdp_")
-  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
   result <- tryCatch({
     frictionless::write_package(pkg, dir)
     x <- suppressMessages(camtrapdp::read_camtrapdp(file.path(dir, "datapackage.json")))
-    camtrapdp::check_camtrapdp(x)
+    list(object = x, error = NULL)
+  }, error = function(e) list(object = NULL, error = conditionMessage(e)))
+  # a failed read leaves nothing worth keeping
+  if (is.null(result$object)) unlink(dir, recursive = TRUE)
+  return(result)
+} # end camtrapdp read
+
+## Check the read-back object passes the camtrapdp package's own checks.
+.validate_with_camtrapdp <- function(ctdp) {
+  # camtrapdp missing entirely: the check could not run
+  if (identical(ctdp$error, "camtrapdp not installed")) {
+    return(list(valid = NA, messages = "camtrapdp not installed"))
+  } # end not installed condition
+  # it could not even be read, so that is the failure to report
+  if (is.null(ctdp$object)) return(list(valid = FALSE, messages = ctdp$error))
+  # otherwise run camtrapdp's own checks on it
+  result <- tryCatch({
+    camtrapdp::check_camtrapdp(ctdp$object)
     list(valid = TRUE, messages = character(0))
   }, error = function(e) list(valid = FALSE, messages = conditionMessage(e)))
   return(result)

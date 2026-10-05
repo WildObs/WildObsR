@@ -203,7 +203,13 @@ test_that("as_camtrapdp warns that the media-observation link is lost", {
 test_that("as_camtrapdp is silent with warn = 'none' and deterministic", {
   expect_no_warning(first <- as_camtrapdp(fixture(), validate = FALSE, warn = "none"))
   second <- as_camtrapdp(fixture(), validate = FALSE, warn = "none")
-  expect_identical(first, second)
+  # each run reads its camtrapdp object from its own temporary folder, so set the path aside
+  attr(first$camtrapdp, "directory") <- NULL
+  attr(second$camtrapdp, "directory") <- NULL
+  # the conversion itself must be byte for byte the same
+  expect_identical(first[c("package", "report")], second[c("package", "report")])
+  # and the camtrapdp object holds the same content, though its internals are rebuilt each read
+  expect_equal(first$camtrapdp, second$camtrapdp)
 })
 
 test_that("as_camtrapdp never modifies the package it is given", {
@@ -248,4 +254,19 @@ test_that("as_camtrapdp output validates and works with camtrapdp", {
   x <- suppressMessages(camtrapdp::read_camtrapdp(file.path(dir, "datapackage.json")))
   expect_true("vernacularNames.eng" %in% names(camtrapdp::taxa(x)))
   expect_no_error(suppressMessages(camtrapdp::write_dwc(x, withr_free_tempdir())))
+})
+
+test_that("as_camtrapdp returns a camtrapdp object camtrapdp functions accept directly", {
+  skip_if_not_installed("camtrapdp", minimum_version = "0.5.0")
+
+  res <- suppressWarnings(as_camtrapdp(fixture(), validate = FALSE))
+  # the read-back object carries its tables where camtrapdp expects them
+  expect_s3_class(res$camtrapdp, "camtrapdp")
+  expect_s3_class(camtrapdp::deployments(res$camtrapdp), "data.frame")
+  # and goes straight into a GBIF export, with no save and reload first
+  dwc_dir <- withr_free_tempdir()
+  expect_no_error(suppressMessages(camtrapdp::write_dwc(res$camtrapdp, dwc_dir)))
+  expect_true(file.exists(file.path(dwc_dir, "occurrence.csv")))
+  # the folder it was read from is still there, so frictionless can read its resources too
+  expect_s3_class(frictionless::read_resource(res$camtrapdp, "deployments"), "data.frame")
 })

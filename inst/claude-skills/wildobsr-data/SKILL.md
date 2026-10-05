@@ -259,7 +259,7 @@ database access see each file's original location instead (for example a Wildlif
 `as_camtrapdp(dp)` converts a WildObs package to canonical Camtrap DP (1.0.2 by default,
 or `version = "1.0.1"`) for tools that expect the standard exactly, such as the
 `camtrapdp` R package (>= 0.5.0) and its `write_dwc()` GBIF export, which fails on an
-unconverted WildObs package. It returns `list(package, report, validation)`.
+unconverted WildObs package. It returns `list(package, camtrapdp, report, validation)`.
 
 - It needs all three tables, so download with `media = TRUE`. `partial` projects have no
   tables and can't be converted.
@@ -274,8 +274,10 @@ unconverted WildObs package. It returns `list(package, report, validation)`.
   `vernacularNames$eng`; ranks such as `subclass` round up to `class`; RAiD identifiers
   become `Handle`; and media rows whose `filePath` is a path on a contributor's computer
   are removed. That can be a large share of some projects' media; the report counts it.
-- Save with `frictionless::write_package(out$package, dir)`, then read with
-  `camtrapdp::read_camtrapdp()`.
+- `out$camtrapdp` is the result already read by `camtrapdp::read_camtrapdp()`, so pass it
+  straight to camtrapdp functions: `camtrapdp::write_dwc(out$camtrapdp, dir)`. `out$package`
+  is the frictionless package, for saving with `frictionless::write_package(out$package,
+  dir)`; camtrapdp prints it as having 0 tables because its tables sit in `resources`.
 
 ## Practical cautions
 

@@ -188,10 +188,11 @@ dp <- wildobs_dp_download(api_key = wildobsr_api_key, project_ids = "<project ID
 # Convert to Camtrap DP 1.0.2; out$report lists every change made
 out <- as_camtrapdp(dp)
 
-# Save it, then use it with the camtrapdp package (version 0.5.0 or later)
+# Use it with the camtrapdp package (version 0.5.0 or later), e.g. a GBIF export
+camtrapdp::write_dwc(out$camtrapdp, "gbif_export")
+
+# Or save it as a Camtrap DP package on disk
 frictionless::write_package(out$package, "camtrapdp_export")
-x <- camtrapdp::read_camtrapdp("camtrapdp_export/datapackage.json")
-camtrapdp::write_dwc(x, "gbif_export")
 ```
 
 ### Download images

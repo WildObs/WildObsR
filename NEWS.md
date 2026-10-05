@@ -52,7 +52,9 @@ stops with a clear message when given no IDs, including the old `""` (#129).
   1.0.1), so it works with the camtrapdp package, including `camtrapdp::write_dwc()`
   for GBIF. It removes every WildObs addition, read from the official Camtrap DP
   profiles vendored in the package rather than a fixed list, and returns a report of
-  every change and the result of validating it (#113).
+  every change and the result of validating it (#113). Its `camtrapdp` element is
+  the result already read by `camtrapdp::read_camtrapdp()`, so it goes straight into
+  camtrapdp functions: `camtrapdp::write_dwc(out$camtrapdp, dir)`.
 - `wildobs_media_download()` downloads the image files listed in a media table into
   `out_dir/<projectName>/<deploymentID>/<mediaID>.<ext>`, and reports what happened
   to each file. Publicly hosted files (`filePublic = TRUE`) download for anyone;

@@ -34,9 +34,15 @@ summarises every removal in one warning. \code{"none"} never warns; everything i
 the report.}
 }
 \value{
-A list with three elements:
+A list with four elements:
 \describe{
-\item{package}{The converted data package, of the same class as \code{dp}.}
+\item{package}{The converted data package, of the same class as \code{dp}. Save it with
+\code{frictionless::write_package()}. Its tables are in \code{resources}, so the
+\pkg{camtrapdp} print method reports 0 tables; use \code{camtrapdp} below with that
+package's functions.}
+\item{camtrapdp}{The same package read back with \code{camtrapdp::read_camtrapdp()}, ready
+for \pkg{camtrapdp} functions such as \code{camtrapdp::write_dwc()}. \code{NULL} if
+\pkg{camtrapdp} is not installed or could not read it (see \code{validation}).}
 \item{report}{A data frame with one row per change: \code{level} (\code{package}, \code{resource},
 \code{field}, \code{value} or \code{row}), \code{path}, \code{action}, \code{n} (how many values or rows),
 \code{origin}, and \code{note}. \code{origin} is \verb{WildObs extension} when the WildObs flavour of
@@ -113,10 +119,11 @@ out <- as_camtrapdp(dp)
 out$report
 out$validation
 
-# Save it, then use it with the camtrapdp package, e.g. to export to GBIF
+# Use it with the camtrapdp package, e.g. to export Darwin Core for GBIF
+camtrapdp::write_dwc(out$camtrapdp, "dwc_export")
+
+# Or save it as a Camtrap DP package on disk
 frictionless::write_package(out$package, "camtrapdp_export")
-x <- camtrapdp::read_camtrapdp("camtrapdp_export/datapackage.json")
-camtrapdp::write_dwc(x, "dwc_export")
 }
 
 }
