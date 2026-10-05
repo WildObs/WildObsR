@@ -175,6 +175,22 @@ sparse_fields <- c("individualID", "sex", "lifeStage", "behavior",
 sparse_filled <- setNames(rep(0, length(sparse_fields)), sparse_fields)
 ## covariate gaps, as missing values per column, per family
 cov_na <- list()
+## how filled every column of every table is, as filled values and rows per column
+fill <- list()
+## small helper to add one table's column fill to the running tally
+add_fill <- function(fill, tab, df) {
+  # for each column in this table
+  for (cl in names(df)) {
+    # a value counts as filled when it is present and not empty text
+    filled <- sum(!is.na(df[[cl]]) & as.character(df[[cl]]) != "")
+    # name the tally by table and column
+    key <- paste(tab, cl, sep = "$")
+    prev <- fill[[key]]
+    if (is.null(prev)) prev <- c(filled = 0, n = 0)
+    fill[[key]] <- prev + c(filled = filled, n = nrow(df))
+  } # end per column
+  return(fill)
+} # end add_fill helper
 ## projects whose download failed, with the reason
 failed <- character(0)
 ## the obscured category labels and how often each occurs
@@ -204,6 +220,12 @@ for (id in open_ids) {
   tot$covariates   <- tot$covariates + nrow(covs)
   tot$observations <- tot$observations + nrow(obs)
   tot$media        <- tot$media + nrow(med)
+
+  ## how filled each column is, table by table
+  fill <- add_fill(fill, "deployments", deps)
+  fill <- add_fill(fill, "observations", obs)
+  fill <- add_fill(fill, "media", med)
+  fill <- add_fill(fill, "covariates", covs)
 
   ## observation types
   for (ty in c("animal", "blank", "human", "vehicle", "unknown")) {
@@ -334,6 +356,10 @@ metrics <- add_metric(metrics, "pct_media_other", pct(tot$file_other, tot$media)
 metrics <- add_metric(metrics, "pct_media_filePublic", pct(tot$file_public, tot$media))
 metrics <- add_metric(metrics, "media_fileName_filled", tot$file_name_filled)
 metrics <- add_metric(metrics, "download_failures", length(failed))
+# every column's fill, skipping the covariates, whose families are summarised above
+for (key in grep("^covariates\\$", names(fill), value = TRUE, invert = TRUE)) {
+  metrics <- add_metric(metrics, paste0("pct_filled_", key), pct(fill[[key]][["filled"]], fill[[key]][["n"]]))
+} # end per column
 
 
 #
