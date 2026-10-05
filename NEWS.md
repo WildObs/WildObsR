@@ -105,6 +105,14 @@ stops with a clear message when given no IDs, including the old `""` (#129).
 - `wildobs_dp_download(api_key = ..., media = TRUE)` no longer fails after the
   media download with `argument is of length zero`. Public media tables, which
   withhold `fileName`, get an empty `fileName` column on every route.
+- `wildobs_dp_download()` over the API retries a request that fails or returns an
+  error, up to three times, instead of failing with `subscript out of bounds`. A
+  large media download makes hundreds of requests, so one dropped request used to
+  end it. If a request still fails, the error names it and gives the server's
+  reason; a media download no longer returns partial results silently.
+- `wildobs_dp_download()` no longer duplicates observations of a taxon listed twice
+  in a project's taxonomic metadata. It keeps the first listing and warns which
+  taxa were repeated.
 
 ## Internal
 

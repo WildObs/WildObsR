@@ -89,6 +89,51 @@ test_that("wildobs_dp_download stops clearly when given no project IDs", {
                "No project IDs were provided")
 })
 
+test_that("API requests retry a dropped batch and keep going", {
+  ## a large media download makes hundreds of requests; one failure must not end it
+  # count how many times the API was called, in an environment the mock can update
+  calls <- new.env()
+  calls$n <- 0
+  # the first call fails with a server error, the second succeeds
+  local_mocked_bindings(
+    curl_fetch_memory = function(url, handle) {
+      calls$n <- calls$n + 1
+      if (calls$n == 1) {
+        return(list(status_code = 504L, content = charToRaw('{"message": "Gateway Timeout"}')))
+      } # end first call
+      return(list(status_code = 200L,
+                  content = charToRaw('[{"count": 1, "results": [{"mediaID": "m1"}]}, 200]')))
+    },
+    .package = "curl"
+  )
+  # the records from the successful retry come back
+  out <- .wildobs_api_find("https://example.org/find", "key", list(collection = "media"),
+                           what = "a test batch")
+  expect_equal(out$mediaID, "m1")
+  expect_equal(calls$n, 2)
+})
+
+test_that("API requests stop clearly on a rejected key, without retrying", {
+  # count how many times the API was called, in an environment the mock can update
+  calls <- new.env()
+  calls$n <- 0
+  # every call is refused, as the API does for an invalid key
+  local_mocked_bindings(
+    curl_fetch_memory = function(url, handle) {
+      calls$n <- calls$n + 1
+      return(list(status_code = 401L,
+                  content = charToRaw('{"title": "Unauthorized", "message": "Invalid or inactive API key"}')))
+    },
+    .package = "curl"
+  )
+  # the error names the request and passes on the server's reason
+  expect_error(.wildobs_api_find("https://example.org/find", "bad", list(collection = "media"),
+                                 what = "the media table"),
+               "could not fetch the media table.*HTTP 401: Invalid or inactive API key")
+  # and a rejected key is not retried
+  expect_equal(calls$n, 1)
+})
+
 test_that("wildobs_dp_download errors with invalid db_url format", {
   # a malformed URI is caught by pattern before any connection is attempted, so
   # the user is told their string is wrong rather than that the server is down
@@ -320,6 +365,28 @@ test_that("wildobs_dp_download includes media when media=TRUE", {
   # was accepted but the records never came
   expect_s3_class(dp$data$media, "data.frame")
   expect_gt(nrow(dp$data$media), 0)
+
+  # the public database withholds fileName, so it comes back as an empty column
+  expect_true("fileName" %in% names(dp$data$media))
+  expect_true(all(is.na(dp$data$media$fileName)))
+})
+
+test_that("wildobs_dp_download never duplicates observations", {
+  skip_if_no_wildobs_api()
+
+  ## this project's taxonomic metadata has listed some taxa twice, which used to
+  ## copy their observations when taxonomy was joined on
+  # its warning about the repeated listings is expected while the metadata carries them
+  result <- suppressWarnings(wildobs_dp_download(
+    api_key = test_api_key,
+    project_ids = "NSW_Murrumbidgee_Rakali_Sanders_2021-2023_WildObsID_0014"
+  ))
+  obs <- result[[1]]$data$observations
+  # obscured threatened-species rows share a placeholder ID by design, so set them aside
+  obs <- obs[!grepl("^obscured_for_", obs$deploymentID), ]
+
+  # every remaining observation appears exactly once
+  expect_false(any(duplicated(obs$observationID)))
 })
 
 
