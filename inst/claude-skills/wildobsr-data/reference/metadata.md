@@ -26,9 +26,9 @@ frames, with a `DPID` column naming the package. Supported elements: `contributo
 | Element | Meaning |
 |---|---|
 | `contributors` | `title` (name), `role` (exactly one `principalInvestigator` per project; also `contributor`, `rightsHolder`, `contact`, `publisher`), and where known `email`, `path` (often an ORCID), `organization`, `ROR` (**WildObs**: the organisation's ROR ID). Missing entries come back as `NA`. |
-| `sources` | A list of sources the data came from (`title`, and where known `path`, `email`), e.g. Wildlife Insights. One row per source in `extract_metadata()`. |
+| `sources` | A list of sources the data came from (`title`, and where known `path`, `email`), e.g. Wildlife Insights. One row per source in `extract_metadata()`. Until the next database release the public API returns a single source rather than a list; `extract_metadata()` handles both. |
 | `relatedIdentifiers` | Linked papers and records: `relationType`, `relatedIdentifier`, `relatedIdentifierType` (`DOI`, `URL`, or **`RAiD`**, a WildObs addition identifying the research activity). |
-| `references` | Free-text references. |
+| `references` | Free-text references. Empty in every current project. |
 
 ## Coverage
 
@@ -53,7 +53,7 @@ frames, with a `DPID` column naming the package. Supported elements: `contributo
 
 | Field | Meaning |
 |---|---|
-| `tabularSharingPreference` | `open` (tables available), `partial` (metadata only, usually embargoed), or `closed`. |
+| `tabularSharingPreference` | `open` (tables available), `partial` (metadata only, usually embargoed), or `closed` (not available through the public API at all). |
 | `embargoPeriodMonths` | Months after `created` before the tables can become `open`. |
 | `WildObsContribution` | How the project contributes to WildObs. |
 | `fundingAgency` | Who funded the work. |

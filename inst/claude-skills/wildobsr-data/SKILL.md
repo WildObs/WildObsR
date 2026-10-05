@@ -62,7 +62,13 @@ meta <- extract_metadata(dp_list, c("contributors", "temporal", "taxonomic"))
   Frictionless resources in `dp$resources`, each with a schema describing every field.
   `frictionless::write_package(dp, "folder")` saves it to disk as CSVs plus `datapackage.json`.
 
-## What you are allowed to download
+## What the public API gives you
+
+An API key reaches the **public** WildObs database. It differs from the full database in
+three ways: data-sharing agreements decide what each project releases, threatened-species
+records are obscured, and media file names are withheld.
+
+### Data-sharing agreements
 
 Each project carries a data-sharing preference in `WildObsMetadata$tabularSharingPreference`:
 
@@ -79,7 +85,54 @@ A project's embargo is already reflected in its preference: an embargoed project
 
 `wildobs_dp_download()` returns `partial` projects as metadata-only packages with no
 tables, rather than failing. Check `length(dp$resources)` or `nrow(dp$data$deployments)`
-before analysis. In the media table, `fileName` is withheld (all `NA`) for public users.
+before analysis.
+
+`wildobs_mongo_query()` needs at least one filter: called with none, it returns
+`character(0)`. To list every project you can see, pass a box over all of Australia,
+`spatial = list(xmin = 110, xmax = 160, ymin = -45, ymax = -9)`.
+
+### Obscured threatened-species records
+
+Observations of species listed as threatened under the EPBC Act are obscured **in the
+states where the species is listed** (a species listed only in South Australia is obscured
+only at South Australian cameras). On those rows, `deploymentID`, `observationID`,
+`eventID` and `mediaID` are all replaced by one placeholder naming the listing category:
+
+| Placeholder | Category |
+|---|---|
+| `obscured_for_vulnerable_species` | Vulnerable |
+| `obscured_for_endangered_species` | Endangered |
+| `obscured_for_critically_endangered_species` | Critically endangered |
+
+The rest of the row is kept: `scientificName`, `eventStart`/`eventEnd`, `count`,
+`observationType`, the classification fields and `projectName`. So the record still says
+which species was seen, when and how many, but carries no camera identifier. In practice:
+
+- A join to `deployments`, `covariates` or `media` silently drops obscured rows.
+- `resample_covariates_and_observations()` stops with "mis-matched deploymentID values"
+  until they are removed. After removal, a camera whose only records were obscured has no
+  observations left, which can make the same function stop with "cellID values do not
+  perfectly match", which is more likely in projects that recorded no `blank` observations.
+- Detection histories from public data **under-count listed species in their listed
+  states**. Do not estimate occupancy or abundance for a threatened species from public
+  data without accounting for this.
+- `observationID` is not unique across obscured rows, since they share a placeholder.
+
+Count them, then set them aside before any spatial analysis:
+
+```r
+obscured <- grepl("^obscured_for_", obs$deploymentID)
+table(obs$deploymentID[obscured])   # how many, by listing category
+obs <- obs[!obscured, ]
+```
+
+Species listed nowhere, or listed only in other states, are not obscured.
+`WildObsR::species_traits` carries each species' category (`epbc_category`) and listing
+states (`epbc_location`).
+
+### Media file names
+
+In the media table, `fileName` is withheld (all `NA`) for public users.
 
 ## How the tables fit together
 
@@ -92,7 +145,8 @@ package (one project)          id  ──►  projectName on every table
      └─ media           every image from that deployment               join: deploymentID (1:many)
 ```
 
-- `deploymentID`, `observationID` and `mediaID` are unique primary keys.
+- `deploymentID`, `observationID` and `mediaID` are unique primary keys, except on obscured
+  observations, which share a placeholder and link to nothing (see above).
 - `projectName` on every table equals the package `id`, so tables from several packages can be
   stacked with `dplyr::bind_rows()` and still be told apart.
 - `observations$mediaID` points at **one representative image** per observation, not every
@@ -119,14 +173,18 @@ detection histories for `unmarked` and similar packages.
   `reclassify_eventID()` rebuilds `eventID` at a different threshold.
 - `deltaTime_event` is the seconds since the previous event at that deployment, for your own
   independence filtering.
-- **Filter `observationType == "animal"`.** About half of all observations are `blank`, and
-  the rest include `human`, `vehicle` and `unknown`. A raw row count is not an animal count.
-- `count` is the number of individuals, and is `NA` on blanks and unknowns.
+- **Filter `observationType == "animal"`.** About half of all observations are `blank`
+  (~52%) and about a third `animal` (~32%); the rest are `vehicle`, `unknown` and `human`. A
+  raw row count is not an animal count. Non-animal rows still fill `scientificName`, with
+  placeholders such as `Blank`, `Homo sapiens-vehicle`, `unidentified` or `Ghost`.
+- `count` is the number of individuals. It is `NA` on blanks and unknowns, and on about 13%
+  of animal records.
 - `observationLevel` is always `event`.
 - Downloaded observations also carry `taxonID`, `taxonRank` and `vernacularNamesEnglish`,
-  joined from the package's taxonomic metadata. Check `taxonRank`: some records are
-  identified only to genus, family or higher.
-- `classificationMethod` is `human` (about 94%) or `machine`.
+  joined from the package's taxonomic metadata, and empty on non-animal rows. Check
+  `taxonRank`: about 77% of animal records are identified to species, and the rest only to
+  genus, family, order, class or phylum.
+- `classificationMethod` is `human` (about 88% of animal records) or `machine`.
 
 ### What the data can and cannot support
 
@@ -166,8 +224,9 @@ intactness, monthly rainfall and temperature, night-time lights, human populatio
 protected-area cover, habitat condition (`HCAS_static_`), `NDVI_`, terrain ruggedness,
 standardised precipitation index, `HIF_`/`EII_`, fire history (`fire_events_count_`,
 `days_since_recent_fire_`, 2019/20 `GEEBAM_fire_severity_`), plus IBRA bioregion/subregion
-and Olson ecoregion names. Coverage gaps: `FLII_*` is `NA` for ~22–25% of deployments and
-`days_since_recent_fire_*` for ~37–49%; most other covariates are complete.
+and Olson ecoregion names. Coverage gaps: `FLII_*` is `NA` for about a third of deployments
+and `days_since_recent_fire_*` for ~46–64%, depending on buffer size; most other covariates
+are complete.
 
 Each covariate's schema field (in `dp$resources`, covariates resource) has a `custom` block
 with the **source citation** (`doi`, `url`, `citation`) and native `resolution` of the
@@ -183,18 +242,17 @@ returns the table with `localPath`, `downloadStatus` (`downloaded`, `copied`,
 `out_dir/<projectName>/<deploymentID>/<mediaID>.<ext>`, and re-running it only fetches
 what is missing.
 
-What can actually be fetched depends on `filePath`:
+Through the public API, `filePath` takes one of two forms:
 
-| `filePath` looks like | Share of media (approx.) | What happens |
+| `filePath` | Share of public media | What happens |
 |---|---|---|
-| `https://data.wildobs.org.au/...` | ~1% | Downloads. These are exactly the `filePublic = TRUE` files, part of the WildObs Tagged Image Repository (`TIR`). |
-| `gs://<bucket>/...` | ~60% | Images held in a Wildlife Insights cloud bucket. Private: fails with HTTP 403 unless you pass `gcs_token` for an account with read access to that bucket. |
-| `https://volunteer.ala.org.au/validate/task/...` | ~2.5% | A DigiVol task web page, not an image file, so it is reported as failed. |
-| A drive path (`F:\...`, `/Users/...`) | ~16% | The contributor's own computer. Copied if the file exists on *your* computer (i.e. you are that contributor), otherwise skipped. |
-| `not_provided` and similar | ~20% | No image was shared. Skipped. |
+| `https://data.wildobs.org.au/...` | ~3% | Downloads. These are exactly the `filePublic = TRUE` rows. |
+| `not_publicly_accessible` | ~97% | The image exists but is not shared publicly. Skipped. |
 
-So for most users, filter to public files first: `media[media$filePublic, ]`. Start with a
-few rows (`head(..., 20)`) to check the result before downloading thousands.
+So filter to public files first: `media[media$filePublic, ]`. Start with a few rows
+(`head(..., 20)`) to check the result before downloading thousands. Users with direct
+database access see each file's original location instead (for example a Wildlife Insights
+`gs://` bucket, which needs `gcs_token`); see `?wildobs_media_download`.
 
 ## Exporting to standard Camtrap DP
 
@@ -221,8 +279,11 @@ unconverted WildObs package. It returns `list(package, report, validation)`.
 
 ## Practical cautions
 
-- **Sensitive species.** Coordinates and species names are not obscured. Do not publish
-  precise locations of threatened taxa; `WildObsR::species_traits` carries EPBC status.
+- **Sensitive species.** Only EPBC-listed species in their listed states are obscured (see
+  "Obscured threatened-species records"). Deployment coordinates are exact, and other
+  species of conservation concern (state-listed, or not on the EPBC list) are not obscured.
+  Do not publish precise locations of sensitive taxa; `WildObsR::species_traits` carries
+  EPBC status.
 - **Free-text fields need cleaning** before grouping: `cameraModel` (many spellings of one
   model), `habitat`, `deploymentTags` and `observationTags` (`key: value | key: value` pairs
   whose keys differ between projects).
@@ -233,8 +294,16 @@ unconverted WildObs package. It returns `list(package, report, validation)`.
 - **Cite the data.** Each package's `bibliographicCitation` is the citation to use, and
   `licenses` gives the terms.
 
-## Scale (approximate, as of WildObsR 0.3.0)
+## Scale through the public API
 
-About 54 projects (about 23 `open`), ~20,000 deployments, ~2 million observations,
-~23 million media records, ~690 taxa, spanning 2009 to 2026. These grow with every
-database release.
+Measured through the public API on 2026-10-05 (`dev/public_skill_census.R` in the WildObsR
+repository); percentages elsewhere in this skill come from the same census. These numbers
+grow with every database release:
+
+- **Projects:** 44 visible: 18 `open` with tables, 26 `partial` (metadata only).
+- **Tables of the open projects:** 4,088 deployments, ~730,000 observations and ~6.8
+  million media records.
+- **Taxa:** ~380 recorded in the open projects' observations, and ~620 listed across all 44
+  projects' metadata.
+- **Time span:** surveys from 2010 to 2024, in six Australian time zones.
+- **Obscured:** ~3,700 observations (about 1.6% of animal records), in 14 projects.

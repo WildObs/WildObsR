@@ -61,6 +61,8 @@ stops with a clear message when given no IDs, including the old `""` (#129).
 - `install_claude_skill()` installs `wildobsr-data`, a Claude skill describing how
   WildObs data packages are structured and what the data can support, so Claude can
   help with your analysis. See "Help Claude understand WildObs data" in the README.
+  It describes the data as API users receive it, including how obscured
+  threatened-species records behave and how to set them aside.
 - `extract_metadata(dp, "temporal")` gains `packageStart` and `packageEnd`
   columns holding the package-level temporal extent (#137).
 - Downloaded packages now include `versionControlWildObs`, the WildObs version

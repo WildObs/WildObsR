@@ -111,7 +111,9 @@ The WildObs data model is documented in two skills:
 When the internal skill is present, it is the reference for this repo, with
 per-collection field tables in `.claude/skills/wildobs-data-internal/reference/`.
 Keep the public skill in step when a change alters what users see in a
-downloaded data package.
+downloaded data package. Its numbers describe the public database as API users
+see it, measured by `dev/public_skill_census.R`; re-run that script after each
+public database rebuild and update the skill from the changes it lists.
 
 **Consult it before** writing or modifying any code that references field names,
 joins collections, filters on a controlled vocabulary, or maps between our data

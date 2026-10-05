@@ -73,6 +73,14 @@ The skill is plain documentation, with no code, so you can read it first at
 
 Database access requires a personal API key tied to your individual WildObs account. Keys are per-person, not per-project. All keys provide access to the public WildObs database, in which sensitive species records are obscured and data sharing agreements applied.
 
+**Obscured records.** Observations of threatened species are obscured in the states where the species is EPBC-listed: their `deploymentID`, `observationID`, `eventID` and `mediaID` read `obscured_for_<category>_species` (for example `obscured_for_endangered_species`). They keep the species, time and count, but carry no camera identifier, so a join to `deployments` drops them and `resample_covariates_and_observations()` stops until they are removed. Count them, then set them aside before spatial analyses:
+
+```r
+obscured <- grepl("^obscured_for_", obs$deploymentID)
+table(obs$deploymentID[obscured])  # how many, by threat category
+obs <- obs[!obscured, ]
+```
+
 ### 1. Log in to the WildObs Dashboard
 
 Create an account or log in at the [WildObs Dashboard](https://dashboard.wildobs.org.au).
