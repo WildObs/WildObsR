@@ -74,7 +74,6 @@
 #' @importFrom frictionless add_resource create_package
 #' @importFrom jsonlite toJSON
 #' @importFrom purrr map keep
-#' @importFrom lutz tz_lookup_coords
 #' @importFrom httr POST
 #' @importFrom curl curl_fetch_memory handle_setopt handle_setheaders new_handle
 #' @importFrom stringr str_detect regex
@@ -260,36 +259,16 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
     # apply the function, only keeping non-NA values
     t_clean = purrr::keep(t, ~ !is_empty_temporal(.x))
-    # verify timezone is present
-    if(is.null(t_clean$timeZone) || t_clean$timeZone == ""){
-      # assume timezone is NA then
-      tz = NA
-      # grab timezone from spatial informaiton
-      if (!is.null(proj_meta$spatial) && !is.null(proj_meta$spatial$bbox)) {
-        # Extract all numeric lat/lon pairs from nested bbox list
-        bbox_vals <- unlist(proj_meta$spatial$bbox, recursive = TRUE, use.names = FALSE)
-        bbox_nums <- suppressWarnings(as.numeric(bbox_vals))
-        bbox_nums <- bbox_nums[is.finite(bbox_nums)]
-
-        ## verify there are at least 4 bbox coordinates
-        if (length(bbox_nums) >= 4) {
-          xmin <- bbox_nums[1]; ymin <- bbox_nums[2]
-          xmax <- bbox_nums[3]; ymax <- bbox_nums[4]
-          # take the average
-          lat <- mean(c(ymin, ymax), na.rm = TRUE)
-          lon <- mean(c(xmin, xmax), na.rm = TRUE)
-          # and safely feed it into coord tz look up
-          tz <- tryCatch(
-            lutz::tz_lookup_coords(lat, lon, method = "accurate"),
-            error = function(e) NA
-          )
-        } # end length 4 condition
-
-      } # end spatial check conditon
-
-      # then save the Tz
-      t_clean$timeZone = tz
-    } #end timeZone presence conditon
+    ## the time zone comes only from the package-level temporal metadata,
+    # so if it is missing or blank,
+    if (is.null(t_clean$timeZone) || t_clean$timeZone == "") {
+      # say so, since the tables will then be read as UTC rather than local time
+      warning(proj_meta$id, " has no timeZone in its temporal metadata, so wildobs_dp_download() ",
+              "reads its dates and times as UTC.\n",
+              "Check the times against the project's location before combining it with other projects.")
+      # and store it as NA, which the table typing below reads as UTC
+      t_clean$timeZone <- NA
+    } # end timeZone presence condition
     # extract tzone
     tz = t_clean$timeZone
 
