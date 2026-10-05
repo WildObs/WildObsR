@@ -40,8 +40,8 @@
 #' The \code{"spatial"} element returns a dataframe of bounding box coordinates
 #' (locationName, xmin, ymin, xmax, ymax) for convenient inspection. Users who
 #' need the full GeoJSON geometry for spatial analysis or mapping can access it
-#' directly via \code{dp$spatial} and convert to an sf object using
-#' \code{geojson_list_to_sf(dp$spatial)}.
+#' directly via \code{dp$spatial} and convert it to an sf object with
+#' \code{geojsonsf::geojson_sf(jsonlite::toJSON(dp$spatial, auto_unbox = TRUE))}.
 #'
 #' @section Temporal data:
 #' The \code{"temporal"} element returns one row per deploymentGroup, with columns
