@@ -47,7 +47,7 @@ dp_list <- wildobs_dp_download(api_key = api_key, project_ids = ids,
 dp   <- dp_list[[1]]
 deps <- frictionless::read_resource(dp, "deployments")     # or dp$data$deployments    
 obs  <- frictionless::read_resource(dp, "observations") 
-covs <- frictionless::read_resource(dp, "covaraites")  
+covs <- frictionless::read_resource(dp, "covariates")  
 meta <- extract_metadata(dp_list, c("contributors", "temporal", "taxonomic"))
 ```
 
