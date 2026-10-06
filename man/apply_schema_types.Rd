@@ -31,6 +31,7 @@ The function converts columns based on the \code{type} field in the schema:
 \item \code{"boolean"}: Converts logical-like strings (e.g., 'TRUE', 'FALSE', 'T', 'F') to logical.
 \item \code{"string"}: Converts to character, optionally factoring if an enum constraint is present.
 \item \code{"factor"}: Converts to factor.
+\item \code{"any"}: Left unchanged, since Frictionless allows any type (e.g. Camtrap DP's \code{exifData}).
 }
 
 If an unknown field type is encountered, a warning is issued.

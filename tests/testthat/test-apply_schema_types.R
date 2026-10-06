@@ -268,6 +268,60 @@ test_that("apply_schema_types warns when datetime parsing fails completely", {
   )
 })
 
+test_that("apply_schema_types gives an all-empty datetime column the POSIXct type", {
+  data <- data.frame(ts = c(NA, NA))
+  schema <- list(fields = list(list(name = "ts", type = "datetime",
+                                    format = "%Y-%m-%dT%H:%M:%S%z")))
+
+  # nothing to parse is not a failure, so no warning
+  expect_no_warning(result <- apply_schema_types(data, schema, timezone = "Australia/Brisbane"))
+  # an empty datetime is still a datetime, in the requested timezone
+  expect_s3_class(result$ts, "POSIXct")
+  expect_equal(attr(result$ts, "tzone"), "Australia/Brisbane")
+  expect_true(all(is.na(result$ts)))
+})
+
+test_that("apply_schema_types converts a partly empty datetime column", {
+  data <- data.frame(ts = c("2024-01-15T08:00:00+1000", NA), stringsAsFactors = FALSE)
+  schema <- list(fields = list(list(name = "ts", type = "datetime",
+                                    format = "%Y-%m-%dT%H:%M:%S%z")))
+
+  # empty cells are not parse failures, so the real value converts and no warning fires
+  expect_no_warning(result <- apply_schema_types(data, schema))
+  expect_s3_class(result$ts, "POSIXct")
+  expect_false(is.na(result$ts[1]))
+  expect_true(is.na(result$ts[2]))
+})
+
+test_that("apply_schema_types parses a datetime field that has no format", {
+  data <- data.frame(ts = c("2024-01-15 08:00:00", "2024-02-01 09:30:00"), stringsAsFactors = FALSE)
+  schema <- list(fields = list(list(name = "ts", type = "datetime")))
+
+  result <- apply_schema_types(data, schema)
+
+  # the column survives and is converted using the fallback formats
+  expect_true("ts" %in% names(result))
+  expect_s3_class(result$ts, "POSIXct")
+})
+
+test_that("apply_schema_types never deletes a datetime column it cannot parse", {
+  data <- data.frame(ts = c("not a date", "also not"), stringsAsFactors = FALSE)
+  schema <- list(fields = list(list(name = "ts", type = "datetime")))
+
+  # a failed parse warns and leaves the original values in place
+  expect_warning(result <- apply_schema_types(data, schema), "Failed to parse datetime")
+  expect_identical(result$ts, data$ts)
+})
+
+test_that("apply_schema_types leaves an 'any' field unchanged without warning", {
+  # Camtrap DP declares media exifData as type "any"
+  data <- data.frame(exifData = c('{"Make": "RECONYX"}', NA), stringsAsFactors = FALSE)
+  schema <- list(fields = list(list(name = "exifData", type = "any")))
+
+  expect_no_warning(result <- apply_schema_types(data, schema))
+  expect_identical(result$exifData, data$exifData)
+})
+
 test_that("apply_schema_types returns data frame with same structure", {
   data <- data.frame(
     col1 = c(1, 2, 3),

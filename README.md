@@ -56,6 +56,14 @@ devtools::install_github("WildObs/WildObsR@v0.2.0")
 
 Database access requires a personal API key tied to your individual WildObs account. Keys are per-person, not per-project. All keys provide access to the public WildObs database, in which sensitive species records are obscured and data sharing agreements applied.
 
+**Obscured records.** Observations of threatened species are obscured in the states where the species is EPBC-listed: their `deploymentID`, `observationID`, `eventID` and `mediaID` read `obscured_for_<category>_species` (for example `obscured_for_endangered_species`). They keep the species, time and count, but carry no camera identifier, so a join to `deployments` drops them and `resample_covariates_and_observations()` stops until they are removed. Count them, then set them aside before spatial analyses:
+
+```r
+obscured <- grepl("^obscured_for_", obs$deploymentID)
+table(obs$deploymentID[obscured])  # how many, by threat category
+obs <- obs[!obscured, ]
+```
+
 ### 1. Log in to the WildObs Dashboard
 
 Create an account or log in at the [WildObs Dashboard](https://dashboard.wildobs.org.au).
@@ -147,6 +155,62 @@ observations <- frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022
 # Access metadata from several DPs
 contributors <- extract_metadata(dp_list, "contributors")
 projects     <- extract_metadata(dp_list, "project")
+```
+
+### Help Claude understand WildObs data
+
+If you use [Claude](https://claude.ai) to help with your analysis, WildObsR ships a
+skill that teaches it how WildObs data packages are structured: how the tables join,
+what each field means, why to filter out blank observations, and which analyses the
+data can and cannot support. Install it once:
+
+```r
+WildObsR::install_claude_skill()
+```
+
+This copies the `wildobsr-data` skill into `~/.claude/skills`, where Claude Code finds
+it in every project; start a new Claude Code session to use it. After updating
+WildObsR, run `install_claude_skill(overwrite = TRUE)` to get the matching version.
+The skill is plain documentation, with no code, so you can read it first at
+`system.file("claude-skills", "wildobsr-data", package = "WildObsR")`.
+
+### Export to standard Camtrap DP
+
+WildObs packages are Camtrap DP plus a few WildObs additions. To share data with
+tools that expect the standard exactly, such as the
+[camtrapdp](https://inbo.github.io/camtrapdp/) package or a GBIF export, convert it
+first. This needs the media table, so download with `media = TRUE`.
+
+```r
+dp <- wildobs_dp_download(api_key = wildobsr_api_key, project_ids = "<project ID>",
+                          media = TRUE)[[1]]
+
+# Convert to Camtrap DP 1.0.2; out$report lists every change made
+out <- as_camtrapdp(dp)
+
+# Use it with the camtrapdp package (version 0.5.0 or later), e.g. a GBIF export
+camtrapdp::write_dwc(out$camtrapdp, "gbif_export")
+
+# Or save it as a Camtrap DP package on disk
+frictionless::write_package(out$package, "camtrapdp_export")
+```
+
+### Download images
+
+Most WildObs images are held privately by their contributors or by Wildlife
+Insights, but files with `filePublic = TRUE` are openly hosted and can be
+downloaded. Requires `media = TRUE` in `wildobs_dp_download()`.
+
+```r
+# Grab the media table and keep only the publicly hosted files
+media <- dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]]$data$media
+media_public <- media[media$filePublic, ]
+
+# Download a small test batch into project/deployment folders
+result <- wildobs_media_download(head(media_public, 20), out_dir = "camera_images")
+
+# See what happened to each file
+table(result$downloadStatus)
 ```
 
 ### Spatially resample data 
@@ -291,10 +355,11 @@ camtrapR::surveyDashboard(CTtable      = covs,                              ## i
 
 | Category | Functions |
 |----------|-----------|
-| **Data Access** | `wildobs_mongo_query()`, `wildobs_dp_download()`, `extract_metadata()` |
+| **Data Access** | `wildobs_mongo_query()`, `wildobs_dp_download()`, `wildobs_media_download()`, `extract_metadata()`, `as_camtrapdp()` |
 | **Spatial** | `AUS_state_locator()`, `ibra_classification()`, `locationName_buffer_CAPAD()`
 | **Data Wrangling** | `survey_and_deployment_generator()`, `resample_covariates_and_observations()`, `matrix_generator()` |
 | **Quality Control** | `check_schema()`, `apply_schema_types()` |
+| **Working with Claude** | `install_claude_skill()` |
 
 ---
 
@@ -341,6 +406,11 @@ Location enrichment functions utilize authoritative Australian spatial datasets:
 - **[CAPAD (2022)](https://www.environment.gov.au/land/native-vegetation/capad)**: Collaborative Australian Protected Areas Database
 - **[IBRA7](https://www.dcceew.gov.au/environment/land/nrs/science/ibra)**: Interim Biogeographic Regionalisation for Australia
 - **Australian State Boundaries**: Official administrative boundaries
+
+The CAPAD 2022 terrestrial and IBRA7 subregion layers ship with the package as the
+datasets `capad` and `ibra` (`sf` objects, simplified for size), so the functions
+that use them work without downloading any shapefiles. Both are © Commonwealth of
+Australia (DCCEEW), licensed under Creative Commons Attribution.
 
 ---
 

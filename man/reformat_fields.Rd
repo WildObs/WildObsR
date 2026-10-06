@@ -15,7 +15,7 @@ A list of formatted schema fields, with cleaned constraints and metadata.
 }
 \description{
 This function is used internally in the wildobs_dp_download() function to take a set of schema fields and reformats them to ensure proper structure for use in a Frictionless Data Package.
-It processes constraints dynamically, removing \code{NULL} and \code{NA} values, and retains relevant metadata such as descriptions, units, and formats.
+It processes constraints dynamically (including \code{pattern}), removing \code{NULL} and \code{NA} values, and retains relevant metadata such as descriptions, units, formats, and the WildObs \code{custom} block (each covariate's source citation and spatial resolution).
 }
 \seealso{
 \code{\link{wildobs_dp_download}} for downloading and bundling data packages.

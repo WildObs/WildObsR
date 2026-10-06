@@ -1,7 +1,7 @@
 Package: WildObsR
 Type: Package
 Title: A package for wrangling tabular data generated from wildlife cameras 
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: person("Zachary", "Amir", email = "z.amir@uq.edu.au",
     role = c("aut", "cre"),
     comment = c(ORCID = "0000-0002-8398-2059"))
@@ -10,11 +10,12 @@ Description: A collection of tools for analyzing wildlife observation data, incl
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+LazyDataCompression: xz
 RoxygenNote: 7.3.3
 Roxygen: list(markdown = TRUE)
 Imports:
     chron,
-    curl,
+    curl (>= 5.0.0),
     dplyr,
     frictionless,
     geojsonsf,
@@ -37,6 +38,8 @@ Imports:
     utils,
     vegan
 Suggests:
+    camtrapdp (>= 0.5.0),
+    jsonvalidate,
     testthat (>= 3.0.0)
 Depends: 
     R (>= 3.5)

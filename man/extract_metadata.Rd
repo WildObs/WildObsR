@@ -54,8 +54,20 @@ packages. It handles:
 The \code{"spatial"} element returns a dataframe of bounding box coordinates
 (locationName, xmin, ymin, xmax, ymax) for convenient inspection. Users who
 need the full GeoJSON geometry for spatial analysis or mapping can access it
-directly via \code{dp$spatial} and convert to an sf object using
-\code{geojson_list_to_sf(dp$spatial)}.
+directly via \code{dp$spatial} and convert it to an sf object with
+\code{geojsonsf::geojson_sf(jsonlite::toJSON(dp$spatial, auto_unbox = TRUE))}.
+}
+
+\section{Temporal data}{
+
+The \code{"temporal"} element returns one row per deploymentGroup, with columns
+\code{deploymentGroup}, \code{start}, \code{end}, \code{timeZone},
+\code{packageStart}, \code{packageEnd} and \code{DPID}. \code{packageStart} and
+\code{packageEnd} hold the package-level temporal extent that Camtrap DP requires,
+repeated on every row, and are \code{NA} for packages that do not carry it. A
+package with no deploymentGroup blocks returns a single row with
+\code{deploymentGroup = NA}. Packages saved by earlier WildObsR versions, which stored
+\code{timeZone} inside each deploymentGroup, are still read correctly.
 }
 
 \examples{

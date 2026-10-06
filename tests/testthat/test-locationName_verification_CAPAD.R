@@ -1,7 +1,6 @@
 ## Tests for locationName_verification_CAPAD() ----
 
 test_that("locationName_verification_CAPAD handles lowercase latitude/longitude", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -16,7 +15,6 @@ test_that("locationName_verification_CAPAD handles lowercase latitude/longitude"
 })
 
 test_that("locationName_verification_CAPAD handles uppercase Latitude/Longitude", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -31,7 +29,6 @@ test_that("locationName_verification_CAPAD handles uppercase Latitude/Longitude"
 })
 
 test_that("locationName_verification_CAPAD returns CAPADlocationName column", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = c("dep1", "dep2"),
@@ -46,7 +43,6 @@ test_that("locationName_verification_CAPAD returns CAPADlocationName column", {
 })
 
 test_that("locationName_verification_CAPAD preserves original columns", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = c("dep1", "dep2"),
@@ -64,7 +60,6 @@ test_that("locationName_verification_CAPAD preserves original columns", {
 })
 
 test_that("locationName_verification_CAPAD removes internal ID column", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -79,7 +74,6 @@ test_that("locationName_verification_CAPAD removes internal ID column", {
 })
 
 test_that("locationName_verification_CAPAD removes lat2/long2 columns", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -95,7 +89,6 @@ test_that("locationName_verification_CAPAD removes lat2/long2 columns", {
 })
 
 test_that("locationName_verification_CAPAD handles tibble input", {
-  skip("Requires CAPAD shapefile")
   skip_if_not_installed("tibble")
 
   dep <- tibble::tibble(
@@ -111,7 +104,6 @@ test_that("locationName_verification_CAPAD handles tibble input", {
 })
 
 test_that("locationName_verification_CAPAD cleans protected area names", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -130,7 +122,6 @@ test_that("locationName_verification_CAPAD cleans protected area names", {
 })
 
 test_that("locationName_verification_CAPAD uses IUCN hierarchy for duplicates", {
-  skip("Requires CAPAD shapefile")
 
   # Location that intersects multiple protected areas
   dep <- data.frame(
@@ -147,7 +138,6 @@ test_that("locationName_verification_CAPAD uses IUCN hierarchy for duplicates", 
 })
 
 test_that("locationName_verification_CAPAD handles locations outside protected areas", {
-  skip("Requires CAPAD shapefile")
 
   # Remote location likely outside protected areas
   dep <- data.frame(
@@ -165,7 +155,6 @@ test_that("locationName_verification_CAPAD handles locations outside protected a
 })
 
 test_that("locationName_verification_CAPAD adds CAPADminDistance column for missing areas", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "remote",
@@ -180,25 +169,25 @@ test_that("locationName_verification_CAPAD adds CAPADminDistance column for miss
 })
 
 test_that("locationName_verification_CAPAD sets CAPADminDistance to 0 for direct matches", {
-  skip("Requires CAPAD shapefile")
 
-  # Location within a protected area
+  # one camera inside Royal National Park, and one in the Sydney CBD outside every
+  # protected area, which is what makes the function add CAPADminDistance at all
   dep <- data.frame(
-    deploymentID = "dep1",
-    Latitude = -33.8688,
-    Longitude = 151.2093
+    deploymentID = c("in_park", "city"),
+    Latitude = c(-34.15, -33.8688),
+    Longitude = c(151.05, 151.2093)
   )
 
-  result <- locationName_verification_CAPAD(dep)
+  result <- suppressMessages(locationName_verification_CAPAD(dep))
 
-  if (!is.na(result$CAPADlocationName[1]) && result$CAPADminDistance[1] == 0) {
-    # If it's a direct match, distance should be 0
-    expect_equal(result$CAPADminDistance[1], 0)
-  }
+  # a direct match is named after its park, at distance zero
+  expect_equal(result$CAPADlocationName[1], "Royal_NP")
+  expect_equal(result$CAPADminDistance[1], 0)
+  # the outside camera is matched to a park some distance away
+  expect_gt(result$CAPADminDistance[2], 0)
 })
 
 test_that("locationName_verification_CAPAD prints warnings for distant matches", {
-  skip("Requires CAPAD shapefile")
 
   # Location far from protected areas
   dep <- data.frame(
@@ -215,7 +204,6 @@ test_that("locationName_verification_CAPAD prints warnings for distant matches",
 })
 
 test_that("locationName_verification_CAPAD handles multiple locations", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = c("dep1", "dep2", "dep3"),
@@ -230,7 +218,6 @@ test_that("locationName_verification_CAPAD handles multiple locations", {
 })
 
 test_that("locationName_verification_CAPAD handles high precision coordinates", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "precise",
@@ -245,7 +232,6 @@ test_that("locationName_verification_CAPAD handles high precision coordinates", 
 })
 
 test_that("locationName_verification_CAPAD preserves row order", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = c("first", "second", "third"),
@@ -260,7 +246,6 @@ test_that("locationName_verification_CAPAD preserves row order", {
 })
 
 test_that("locationName_verification_CAPAD handles duplicate deploymentIDs", {
-  skip("Requires CAPAD shapefile")
 
   # Same location, duplicate IDs
   dep <- data.frame(
@@ -276,21 +261,10 @@ test_that("locationName_verification_CAPAD handles duplicate deploymentIDs", {
   expect_equal(result$CAPADlocationName[1], result$CAPADlocationName[2])
 })
 
-test_that("locationName_verification_CAPAD errors with invalid capad_file_path", {
-  dep <- data.frame(
-    deploymentID = "dep1",
-    Latitude = -33.8688,
-    Longitude = 151.2093
-  )
-
-  expect_error(
-    locationName_verification_CAPAD(dep, capad_file_path = "/fake/path/to/capad.shp"),
-    class = "error"
-  )
-})
-
 test_that("locationName_verification_CAPAD handles locations that don't intersect shapefile", {
-  skip("Requires CAPAD shapefile")
+  ## the function has always assigned the nearest protected area however far away,
+  ## so a point at 0,0 gets a name; whether it should return NA is undecided
+  skip("Undecided: should far-off-continent points get NA? See review item S4")
 
   # Coordinates outside Australia
   dep <- data.frame(
@@ -307,7 +281,6 @@ test_that("locationName_verification_CAPAD handles locations that don't intersec
 })
 
 test_that("locationName_verification_CAPAD does not modify original data frame", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -326,7 +299,6 @@ test_that("locationName_verification_CAPAD does not modify original data frame",
 })
 
 test_that("locationName_verification_CAPAD includes TYPE_ABBR in location name", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "dep1",
@@ -344,7 +316,6 @@ test_that("locationName_verification_CAPAD includes TYPE_ABBR in location name",
 })
 
 test_that("locationName_verification_CAPAD handles single location", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = "single",
@@ -359,7 +330,6 @@ test_that("locationName_verification_CAPAD handles single location", {
 })
 
 test_that("locationName_verification_CAPAD handles locations with different protection levels", {
-  skip("Requires CAPAD shapefile")
 
   # Multiple locations across different types of protected areas
   dep <- data.frame(
@@ -375,7 +345,6 @@ test_that("locationName_verification_CAPAD handles locations with different prot
 })
 
 test_that("locationName_verification_CAPAD returns early when no locations intersect", {
-  skip("Requires CAPAD shapefile")
 
   # Coordinates far outside Australia
   dep <- data.frame(
@@ -392,7 +361,6 @@ test_that("locationName_verification_CAPAD returns early when no locations inter
 })
 
 test_that("locationName_verification_CAPAD handles mixed valid and invalid locations", {
-  skip("Requires CAPAD shapefile")
 
   dep <- data.frame(
     deploymentID = c("valid", "invalid"),

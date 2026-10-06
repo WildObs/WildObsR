@@ -59,7 +59,8 @@
 #'  can access 'closed' data, but if admin credentials have not been provided,
 #'  'closed' data will be removed from the projects list.  Only projects with
 #'  these preferences are returned.
-#' @return A character vector of project IDs matching the specified criteria.
+#' @return A character vector of project IDs matching the specified criteria, or an
+#'   empty character vector (`character(0)`), with a warning, if nothing matches.
 #' @examples
 #' \dontrun{
 #' # Load API key from .Renviron
@@ -106,6 +107,22 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## Warn once per session if this WildObsR is behind the released version.
   ## Silent when up to date, and never blocks the query.
   .check_wildobs_version()
+
+  ## a spatial query needs all four corners of a box, as numbers,
+  ## so check before touching the database
+  if (!is.null(spatial) && length(spatial) > 0) {
+    # the corners every bounding box needs
+    required_bounds <- c("xmin", "xmax", "ymin", "ymax")
+    # which corners are missing, or not a single number
+    bad_bounds <- required_bounds[!vapply(required_bounds, function(b) {
+      is.numeric(spatial[[b]]) && length(spatial[[b]]) == 1 && !is.na(spatial[[b]])
+    }, logical(1))]
+    if (length(bad_bounds) > 0) {
+      stop("Your spatial query is missing, or has non-numeric: ", paste(bad_bounds, collapse = ", "),
+           "\nProvide all four of xmin, xmax, ymin and ymax as numbers in a named list, ",
+           "e.g. list(xmin = 145, xmax = 154, ymin = -29, ymax = -10).", call. = FALSE)
+    } # end bad bounds condition
+  } # end spatial check
 
   # create an empty vector to store project IDs
   proj_ids = c()
@@ -205,7 +222,10 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   if(!missing(temporal) && !is.null(temporal) && length(temporal) > 0){
     # extract the data frame from the meta
     temporal_df = metadata$temporal
-    temporal_df$timeZone = NULL # dont want this rn
+    ## keep only the deploymentGroup blocks, which arrive as data frame columns,
+    ## dropping the package-level start, end and timeZone strings
+    ## so projects are matched on when each survey actually ran
+    temporal_df <- temporal_df[, vapply(temporal_df, is.data.frame, logical(1)), drop = FALSE]
 
     # Track row indices to associate with project ID
     temporal_df <- temporal_df %>%
@@ -396,16 +416,14 @@ wildobs_mongo_query = function(db_url = NULL, api_key = NULL,
   ## Take the intersection of all queries
   proj_ids <- Reduce(intersect, id_lists)
 
-  # but if there are no conditions met, provide all open and partial options
-  # accommodate NO returns and NO intersections
-  # if(any(proj_ids == "" | length(proj_ids) == 0)){
+  ## no filters given, or no project passes them all
   if(length(proj_ids) == 0 || any(proj_ids == "")){
-    # print a message
-    warning("There were no matches in our database of the specific parameters",
-            "provided in your function. \nThis will return an empty vector",
+    # say so, since an empty result is easy to miss
+    warning("There were no matches in our database of the specific parameters ",
+            "provided in your function. \nThis will return an empty vector ",
             "instead of any projectIDs.")
-    # Make it empty
-    proj_ids = "" #metadata$id
+    # and hand back a genuinely empty vector, so length() and for loops behave
+    proj_ids = character(0)
   }
 
   # return the vector

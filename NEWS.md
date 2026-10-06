@@ -1,3 +1,128 @@
+# WildObsR 0.3.0
+
+The WildObs database now follows the Camtrap DP standard more closely, and
+earlier versions of WildObsR cannot read the updated metadata: `wildobs_dp_download()` 
+stops with `incorrect number of dimensions`. **Update WildObsR to download data again.**
+
+```r
+devtools::install_github("WildObs/WildObsR")
+```
+
+## Breaking changes
+
+### `dp$temporal` keeps the database's shape
+
+Downloaded packages now store `temporal` exactly as the database does: the
+package-level `start`, `end` and `timeZone` once at the top, then one
+`{start, end}` block per deploymentGroup. Previously `timeZone` was copied into
+every group. Code that read `dp$temporal[[1]]$timeZone` should read
+`dp$temporal$timeZone` instead, or use `extract_metadata(dp, "temporal")`, which
+handles both shapes.
+
+### Spatial functions no longer take a shapefile path
+
+`ibra_classification()`, `locationName_verification_CAPAD()` and
+`locationName_buffer_CAPAD()` now use the IBRA7 and CAPAD 2022 layers that ship
+with the package, so they work on any computer. The `ibra_file_path` and
+`capad_file_path` arguments are gone: remove them from your calls. The layers
+are available directly as the datasets `ibra` and `capad` (#11, #122).
+
+`locationName_verification_CAPAD()` now measures `CAPADminDistance` in true metres.
+Previously it measured in web Mercator units, which overstate distances in
+Australia by roughly 10–40% depending on latitude, so values will be smaller
+than before and the 1–5 km / 5–10 km / >10 km notes may change category.
+
+### `wildobs_mongo_query()` returns an empty vector when nothing matches
+
+When no project matches, `wildobs_mongo_query()` now returns `character(0)` rather
+than `""`, still with a warning. `length(result) > 0` is now `FALSE`, and loops over
+the result no longer run once with a blank ID. Code that tested
+`result == ""` should test `length(result) == 0` instead. `wildobs_dp_download()`
+stops with a clear message when given no IDs, including the old `""` (#129).
+
+### `dp$sources` is a list of sources
+
+`sources` is now an array of source objects, as Camtrap DP specifies, so
+`dp$sources[[1]]$title` replaces `dp$sources$title`.
+`extract_metadata(dp, "sources")` returns one row per source.
+
+## New
+
+- `as_camtrapdp()` converts a WildObs data package to canonical Camtrap DP 1.0.2 (or
+  1.0.1), so it works with the `camtrapdp` R package, including `camtrapdp::write_dwc()`
+  for GBIF. It removes every WildObs addition, read from the official Camtrap DP
+  profiles vendored in the package rather than a fixed list, and returns a report of
+  every change and the result of validating it (#113). Its `camtrapdp` element is
+  the result already read by `camtrapdp::read_camtrapdp()`, so it goes straight into
+  camtrapdp functions: `camtrapdp::write_dwc(out$camtrapdp, dir)`.
+- `wildobs_media_download()` downloads the image files listed in a media table into
+  `out_dir/<projectName>/<deploymentID>/<mediaID>.<ext>`, and reports what happened
+  to each file. Publicly hosted files (`filePublic = TRUE`) download for anyone;
+  files on your own computer are copied; private Google Cloud files can be fetched
+  with a `gcs_token` if you have access. Re-running fetches only what is missing.
+- `install_claude_skill()` installs `wildobsr-data`, a Claude skill describing how
+  WildObs data packages are structured and what the data can support, so Claude can
+  help with your analysis. See "Help Claude understand WildObs data" in the README.
+  It describes the data as API users receive it, including how obscured
+  threatened-species records behave and how to set them aside.
+- `extract_metadata(dp, "temporal")` gains `packageStart` and `packageEnd`
+  columns holding the package-level temporal extent (#137).
+- Downloaded packages now include `versionControlWildObs`, the WildObs version
+  of the package.
+- Covariate fields in downloaded schemas now carry a `custom` block with the
+  source citation and resolution of the spatial product behind each covariate,
+  and media fields keep their `pattern` constraints.
+
+## Fixed
+
+- `wildobs_dp_download()` skips project IDs it cannot find, with one warning naming
+  them, and downloads the rest. It stops only when none are found. Previously an
+  unknown ID failed with "subscript out of bounds" (#129).
+- `apply_schema_types()` gives empty `datetime` columns the `POSIXct` type, and
+  converts partly empty ones. Previously a column with any empty cell was treated as
+  unparseable and left as text, or as `logical` if wholly empty (#129).
+- `apply_schema_types()` no longer deletes a `datetime` column whose schema field has
+  no `format`: it falls back to ISO 8601, and leaves the column unchanged with a
+  warning if it still cannot parse it (#129).
+- `wildobs_dp_download()` no longer hides warnings from typing the tables, so a
+  column that fails to convert is reported rather than passed on silently (#129).
+- `apply_schema_types()` accepts the Frictionless `any` type and leaves such columns
+  unchanged, so media downloads no longer warn about `exifData`.
+- `wildobs_mongo_query()` checks a `spatial` bounding box before querying and names
+  any missing or non-numeric corner, instead of failing with an internal tibble
+  error (#129).
+- `ibra_classification()` no longer drops locations that fall just outside every
+  IBRA subregion. They now take the IBRA values of their nearest matched
+  location, as documented (#97).
+- `locationName_buffer_CAPAD()` generates UTM coordinates when they are missing.
+  Its check matched any column name containing "x" or "y", including
+  `deploymentID`, so it always skipped generation and stopped with
+  "No unique UTM zones found".
+- `locationName_verification_CAPAD()` no longer leaves its internal `ID`, `lat2`
+  and `long2` columns in the output.
+- `locationName_buffer_CAPAD()` stops with an error naming any `deploymentID`
+  used more than once. Previously rows sharing an ID were silently merged into one.
+- `wildobs_dp_download()` reads the updated database structure.
+- `wildobs_mongo_query(temporal = ...)` no longer errors on the package-level
+  temporal extent, and still matches projects on when each deploymentGroup ran.
+- `extract_metadata()` still reads data packages saved by earlier versions.
+- `wildobs_dp_download(api_key = ..., media = TRUE)` no longer fails after the
+  media download with `argument is of length zero`. Public media tables, which
+  withhold `fileName`, get an empty `fileName` column on every route.
+- `wildobs_dp_download()` over the API retries a request that fails or returns an
+  error, up to three times, instead of failing with `subscript out of bounds`. A
+  large media download makes hundreds of requests, so one dropped request used to
+  end it. If a request still fails, the error names it and gives the server's
+  reason; a media download no longer returns partial results silently.
+- `wildobs_dp_download()` no longer duplicates observations of a taxon listed twice
+  in a project's taxonomic metadata. It keeps the first listing and warns which
+  taxa were repeated.
+
+## Internal
+
+- The update notice now only appears for a new major or minor release, not for
+  patch releases.
+
 # WildObsR 0.2.0
 
 This is a breaking release. Some functions you may have called directly are no

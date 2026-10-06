@@ -80,6 +80,60 @@ test_that("wildobs_dp_download errors when neither api_key nor db_url provided",
   )
 })
 
+test_that("wildobs_dp_download stops clearly when given no project IDs", {
+  # an empty result from wildobs_mongo_query(), or the "" older versions returned,
+  # must stop before any network call with a message saying what to do
+  expect_error(wildobs_dp_download(api_key = "unused", project_ids = character(0)),
+               "No project IDs were provided")
+  expect_error(wildobs_dp_download(api_key = "unused", project_ids = ""),
+               "No project IDs were provided")
+})
+
+test_that("API requests retry a dropped batch and keep going", {
+  ## a large media download makes hundreds of requests; one failure must not end it
+  # count how many times the API was called, in an environment the mock can update
+  calls <- new.env()
+  calls$n <- 0
+  # the first call fails with a server error, the second succeeds
+  local_mocked_bindings(
+    curl_fetch_memory = function(url, handle) {
+      calls$n <- calls$n + 1
+      if (calls$n == 1) {
+        return(list(status_code = 504L, content = charToRaw('{"message": "Gateway Timeout"}')))
+      } # end first call
+      return(list(status_code = 200L,
+                  content = charToRaw('[{"count": 1, "results": [{"mediaID": "m1"}]}, 200]')))
+    },
+    .package = "curl"
+  )
+  # the records from the successful retry come back
+  out <- .wildobs_api_find("https://example.org/find", "key", list(collection = "media"),
+                           what = "a test batch")
+  expect_equal(out$mediaID, "m1")
+  expect_equal(calls$n, 2)
+})
+
+test_that("API requests stop clearly on a rejected key, without retrying", {
+  # count how many times the API was called, in an environment the mock can update
+  calls <- new.env()
+  calls$n <- 0
+  # every call is refused, as the API does for an invalid key
+  local_mocked_bindings(
+    curl_fetch_memory = function(url, handle) {
+      calls$n <- calls$n + 1
+      return(list(status_code = 401L,
+                  content = charToRaw('{"title": "Unauthorized", "message": "Invalid or inactive API key"}')))
+    },
+    .package = "curl"
+  )
+  # the error names the request and passes on the server's reason
+  expect_error(.wildobs_api_find("https://example.org/find", "bad", list(collection = "media"),
+                                 what = "the media table"),
+               "could not fetch the media table.*HTTP 401: Invalid or inactive API key")
+  # and a rejected key is not retried
+  expect_equal(calls$n, 1)
+})
+
 test_that("wildobs_dp_download errors with invalid db_url format", {
   # a malformed URI is caught by pattern before any connection is attempted, so
   # the user is told their string is wrong rather than that the server is down
@@ -246,11 +300,6 @@ test_that("wildobs_dp_download applies the types declared in the schema", {
       # grab the column the schema is describing
       column <- dp$data[[resource]][[field]]
 
-      ## a column holding no values at all cannot demonstrate a type: R gives an
-      ## empty column the all-NA logical it uses for everything, whatever the
-      ## schema declared. Skip those so this test only claims what it can prove.
-      if (all(is.na(column))) next
-
       # datetimes have to come back timezone-aware, not as bare strings, since
       # every temporal calculation downstream depends on it
       if (declared[[field]] == "datetime") {
@@ -316,6 +365,28 @@ test_that("wildobs_dp_download includes media when media=TRUE", {
   # was accepted but the records never came
   expect_s3_class(dp$data$media, "data.frame")
   expect_gt(nrow(dp$data$media), 0)
+
+  # the public database withholds fileName, so it comes back as an empty column
+  expect_true("fileName" %in% names(dp$data$media))
+  expect_true(all(is.na(dp$data$media$fileName)))
+})
+
+test_that("wildobs_dp_download never duplicates observations", {
+  skip_if_no_wildobs_api()
+
+  ## this project's taxonomic metadata has listed some taxa twice, which used to
+  ## copy their observations when taxonomy was joined on
+  # its warning about the repeated listings is expected while the metadata carries them
+  result <- suppressWarnings(wildobs_dp_download(
+    api_key = test_api_key,
+    project_ids = "NSW_Murrumbidgee_Rakali_Sanders_2021-2023_WildObsID_0014"
+  ))
+  obs <- result[[1]]$data$observations
+  # obscured threatened-species rows share a placeholder ID by design, so set them aside
+  obs <- obs[!grepl("^obscured_for_", obs$deploymentID), ]
+
+  # every remaining observation appears exactly once
+  expect_false(any(duplicated(obs$observationID)))
 })
 
 
@@ -413,18 +484,30 @@ test_that("wildobs_dp_download infers timezone when missing", {
 
   dp <- stable_dp()
 
-  ## the timezone for each deployment group, NA where the entry has none
-  zones <- vapply(
-    dp$temporal,
-    function(x) if (is.null(x$timeZone)) NA_character_ else x$timeZone,
-    character(1)
-  )
+  ## timeZone sits once at the package level, as it does in the database
+  zone <- dp$temporal$timeZone
 
   # a timezone is looked up from the coordinates whenever the project did not
-  # supply one, so every entry must end up with a real zone. Checking all of
-  # them rather than the first, since only one entry is usually short of data.
-  expect_false(any(is.na(zones)))
-  expect_true(all(nzchar(zones)))
+  # supply one, so the package must always end up with a single real zone
+  expect_type(zone, "character")
+  expect_length(zone, 1)
+  expect_false(is.na(zone))
+  expect_true(nzchar(zone))
+})
+
+test_that("wildobs_dp_download keeps deploymentGroups as start/end blocks", {
+  skip_if_no_wildobs_api()
+
+  dp <- stable_dp()
+
+  ## the deploymentGroup blocks are the list entries; start, end and timeZone are strings
+  groups <- Filter(is.list, dp$temporal)
+
+  # every group carries its own dates and nothing else
+  expect_gt(length(groups), 0)
+  for (g in groups) {
+    expect_setequal(names(g), c("start", "end"))
+  } # end per group
 })
 
 test_that("wildobs_dp_download includes taxonomic metadata", {
@@ -489,6 +572,31 @@ test_that("wildobs_dp_download WildObsMetadata is included", {
 #
 ##
 ### Failure handling ----
+
+test_that("wildobs_dp_download skips unknown project IDs with a warning", {
+  skip_if_no_wildobs_api()
+
+  # a mix of valid and invalid IDs downloads the valid ones and names the rest
+  expect_warning(
+    result <- wildobs_dp_download(api_key = test_api_key,
+                                  project_ids = c("not_a_real_project", stable_project,
+                                                  "another_fake_id"),
+                                  metadata_only = TRUE),
+    "2 of 3 project IDs were not found.*not_a_real_project, another_fake_id"
+  )
+  expect_named(result, stable_project)
+})
+
+test_that("wildobs_dp_download stops when no project ID is found", {
+  skip_if_no_wildobs_api()
+
+  # with nothing valid to download, a clear stop beats an empty result
+  expect_error(
+    suppressWarnings(wildobs_dp_download(api_key = test_api_key,
+                                         project_ids = "not_a_real_project")),
+    "None of the requested project IDs were found"
+  )
+})
 
 test_that("wildobs_dp_download handles API connection failure gracefully", {
   skip_if_no_wildobs_api()

@@ -7,7 +7,6 @@
 #' @param dep A dataframe containing deployment data, including columns for `latitude`, `longitude`, and `deploymentID`.
 #' It may also include `UTMzone`, `X`, and `Y` coordinates. If these are missing, they will be generated using the `WildObsR::UTM_coord_generator` function.
 #' @param buffer_size Numeric value representing the size of the buffer (in meters) around each deployment location. Defaults to 5,000 m (5 km).
-#' @param capad_file_path File path to the CAPAD shapefile containing protected area boundaries. Defaults to ~/Dropbox/ECL spatial layers repository/, so please ensure you have access or modify the pathway to your local computer to the shapefile location.
 #'
 #'@details
 #' This function performs the following steps:
@@ -15,13 +14,14 @@
 #'   \item Validates and generates UTM coordinates for the deployment locations, if necessary.
 #'   \item Buffers deployment points within their respective UTM zones, merging results across zones.
 #'   \item Dissolves overlapping buffers and assigns unique IDs to each disaggregated polygon.
-#'   \item Extracts the dominant protected area name for each buffer using the CAPAD shapefile.
+#'   \item Extracts the dominant protected area name for each buffer using the CAPAD 2022 terrestrial layer bundled with the package (\code{\link{capad}}).
 #'   \item For buffers that do not intersect with any protected area, determines the nearest protected area based on centroid distance.
 #'   \item Assigns the final protected area name and buffer ID to the original deployment dataframe.
 #' }
 #'
 #' @return An updated dataframe containing the original deployment data and an additional column,
 #' `CAPADlocationNameBuffer`, which specifies the buffer ID and the corresponding protected area name.
+#' Stops if any `deploymentID` appears more than once.
 #'
 #' @importFrom terra vect project aggregate disagg expanse centroids intersect extract ext crop buffer
 #' @importFrom dplyr distinct
@@ -36,22 +36,31 @@
 #' )
 #'
 #' # Run the function with a 10 km buffer
-#' buffered_dep <- locationName_buffer_CAPAD(dep, buffer_size = 10000,
-#'   capad_file_path = "~/path/to/CAPAD.shp")
+#' buffered_dep <- locationName_buffer_CAPAD(dep, buffer_size = 10000)
 #'
 #' # View results
 #' head(buffered_dep)
 #' }
 #'
-#' @note This function assumes that the CAPAD shapefile is properly formatted and contains fields such as `NAME` and `TYPE_ABBR`.
-#' The function uses the `terra` package for spatial processing.
+#' @note The function uses the `terra` package for spatial processing.
 #'
 #' @author Tom Bruce & Zachary Amir
 #' @export
-locationName_buffer_CAPAD <- function(dep, buffer_size = 5000, capad_file_path = "~/Dropbox/ECL spatial layers repository/Australian spatial layers GIS data/AUS/CAPAD_Terrestrial_land_use/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial/Collaborative_Australian_Protected_Areas_Database_(CAPAD)_2022_-_Terrestrial.shp") {
+locationName_buffer_CAPAD <- function(dep, buffer_size = 5000) {
 
-  ## first check if UTMs are present in the DF
-  if(! any(grepl("X|x|Y|y|UTM", names(dep)))){
+  ## each row must be its own deployment, because results are matched back by deploymentID
+  # find any deploymentID used more than once
+  dup_ids <- unique(dep$deploymentID[duplicated(dep$deploymentID)])
+  # and stop rather than silently merging those rows together
+  if (length(dup_ids) > 0) {
+    stop(sprintf("%d deploymentID value(s) appear more than once in locationName_buffer_CAPAD(): %s",
+                 length(dup_ids), paste(dup_ids, collapse = ", ")),
+         "\nGive each deployment a unique deploymentID, as Camtrap DP requires, then try again.")
+  } # end duplicate deploymentID check
+
+  ## first check if the UTM columns are present in the DF
+  ## (matching exact names, since a pattern like "y" also matches deploymentID)
+  if(! all(c("UTMzone", "X", "Y") %in% names(dep))){
 
     ## If missing, we need UTM for buffers, so use WildObsR function to generate them
     dep_utm = UTM_coord_generator(dep)
@@ -162,8 +171,8 @@ locationName_buffer_CAPAD <- function(dep, buffer_size = 5000, capad_file_path =
   ##
   #
 
-  #Read in the file specified in the function
-  vector = terra::vect(file.path(capad_file_path))
+  # grab the CAPAD terrestrial layer bundled with the package
+  vector = terra::vect(WildObsR::capad)
 
   # Extract the CRS information for the layer using terra's crs() function
   crs_info <- terra::crs(vector)
@@ -296,7 +305,7 @@ locationName_buffer_CAPAD <- function(dep, buffer_size = 5000, capad_file_path =
 # rm(b, buffered_dfs, buffered_sf, combined_buffered_sf, combined_buffered_vect,
 #    current_df, current_sf, data_extent, dep_sp, dep_utm, dfs, dissolved_polygons,
 #    disaggregated_polygons, extracted_ids, intersection_result, land, vector,
-#    vector_clip, buffer_size, capad_file_path, crs_info, current_id, dominant_park,
+#    vector_clip, buffer_size, crs_info, current_id, dominant_park,
 #    i, j, lat_col, lon_col, max_area_index, park_areas, park_areas_numeric,
 #    park_names, unique_land_ids, utm_crs, utm_zones, zone, prefix)
 

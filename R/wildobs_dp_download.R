@@ -74,7 +74,6 @@
 #' @importFrom frictionless add_resource create_package
 #' @importFrom jsonlite toJSON
 #' @importFrom purrr map keep
-#' @importFrom lutz tz_lookup_coords
 #' @importFrom httr POST
 #' @importFrom curl curl_fetch_memory handle_setopt handle_setheaders new_handle
 #' @importFrom stringr str_detect regex
@@ -88,6 +87,15 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
   ## Warn once per session if this WildObsR is behind the released version.
   ## Silent when up to date, and never blocks the download.
   .check_wildobs_version()
+
+  ## there has to be at least one project to download
+  # ignore blanks, e.g. the "" older versions of wildobs_mongo_query() returned for no match
+  if (!missing(project_ids)) project_ids <- project_ids[!is.na(project_ids) & nzchar(project_ids)]
+  if (missing(project_ids) || length(project_ids) == 0) {
+    stop("No project IDs were provided to wildobs_dp_download().\n",
+         "If they came from wildobs_mongo_query(), it found no matching projects: ",
+         "try broader search criteria.", call. = FALSE)
+  } # end empty project_ids condition
 
   ### Resolve database access and credentials using a utility helper function
   access    <- resolve_db_access(api_key = api_key, db_url = db_url)
@@ -130,6 +138,31 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
   #
   ##
+  ### Keep only the project IDs the metadata knows about ----
+
+  ## an unknown ID is either a typo or a project this connection cannot see
+  ## (closed projects never reach API users), so skip it with a warning and carry on
+  # drop repeats so no project is downloaded twice
+  project_ids <- unique(project_ids)
+  # which requested IDs have no metadata at all
+  unknown_ids <- setdiff(project_ids, metadata$id)
+  if (length(unknown_ids) > 0) {
+    warning(sprintf("%d of %d project IDs were not found in the WildObs metadata and will be skipped: %s\n",
+                    length(unknown_ids), length(project_ids), paste(unknown_ids, collapse = ", ")),
+            "Check the spelling, or run wildobs_mongo_query() to list the projects you can access.",
+            call. = FALSE)
+  } # end unknown ID condition
+  # carry on with the IDs that do exist, in the order they were asked for
+  project_ids <- project_ids[!project_ids %in% unknown_ids]
+  # but if none of them exist there is nothing to download
+  if (length(project_ids) == 0) {
+    stop("None of the requested project IDs were found in the WildObs metadata.\n",
+         "Check the spelling, or run wildobs_mongo_query() to list the projects you can access.",
+         call. = FALSE)
+  } # end no valid IDs condition
+
+  #
+  ##
   ###
   #### Begin to reformat the metadata to fit back into datapackage.json format
   formatted_metadata = list() # store results here!
@@ -140,9 +173,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     ## and the matching metadata
     meta = metadata[metadata$id == name,] # must produce one row
     ## verify there is only one row
-    if(nrow(meta)>1){print(paste("The project name:", name, "has multiple rows of metadata.",
-                                 "This is not good and means repeated project names",
-                                 "which violates our database rules. Please inspect manually!"))}
+    if(nrow(meta)>1){warning(paste("The project name:", name, "has multiple rows of metadata.",
+                                   "This is not good and means repeated project names",
+                                   "which violates our database rules. Please inspect manually!"))}
 
     ## convert to a list
     meta_list = as.list(meta)
@@ -156,21 +189,23 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     proj_meta = meta_list[names(meta_list) %in% c("profile","name","created","title",
                                                   "contributors","description","version",
                                                   "keywords","image","homepage","sources",
-                                                  "licenses","bibliographicCitation", "directory",
+                                                  "licenses","bibliographicCitation",
                                                   "coordinatePrecision","relatedIdentifiers",
-                                                  "references","id","project","WildObsMetadata")]
+                                                  "references","id","project","WildObsMetadata",
+                                                  "versionControlWildObs")]
 
     # use custom function where needed
     proj_meta$contributors = convert_df_to_list(proj_meta$contributors)
     proj_meta$licenses = convert_df_to_list(proj_meta$licenses)
     proj_meta$project = convert_df_to_list(proj_meta$project)
     proj_meta$WildObsMetadata = convert_df_to_list(proj_meta$WildObsMetadata)
+    # sources is an array of source objects, so it gets the same treatment as contributors
+    proj_meta$sources <- convert_df_to_list(proj_meta$sources)
 
     ## apply a few quick fixes to unlist or list things
     proj_meta$keywords = unlist(proj_meta$keywords)
     proj_meta$homepage = unlist(proj_meta$homepage)
     proj_meta$references = proj_meta$references[[1]] # come here, this might change!
-    proj_meta$sources = as.list(proj_meta$sources[1, ])
 
     # "relatedIdentifiers", "temporal","spatial", and "taxonomic" need special attention!
     ## resources is the specific schema for each resource (figured out below).
@@ -224,47 +259,42 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
     # apply the function, only keeping non-NA values
     t_clean = purrr::keep(t, ~ !is_empty_temporal(.x))
-    # verify timezone is present
-    if(is.null(t_clean$timeZone) || t_clean$timeZone == ""){
-      # assume timezone is NA then
-      tz = NA
-      # grab timezone from spatial informaiton
-      if (!is.null(proj_meta$spatial) && !is.null(proj_meta$spatial$bbox)) {
-        # Extract all numeric lat/lon pairs from nested bbox list
-        bbox_vals <- unlist(proj_meta$spatial$bbox, recursive = TRUE, use.names = FALSE)
-        bbox_nums <- suppressWarnings(as.numeric(bbox_vals))
-        bbox_nums <- bbox_nums[is.finite(bbox_nums)]
-
-        ## verify there are at least 4 bbox coordinates
-        if (length(bbox_nums) >= 4) {
-          xmin <- bbox_nums[1]; ymin <- bbox_nums[2]
-          xmax <- bbox_nums[3]; ymax <- bbox_nums[4]
-          # take the average
-          lat <- mean(c(ymin, ymax), na.rm = TRUE)
-          lon <- mean(c(xmin, xmax), na.rm = TRUE)
-          # and safely feed it into coord tz look up
-          tz <- tryCatch(
-            lutz::tz_lookup_coords(lat, lon, method = "accurate"),
-            error = function(e) NA
-          )
-        } # end length 4 condition
-
-      } # end spatial check conditon
-
-      # then save the Tz
-      t_clean$timeZone = tz
-    } #end timeZone presence conditon
+    ## the time zone comes only from the package-level temporal metadata,
+    # so if it is missing or blank,
+    if (is.null(t_clean$timeZone) || t_clean$timeZone == "") {
+      # say so, since the tables will then be read as UTC rather than local time
+      warning(proj_meta$id, " has no timeZone in its temporal metadata, so wildobs_dp_download() ",
+              "reads its dates and times as UTC.\n",
+              "Check the times against the project's location before combining it with other projects.")
+      # and store it as NA, which the table typing below reads as UTC
+      t_clean$timeZone <- NA
+    } # end timeZone presence condition
     # extract tzone
     tz = t_clean$timeZone
 
-    # Convert dataframe format into nested named lists
-    t_nested = purrr::map(t_clean[names(t_clean) != "timeZone"], function(df) {
+    ## deploymentGroups arrive as one-row data frames, while the package-level
+    ## start, end and timeZone arrive as plain strings, so tell them apart by structure
+    groups <- t_clean[vapply(t_clean, is.data.frame, logical(1))]
+    # convert each deploymentGroup into a simple start/end list
+    group_list <- purrr::map(groups, function(df) {
       list(
-        timeZone = tz,                      # save timezone as a character
-        start = as.character(df$start[1]),  # Extract first row start date
-        end = as.character(df$end[1])       # Extract first row end date
+        start = as.character(df$start[1]), # first row start date
+        end = as.character(df$end[1])      # first row end date
       )
-    })
+    }) # end per group
+
+    ## rebuild temporal in the same shape as the database:
+    ## package-level extent and timeZone first, then one block per deploymentGroup
+    t_nested <- c(
+      list(
+        start = t_clean[["start"]],
+        end = t_clean[["end"]],
+        timeZone = tz
+      ),
+      group_list
+    )
+    # drop the package-level start/end if this package doesnt carry them
+    t_nested <- Filter(Negate(is.null), t_nested)
 
     # save it in the project metadata
     proj_meta$temporal = t_nested
@@ -464,34 +494,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     if(!isTRUE(metadata_only)){
       ## repeat for each data resource EXCEPT media
       for(ht in 1:length(bodies)){
-        ### Instead of httr2, use curl package
-        # Create a new curl "handle", which is like a container that will hold all the settings for your API request
-        h_dep <- curl::new_handle()
-        # Add HTTP headers to the handle, which are metadata that tells the server:
-        curl::handle_setheaders(h_dep,
-                                # 1. The API key for authentication, and
-                                "X-API-Key" = api_key,
-                                # 2. What type of data were querying (JSON format)
-                                "Content-Type" = "application/json"
-        )
-        # Configure the request options for the handle:
-        curl::handle_setopt(h_dep,
-                            # 1. customrequest = "POST" tells it to use POST method (not GET)
-                            customrequest = "POST",
-                            # 2. postfields = the data to send in the body, where
-                            #   toJSON converts an R list (dep_body) into JSON text &
-                            #    auto_unbox = TRUE prevents single values from becoming arrays
-                            postfields = jsonlite::toJSON(bodies[[ht]], auto_unbox = TRUE)
-        )
-        # Actually send the HTTP request to the API and store the raw response in memory
-        resp_raw <- curl::curl_fetch_memory(url, handle = h_dep)
-        # Convert the raw response into usable R data:
-        # 1. dep_resp_raw$content is raw bytes
-        # 2. rawToChar() converts those bytes into readable text (JSON string)
-        # 3. jsonlite::fromJSON() converts that JSON text into an R list/data frame
-        data <- jsonlite::fromJSON(rawToChar(resp_raw$content))
-        # then grab the data.frame from the API data
-        dat = data[[1]][[2]]
+        # fetch this table's records, retrying a dropped request
+        dat <- .wildobs_api_find(url, api_key, bodies[[ht]],
+                                 what = sprintf("the %s table", names(bodies)[ht]))
         # and save the object as the relevant name
         if(names(bodies)[ht] == "deployments"){  deps = dat}
         if(names(bodies)[ht] == "observations"){ obs = dat}
@@ -607,34 +612,12 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
             limit = batch_size
           )
 
-          ### Use curl to make the request (same pattern as other resources)
-          # Create a new curl handle for this batch
-          h_media <- curl::new_handle()
-          # Add HTTP headers (API key and content type)
-          curl::handle_setheaders(h_media,
-                                  "X-API-Key" = api_key,
-                                  "Content-Type" = "application/json"
-          )
-          # Configure POST request with the media_body data
-          curl::handle_setopt(h_media,
-                              customrequest = "POST",
-                              postfields = jsonlite::toJSON(media_body, auto_unbox = TRUE)
-          )
-
-          # Try the request safely
-          media_resp_raw <- try(curl::curl_fetch_memory(url, handle = h_media), silent = TRUE)
-
-          # If it failed, print a warning and stop
-          if (inherits(media_resp_raw, "try-error")) {
-            warning(paste("Request failed at batch starting from mediaID:", last_id))
-            break
-          }
-
-          # Convert the raw response into a dataframe using jsonlite
-          data_media <- jsonlite::fromJSON(rawToChar(media_resp_raw$content))
-
-          # Extract the actual media table from the nested list
-          media_part <- data_media[[1]][[2]]
+          # fetch this batch, retrying a dropped request so one failure does not lose the rest
+          media_part <- .wildobs_api_find(
+            url, api_key, media_body,
+            what = sprintf("media records after mediaID %s (%d already downloaded)",
+                           if (is.null(last_id)) "start" else last_id,
+                           sum(vapply(all_media, nrow, integer(1)))))
 
           # Stop if this batch is empty (means we reached the end)
           if (length(media_part) == 0) break
@@ -809,27 +792,28 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
     # Extract timezone from temporal metadata for proper datetime handling
     # Get timezone from temporal metadata to ensure all datetime columns use the correct local timezone
-    project_timezone <- if(!is.null(formatted_metadata[[proj]]$project_level_metadata$temporal[[1]]$timeZone)) {
-      formatted_metadata[[proj]]$project_level_metadata$temporal[[1]]$timeZone
+    project_timezone <- if(!is.null(formatted_metadata[[proj]]$project_level_metadata$temporal$timeZone)) {
+      formatted_metadata[[proj]]$project_level_metadata$temporal$timeZone
     } else {
       "UTC"  # Fallback to UTC if timezone not specified
     }
     if(is.na(project_timezone)){project_timezone = "UTC"} # default to UTC if NA is provided.
 
-    # but before we save, apply schemas to make sure were good!
-    # UPDATED: Pass timezone parameter to apply_schema_types for proper POSIXct datetime handling
-    obs_proj = suppressWarnings(WildObsR::apply_schema_types(obs_proj,
-                                                             formatted_metadata[[proj]]$observations_schema,
-                                                             timezone = project_timezone))
-    deps_proj = suppressWarnings(WildObsR::apply_schema_types(deps_proj,
-                                                              formatted_metadata[[proj]]$deployments_schema,
-                                                              timezone = project_timezone))
-    if(media){media_proj = suppressWarnings(WildObsR::apply_schema_types(media_proj,
-                                                                         formatted_metadata[[proj]]$media_schema,
-                                                                         timezone = project_timezone))}
-    cov_proj = suppressWarnings(WildObsR::apply_schema_types(cov_proj,
-                                                             formatted_metadata[[proj]]$covariates_schema,
-                                                             timezone = project_timezone))
+    ## but before we save, apply schemas to make sure were good!
+    ## warnings are left visible, so a column that fails to type is never hidden
+    # pass the project timezone so datetimes come back as local POSIXct
+    obs_proj = WildObsR::apply_schema_types(obs_proj,
+                                            formatted_metadata[[proj]]$observations_schema,
+                                            timezone = project_timezone)
+    deps_proj = WildObsR::apply_schema_types(deps_proj,
+                                             formatted_metadata[[proj]]$deployments_schema,
+                                             timezone = project_timezone)
+    if(media){media_proj = WildObsR::apply_schema_types(media_proj,
+                                                        formatted_metadata[[proj]]$media_schema,
+                                                        timezone = project_timezone)}
+    cov_proj = WildObsR::apply_schema_types(cov_proj,
+                                            formatted_metadata[[proj]]$covariates_schema,
+                                            timezone = project_timezone)
 
     ## now bundle into a frictionless DP
     # use metadata to create the DP
@@ -838,6 +822,17 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     # Add taxonomic info to the observations to match camtrapDP data class
     taxa = WildObsR::extract_metadata(dp, "taxonomic")
     taxa$DPID = NULL # dont need the ID
+    ## a taxon listed twice in the metadata would copy every one of its observations,
+    # so find any scientificName listed more than once
+    repeated_taxa <- unique(taxa$scientificName[duplicated(taxa$scientificName)])
+    if (length(repeated_taxa) > 0) {
+      # say which taxa, since their taxonID or rank may differ between the listings
+      warning(proj, " lists ", length(repeated_taxa), " taxa more than once in its taxonomic metadata: ",
+              paste(repeated_taxa, collapse = ", "),
+              ".\nwildobs_dp_download() keeps the first listing of each, so no observation is duplicated.")
+      # and keep only the first listing of each taxon
+      taxa <- taxa[!duplicated(taxa$scientificName), ]
+    } # end repeated taxa condition
     # and merge it with the observations
     obs_proj = dplyr::left_join(obs_proj, taxa, by = "scientificName")
 
@@ -862,14 +857,12 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
       for(i in 1:length(formatted_metadata[[proj]]$media_schema$fields)){
         col_order = c(col_order, formatted_metadata[[proj]]$media_schema$fields[[i]]$name)
       }
-      ## If we are pulling from the public MongoDB,
-      if(grepl("public", db)){
-        ## fileName has been removed to obscure sensitive species, but confirm its missing
-        if(! "fileName" %in% names(media_proj)){
-          # if missing, add an empty placeholder w/ NA values
-          media_proj[["fileName"]] <- NA
-        } # end missing filename condition
-      } # end public DB condition
+      ## the public MongoDB withholds fileName to protect sensitive species,
+      ## so whenever it is missing, add it back as an empty column on any route
+      if (!"fileName" %in% names(media_proj)) {
+        # add an empty placeholder, one NA per row, so the schema order still holds
+        media_proj[["fileName"]] <- rep(NA_character_, nrow(media_proj))
+      } # end missing filename condition
       ## re-order to match
       media_proj = media_proj[, col_order]
     }
@@ -959,4 +952,65 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
   # Now return the final list of data packages
   dp_list
 
+} # end function
+
+
+#' Send One Request to the WildObs API and Return Its Records
+#'
+#' @description Posts one find request to the WildObs API and returns the records
+#'   it holds. A request that fails, returns a non-200 status, or returns a body
+#'   without records is retried, pausing 2 then 4 seconds, because one dropped
+#'   request among the hundreds a large media download makes should not discard
+#'   the whole download. A rejected API key (401 or 403) is not retried, since
+#'   trying again cannot help.
+#' @param url Character. The API find endpoint.
+#' @param api_key Character. The user's WildObs API key.
+#' @param body List. The request body: collection, filter and any sort or limit.
+#' @param what Character. A short description of the request, used in the error.
+#' @param attempts Integer. How many times to try before giving up.
+#' @return The records returned by the API, usually a data frame. Stops with a
+#'   message naming the request, the HTTP status and the server's reason if every
+#'   attempt fails.
+#' @keywords internal
+.wildobs_api_find <- function(url, api_key, body, what, attempts = 3) {
+  # the reason the last attempt failed, reported if every attempt does
+  reason <- "no response"
+  # try the request up to the allowed number of times
+  for (attempt in seq_len(attempts)) {
+    # a fresh handle per attempt, carrying the key and the JSON body
+    h <- curl::new_handle()
+    curl::handle_setheaders(h, "X-API-Key" = api_key, "Content-Type" = "application/json")
+    curl::handle_setopt(h, customrequest = "POST",
+                        postfields = jsonlite::toJSON(body, auto_unbox = TRUE))
+    # send it, catching a dropped connection instead of failing outright
+    resp <- tryCatch(curl::curl_fetch_memory(url, handle = h), error = function(e) e)
+
+    ## a connection error never reached the server
+    if (inherits(resp, "error")) {
+      reason <- conditionMessage(resp)
+    } else {
+      # read the body as text, whatever the status
+      txt <- rawToChar(resp$content)
+      # and parse it, keeping NULL if it is not JSON
+      parsed <- tryCatch(jsonlite::fromJSON(txt), error = function(e) NULL)
+      ## a 200 with the usual [ {count, results}, status ] shape is a success
+      if (resp$status_code == 200 && is.list(parsed) && length(parsed) >= 1 &&
+          is.list(parsed[[1]]) && length(parsed[[1]]) >= 2) {
+        # hand back just the records
+        return(parsed[[1]][[2]])
+      } # end success condition
+      # otherwise keep the status and the server's own explanation, if it gave one
+      server_msg <- if (is.list(parsed) && !is.null(parsed$message)) parsed$message else substr(txt, 1, 200)
+      reason <- sprintf("HTTP %d: %s", resp$status_code, server_msg)
+      # a rejected key will be rejected again, so stop trying
+      if (resp$status_code %in% c(401, 403)) break
+    } # end response condition
+
+    # pause before the next attempt, a little longer each time
+    if (attempt < attempts) Sys.sleep(2^attempt)
+  } # end per attempt
+
+  # every attempt failed, so say which request and why
+  stop(sprintf("wildobs_dp_download() could not fetch %s from the WildObs API (%s).", what, reason),
+       "\nCheck your API key and internet connection, then try again.", call. = FALSE)
 } # end function

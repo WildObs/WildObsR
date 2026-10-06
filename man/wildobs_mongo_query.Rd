@@ -70,7 +70,8 @@ can access 'closed' data, but if admin credentials have not been provided,
 these preferences are returned.}
 }
 \value{
-A character vector of project IDs matching the specified criteria.
+A character vector of project IDs matching the specified criteria, or an
+empty character vector (\code{character(0)}), with a warning, if nothing matches.
 }
 \description{
 This function queries the WildObs MongoDB database for projects matching

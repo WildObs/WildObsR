@@ -18,6 +18,7 @@
 #'   \item \code{"boolean"}: Converts logical-like strings (e.g., 'TRUE', 'FALSE', 'T', 'F') to logical.
 #'   \item \code{"string"}: Converts to character, optionally factoring if an enum constraint is present.
 #'   \item \code{"factor"}: Converts to factor.
+#'   \item \code{"any"}: Left unchanged, since Frictionless allows any type (e.g. Camtrap DP's `exifData`).
 #' }
 #'
 #' If an unknown field type is encountered, a warning is issued.
@@ -38,27 +39,43 @@ apply_schema_types <- function(data, schema, timezone = "UTC") {
       if (col_type == "datetime") {
         # Use provided timezone parameter (from temporal metadata) for proper timezone handling
         tz <- timezone
+        # the cells that hold a value; empty cells stay NA whatever the format
+        has_value <- !is.na(data[[col_name]])
+
+        ## an empty column has nothing to parse, so give it the right empty type
+        if (!any(has_value)) {
+          data[[col_name]] <- as.POSIXct(rep(NA, nrow(data)), tz = tz)
+          next
+        } # end empty column condition
+
+        ## a missing format is not a parse instruction, so fall back to ISO 8601
+        if (is.null(col_format)) col_format <- "%Y-%m-%dT%H:%M:%S%z"
+
+        ## a parse has failed if nothing came back, or a real value came back NA
+        parse_failed <- function(p) is.null(p) || any(is.na(p[has_value]))
+
         # parse the date to posixct safely
         parsed <- tryCatch(
           as.POSIXct(data[[col_name]], format = col_format, tz = tz),
           error = function(e) NULL
         )
 
-        ## check for common formats if there are NA values in the conversion
-        if (any(is.na(parsed))) {
+        ## check for common formats if the declared format did not fit
+        if (parse_failed(parsed)) {
           common_formats <- c("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S%z")
           for (fmt in common_formats) {
             parsed <- tryCatch(as.POSIXct(data[[col_name]], format = fmt, tz = tz), error = function(e) NULL)
-            if (!any(is.na(parsed))) break
-          }
-        }
-        if (any(is.na(parsed))) {
+            if (!parse_failed(parsed)) break
+          } # end per format
+        } # end fallback condition
+
+        ## leave the column untouched rather than half-convert it
+        if (parse_failed(parsed)) {
           warning(paste("Failed to parse datetime for column:", col_name, "Please convert to common format (e.g., %Y-%m-%d %H:%M:%S)"))
         } else {
-          # UPDATED: Store as POSIXct instead of converting to character string
-          # This ensures proper date-time handling with timezone information
+          # store as POSIXct so date-times keep their timezone information
           data[[col_name]] <- parsed
-        }
+        } # end parse result condition
 
       } else if (col_type == "date") {
         # Try parsing date
@@ -90,6 +107,10 @@ apply_schema_types <- function(data, schema, timezone = "UTC") {
       } else if (col_type == "factor") {
         # Convert to factor
         data[[col_name]] <- as.factor(data[[col_name]])
+
+      } else if (col_type == "any") {
+        # frictionless "any" means the values can be of any type, so leave them as they are
+
 
       } else {
         warning(paste("Unknown field type:", col_type, "for column:", col_name))

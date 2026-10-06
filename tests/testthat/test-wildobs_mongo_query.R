@@ -74,7 +74,7 @@ test_that("wildobs_mongo_query returns character vector of project IDs", {
   result <- anchor_query()
 
   # the return is a plain character vector of ids, and every entry has to be a
-  # real id rather than the empty string the no-match path produces
+  # real, non-empty id
   expect_type(result, "character")
   expect_true(all(nzchar(result)))
 })
@@ -262,7 +262,7 @@ test_that("wildobs_mongo_query warns when requesting closed data without admin",
 ##
 ### The no-match contract ----
 
-test_that("wildobs_mongo_query warns and returns an empty string with no filters", {
+test_that("wildobs_mongo_query warns and returns an empty vector with no filters", {
   skip_if_no_wildobs_api()
 
   # with nothing to filter on, every branch contributes nothing, so the
@@ -272,14 +272,8 @@ test_that("wildobs_mongo_query warns and returns an empty string with no filters
     "no matches in our database"
   )
 
-  ## NOTE: "" is a questionable way to report "nothing matched". A caller
-  ## testing length(result) > 0 gets TRUE, and looping over it gives one turn
-  ## holding an empty string, so both are misled. character(0) is the correct
-  ## representation. Logged as a future change, not made now; this test pins
-  ## today's behaviour so that change shows up in a diff rather than silently.
-  expect_type(result, "character")
-  expect_length(result, 1)
-  expect_identical(result, "")
+  ## a genuinely empty vector, so length(result) > 0 is FALSE and loops never run
+  expect_identical(result, character(0))
 })
 
 test_that("wildobs_mongo_query warns when no matches found", {
@@ -288,8 +282,8 @@ test_that("wildobs_mongo_query warns when no matches found", {
   # a box in the Gulf of Guinea, where WildObs will never hold a camera
   spatial_query <- list(xmin = 0.0, xmax = 0.01, ymin = 0.0, ymax = 0.01)
 
-  # filters that match nothing land on the same empty-string sentinel as no
-  # filters at all, and warn for the same reason
+  # filters that match nothing land on the same empty result as no filters at
+  # all, and warn for the same reason
   expect_warning(
     result <- wildobs_mongo_query(
       api_key = test_api_key,
@@ -297,7 +291,7 @@ test_that("wildobs_mongo_query warns when no matches found", {
     ),
     "no matches in our database"
   )
-  expect_identical(result, "")
+  expect_identical(result, character(0))
 })
 
 test_that("wildobs_mongo_query treats an empty contributors vector as no filter", {
@@ -312,7 +306,7 @@ test_that("wildobs_mongo_query treats an empty contributors vector as no filter"
     ),
     "no matches in our database"
   )
-  expect_identical(result, "")
+  expect_identical(result, character(0))
 })
 
 
@@ -321,16 +315,18 @@ test_that("wildobs_mongo_query treats an empty contributors vector as no filter"
 ### Input validation and failure handling ----
 
 test_that("wildobs_mongo_query validates spatial parameter structure", {
-  skip_if_no_wildobs_api()
+  # checked before any network call, so no API key is needed
 
-  # a bounding box missing its latitude bounds
-  spatial_incomplete <- list(xmin = 145.0, xmax = 147.0)
-
-  ## no regexp here on purpose: an incomplete box currently fails inside
-  ## tibble's row subsetting, so that text belongs to another package and would
-  ## change under us. What matters is that it stops, not how it words it.
+  # a bounding box missing its latitude bounds names both of them
   expect_error(
-    wildobs_mongo_query(api_key = test_api_key, spatial = spatial_incomplete)
+    wildobs_mongo_query(api_key = "unused", spatial = list(xmin = 145.0, xmax = 147.0)),
+    "missing, or has non-numeric: ymin, ymax"
+  )
+  # a corner given as text is rejected too
+  expect_error(
+    wildobs_mongo_query(api_key = "unused",
+                        spatial = list(xmin = "145", xmax = 147, ymin = -29, ymax = -10)),
+    "non-numeric: xmin"
   )
 })
 

@@ -318,8 +318,13 @@ test_that("resample_covariates_and_observations preserves species information", 
 test_that("resample_covariates_and_observations includes obs_covs when provided", {
   covs <- create_test_covariates()
   obs <- create_test_observations()
+  ## merge obs covs from obs to covs
+  add <- dplyr::select(obs, deploymentID, baitUse, featureType)
+  covs2 <- merge(add, covs, by = "deploymentID")
 
-  result <- resample_covariates_and_observations(covs, obs, "sum", NULL, c("baitUse", "featureType"))
+  result <- resample_covariates_and_observations(covs = covs2, obs = obs, 
+                                                individuals = "sum", mode_cols_covs =  NULL, 
+                                                obs_covs = c("baitUse", "featureType"))
 
   resamp_obs <- result$spatially_resampled_observations$cellID_1km
 

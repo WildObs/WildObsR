@@ -8,9 +8,9 @@ create_test_dp <- function(id = "test_dp_001") {
       list(title = "John Doe", email = "john@example.com", role = "author"),
       list(title = "Jane Smith", email = "jane@example.com", role = "contributor")
     ),
+    # sources is an array of source objects, as Camtrap DP specifies
     sources = list(
-      title = "Test Data Source",
-      path = "https://example.com/data"
+      list(title = "Test Data Source", path = "https://example.com/data")
     ),
     licenses = list(list(name = "CC-BY-4.0",
                          scope = "data",
@@ -103,7 +103,10 @@ create_test_dp <- function(id = "test_dp_001") {
       start = "2022-01-08",
       end   = "2022-04-07"
     ),
-    timeZone = "Australia/Sydney"
+    timeZone = "Australia/Sydney",
+    # the package-level extent Camtrap DP requires
+    start = "2022-01-08",
+    end   = "2022-08-06"
   ),
     taxonomic = list(
       list(
@@ -188,12 +191,27 @@ test_that("extract_metadata handles list of objects (contributors)", {
   expect_true("role" %in% names(result))
 })
 
-test_that("extract_metadata handles flat object (sources)", {
+test_that("extract_metadata handles sources as an array of objects", {
   dp <- create_test_dp()
+  # add a second source so the array has more than one entry
+  dp$sources[[2]] <- list(title = "Second Source", email = "data@example.com")
 
   result <- extract_metadata(dp, elements = "sources")
 
-  # Should have one row for flat object
+  # one row per source, with keys missing from one source filled with NA
+  expect_equal(nrow(result), 2)
+  expect_true(all(c("title", "path", "email") %in% names(result)))
+  expect_true(is.na(result$path[2]))
+})
+
+test_that("extract_metadata still reads a legacy single-object sources", {
+  dp <- create_test_dp()
+  # packages saved by older WildObsR versions held one flat source object
+  dp$sources <- list(title = "Test Data Source", path = "https://example.com/data")
+
+  result <- extract_metadata(dp, elements = "sources")
+
+  # a flat object becomes a single row
   expect_equal(nrow(result), 1)
   expect_true("title" %in% names(result))
   expect_true("path" %in% names(result))
@@ -344,6 +362,88 @@ test_that("extract_metadata extracts temporal correctly", {
   expect_true("start" %in% names(result))
   expect_true("end" %in% names(result))
   expect_true("timeZone" %in% names(result))
+})
+
+### Temporal shapes (issue #137) ----
+
+test_that("extract_metadata temporal does not treat the package extent as a group", {
+  dp <- create_test_dp()
+
+  result <- extract_metadata(dp, elements = "temporal")
+
+  # only the three real deploymentGroups become rows
+  expect_equal(nrow(result), 3)
+  expect_false(any(c("start", "end", "timeZone") %in% result$deploymentGroup))
+  # the package extent rides along on every row
+  expect_equal(unique(result$packageStart), "2022-01-08")
+  expect_equal(unique(result$packageEnd), "2022-08-06")
+  expect_equal(unique(result$timeZone), "Australia/Sydney")
+})
+
+test_that("extract_metadata temporal reads a package without the extent", {
+  dp <- create_test_dp()
+  # drop the package-level extent to mimic an older package
+  dp$temporal$start <- NULL
+  dp$temporal$end <- NULL
+
+  result <- extract_metadata(dp, elements = "temporal")
+
+  # rows are unchanged and the new columns are NA
+  expect_equal(nrow(result), 3)
+  expect_true(all(is.na(result$packageStart)))
+  expect_true(all(is.na(result$packageEnd)))
+})
+
+test_that("extract_metadata temporal reads timeZone stored inside each group", {
+  dp <- create_test_dp()
+  # older wildobs_dp_download() output put timeZone in every group, not at the top
+  dp$temporal <- list(
+    depGroup1 = list(timeZone = "Australia/Brisbane", start = "2022-01-18", end = "2022-04-28"),
+    depGroup2 = list(timeZone = "Australia/Brisbane", start = "2022-04-28", end = "2022-08-06")
+  )
+
+  result <- extract_metadata(dp, elements = "temporal")
+
+  # both groups are rows and the timeZone is recovered from inside them
+  expect_equal(nrow(result), 2)
+  expect_equal(unique(result$timeZone), "Australia/Brisbane")
+  expect_equal(result$start, c("2022-01-18", "2022-04-28"))
+})
+
+test_that("extract_metadata temporal returns one NA row for an extent-only package", {
+  dp <- create_test_dp()
+  # no deploymentGroup blocks at all, only the package-level fields
+  dp$temporal <- list(start = "2022-01-08", end = "2022-08-06", timeZone = "Australia/Sydney")
+
+  result <- extract_metadata(dp, elements = "temporal")
+
+  expect_equal(nrow(result), 1)
+  expect_true(is.na(result$deploymentGroup))
+  expect_equal(result$packageStart, "2022-01-08")
+})
+
+test_that("extract_metadata temporal does not partial-match a group named like start", {
+  dp <- create_test_dp()
+  # a group whose name begins with "start" must not be confused with the extent
+  dp$temporal <- list(
+    start_2022 = list(start = "2022-01-18", end = "2022-04-28"),
+    timeZone = "Australia/Sydney"
+  )
+
+  result <- extract_metadata(dp, elements = "temporal")
+
+  expect_equal(result$deploymentGroup, "start_2022")
+  expect_equal(result$start, "2022-01-18")
+  expect_true(is.na(result$packageStart))
+})
+
+test_that("extract_metadata temporal skips an empty temporal block", {
+  dp <- create_test_dp()
+  dp$temporal <- list()
+
+  # an empty element is skipped rather than erroring
+  expect_no_error(result <- extract_metadata(dp, elements = c("temporal", "contributors")))
+  expect_false("temporal" %in% names(result))
 })
 
 test_that("extract_metadata extracts taxonomic correctly", {
