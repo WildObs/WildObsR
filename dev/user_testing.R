@@ -17,7 +17,7 @@ devtools::load_all()
 ## load other relevant libraries
 library(tidyverse)
 
-##### Data analysis workflow ####
+##### Data access workflow ####
 
 #
 ##
@@ -26,7 +26,8 @@ library(tidyverse)
 ### First, grab the DB connection string
 # db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
 # db_url <- Sys.getenv("MONGODB_PUB_ADMIN_URL")
-db_url <- Sys.getenv("MONGODB_LOCAL_RO_URL")
+# db_url <- Sys.getenv("MONGODB_LOCAL_RO_URL")
+# db_url <- Sys.getenv("MONGODB_DEV_RO_URL")
 
 ### First, grab the API key from R environ
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
@@ -52,7 +53,7 @@ contributors = c() #c("Zachry Amir", "Tom Bruce")
 tabularSharingPreference = c("open", "partial", "closed")
 
 ## Gather relevant project_ids using the mongo query function
-project_ids = wildobs_mongo_query(db_url = db_url, # api_key
+project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url
                                   temporal = temporal,
                                   spatial = spatial,
                                   taxonomic = taxonomic,
@@ -74,7 +75,7 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 # set media to FALSE to make a quicker download
 start = Sys.time()
 dp_list = wildobs_dp_download(api_key = api_key,# db_url = db_url,
-                              project_ids = project_ids, media = F,
+                              project_ids = project_ids, media = T,
                               metadata_only = F)
 end = Sys.time()
 
@@ -108,7 +109,13 @@ check = extract_metadata(dp_list, "sources") # working now!
 check = extract_metadata(dp_list, "project") # working now!
 check = extract_metadata(dp_list, "WildObsMetadata") # working now!
 check = extract_metadata(dp_list, "spatial") # working now!
-
+check = extract_metadata(dp_list, "temporal") # working w/ updated structure! 
+check = extract_metadata(dp_list, "licenses") # working 
+check = extract_metadata(dp_list, "relatedIdentifiers") # working
+check = extract_metadata(dp_list, "references") # working, but nothing present. 
+## check all at once to ensure no failure
+check = extract_metadata(dp_list) # all g
+rm(check)
 
 #
 ##
@@ -195,6 +202,32 @@ res <- wildobs_media_download(media_sub, out_dir = "~/Desktop/wi_test")
 res[, c("mediaID", "downloadStatus", "downloadNote", "localPath")] # seemingly good 
 table(res$downloadStatus)
 unique(res$downloadNote[res$downloadStatus == "failed"]) # only should be 404/3's 
+
+##### Change camtrapDP versions --------
+
+## we can "downgrade" the WildObs extensions to match canonical camtrapdp 
+canon <- as_camtrapdp(dp_list[[1]]) # test w/ defaults
+# inspect the dp 
+canon_dp <- canon$camtrapdp
+canon_dp #got the tables
+check <- frictionless::read_resource(canon_dp, "deployments")
+glimpse(check) #present! 
+
+# inspect what changes
+canon$report
+
+# inspect verification
+canon$validation
+
+## recheck by keeping covariates
+canon <- as_camtrapdp(dp_list[[1]], keep_covariates = TRUE)
+canon$camtrapdp # covs are present 
+test = frictionless::read_resource(canon$camtrapdp, "observations")
+glimpse(test) # it works! 
+
+## try saving as darwin Core
+# camtrapdp::write_dwc(canon$camtrapdp, directory = "~/Downloads/testing_dwc_datapackage/")
+# it works! 
 
 ##### Occupancy/Abundance modelling functions #####
 

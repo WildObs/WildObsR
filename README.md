@@ -50,23 +50,6 @@ To install a specific release rather than the current state of `main`:
 devtools::install_github("WildObs/WildObsR@v0.2.0")
 ```
 
-### Help Claude understand WildObs data
-
-If you use [Claude](https://claude.ai) to help with your analysis, WildObsR ships a
-skill that teaches it how WildObs data packages are structured: how the tables join,
-what each field means, why to filter out blank observations, and which analyses the
-data can and cannot support. Install it once:
-
-```r
-WildObsR::install_claude_skill()
-```
-
-This copies the `wildobsr-data` skill into `~/.claude/skills`, where Claude Code finds
-it in every project; start a new Claude Code session to use it. After updating
-WildObsR, run `install_claude_skill(overwrite = TRUE)` to get the matching version.
-The skill is plain documentation, with no code, so you can read it first at
-`system.file("claude-skills", "wildobsr-data", package = "WildObsR")`.
-
 ---
 
 ## Getting Database Access
@@ -173,6 +156,23 @@ observations <- frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022
 contributors <- extract_metadata(dp_list, "contributors")
 projects     <- extract_metadata(dp_list, "project")
 ```
+
+### Help Claude understand WildObs data
+
+If you use [Claude](https://claude.ai) to help with your analysis, WildObsR ships a
+skill that teaches it how WildObs data packages are structured: how the tables join,
+what each field means, why to filter out blank observations, and which analyses the
+data can and cannot support. Install it once:
+
+```r
+WildObsR::install_claude_skill()
+```
+
+This copies the `wildobsr-data` skill into `~/.claude/skills`, where Claude Code finds
+it in every project; start a new Claude Code session to use it. After updating
+WildObsR, run `install_claude_skill(overwrite = TRUE)` to get the matching version.
+The skill is plain documentation, with no code, so you can read it first at
+`system.file("claude-skills", "wildobsr-data", package = "WildObsR")`.
 
 ### Export to standard Camtrap DP
 

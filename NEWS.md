@@ -1,8 +1,8 @@
 # WildObsR 0.3.0
 
 The WildObs database now follows the Camtrap DP standard more closely, and
-earlier versions of WildObsR cannot read it: `wildobs_dp_download()` stops with
-`incorrect number of dimensions`. **Update WildObsR to download data again.**
+earlier versions of WildObsR cannot read the updated metadata: `wildobs_dp_download()` 
+stops with `incorrect number of dimensions`. **Update WildObsR to download data again.**
 
 ```r
 devtools::install_github("WildObs/WildObsR")
@@ -49,7 +49,7 @@ stops with a clear message when given no IDs, including the old `""` (#129).
 ## New
 
 - `as_camtrapdp()` converts a WildObs data package to canonical Camtrap DP 1.0.2 (or
-  1.0.1), so it works with the camtrapdp package, including `camtrapdp::write_dwc()`
+  1.0.1), so it works with the `camtrapdp` R package, including `camtrapdp::write_dwc()`
   for GBIF. It removes every WildObs addition, read from the official Camtrap DP
   profiles vendored in the package rather than a fixed list, and returns a report of
   every change and the result of validating it (#113). Its `camtrapdp` element is
