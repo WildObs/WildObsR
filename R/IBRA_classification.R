@@ -92,8 +92,9 @@ ibra_classification = function(data, lat_col, long_col) {
 
   ## and merge w/ data_sp
   # but make sure its safe!
-  if(length(setdiff(result2$ID, data_sp$ID) +
-     setdiff(data_sp$ID, result2$ID)) == 0){
+  # count IDs missing from either side, since a location dropped by the join must stop here
+  if(length(setdiff(result2$ID, data_sp$ID)) +
+     length(setdiff(data_sp$ID, result2$ID)) == 0){
     dat_sp_bioregion = merge(result2, data_sp, by = "ID")
   }else{
     stop("Not all locations were found in IBRA shapefile, please inspect this data manually.")
