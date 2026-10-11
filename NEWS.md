@@ -1,3 +1,11 @@
+# WildObsR (development version)
+
+- `matrix_generator()` uses non-overlapping sampling occasions and retains the
+  final day and partial occasion. Detection and observation covariate matrices
+  use the same windows (#140). This changes results previously affected by
+  duplicated boundary days or omitted final days; regenerate downstream effort
+  matrices that mirrored the old windows.
+
 # WildObsR 0.3.0
 
 The WildObs database now follows the Camtrap DP standard more closely, and
