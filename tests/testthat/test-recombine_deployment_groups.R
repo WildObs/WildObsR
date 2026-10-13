@@ -195,6 +195,38 @@ test_that("recombine_deployment_groups errors on an invalid max_gap_days", {
   expect_error(recombine_deployment_groups(dp, max_gap_days = "30"), "invalid max_gap_days")
 })
 
+## rebuild the test package with a deploymentTags column, one tag string per piece
+## (S1_a, S1_b, S1_c ran 100, 100 and 90 days; S2's cameras share one string)
+make_tagged_dp <- function(s1_tags, s2_tags = "lure: none") {
+  deps <- frictionless::read_resource(make_recombine_dp(), "deployments")
+  deps$deploymentTags <- c(s1_tags, s2_tags, s2_tags)
+  dp <- frictionless::create_package()
+  dp$id <- "tagged_dp"
+  frictionless::add_resource(dp, "deployments", data = deps)
+} # end make_tagged_dp
+
+test_that("recombine_deployment_groups keeps each tag once and drops placeholders", {
+  dp <- make_tagged_dp(c("deploymentStrategy: drift fence | lure: none",
+                         "deploymentStrategy: unspecified | lure: none",
+                         "deploymentStrategy: Unspecified | lure: none | predatorManagement: unknown"))
+  deps <- frictionless::read_resource(recombine_deployment_groups(dp), "deployments")
+
+  # unspecified covers more time but is a placeholder, so the real value wins;
+  # repeated lure: none collapses; a key with only a placeholder keeps it
+  expect_equal(deps$deploymentTags[deps$deploymentID == "S1_ms1"],
+               "deploymentStrategy: drift fence | lure: none | predatorManagement: unknown")
+  # identical tags are left as they are
+  expect_equal(deps$deploymentTags[deps$deploymentID == "S2_ms1_Cam1"], "lure: none")
+})
+
+test_that("recombine_deployment_groups keeps the tag value covering the most time", {
+  dp <- make_tagged_dp(c("lure: none", "lure: fish", "lure:fish"))
+  deps <- frictionless::read_resource(recombine_deployment_groups(dp), "deployments")
+
+  # fish ran 190 days against 100 for none; spacing differences count as one value
+  expect_equal(deps$deploymentTags[deps$deploymentID == "S1_ms1"], "lure: fish")
+})
+
 test_that("recombine_deployment_groups numbers multi-season groups in time order", {
   dp <- make_recombine_dp()
   deps <- frictionless::read_resource(dp, "deployments")

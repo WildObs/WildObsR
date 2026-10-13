@@ -78,7 +78,11 @@ for integer columns;
 \item logical columns are \code{TRUE} if any piece is \code{TRUE};
 \item factor columns (controlled vocabularies such as \code{featureType}) take
 the value that covers the most time, so they stay inside their vocabulary;
-\item character columns list the distinct values, separated by \code{" | "}.
+\item \code{deploymentTags} keeps each \code{key: value} pair once. Where pieces
+disagree on a key, placeholder values (\code{unspecified}, \code{unknown},
+\code{-}, \code{NA} or empty, ignoring case) are dropped if a real value exists,
+then the value that covers the most time is kept, so every key appears once;
+\item other character columns list the distinct values, separated by \code{" | "}.
 }
 
 The new \code{deploymentStart}/\code{deploymentEnd} span includes any gaps of up

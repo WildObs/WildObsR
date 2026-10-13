@@ -43,7 +43,11 @@
 #'   \item logical columns are \code{TRUE} if any piece is \code{TRUE};
 #'   \item factor columns (controlled vocabularies such as \code{featureType}) take
 #'   the value that covers the most time, so they stay inside their vocabulary;
-#'   \item character columns list the distinct values, separated by \code{" | "}.
+#'   \item \code{deploymentTags} keeps each \code{key: value} pair once. Where pieces
+#'   disagree on a key, placeholder values (\code{unspecified}, \code{unknown},
+#'   \code{-}, \code{NA} or empty, ignoring case) are dropped if a real value exists,
+#'   then the value that covers the most time is kept, so every key appears once;
+#'   \item other character columns list the distinct values, separated by \code{" | "}.
 #' }
 #'
 #' The new \code{deploymentStart}/\code{deploymentEnd} span includes any gaps of up
@@ -325,6 +329,8 @@ recombine_deployment_groups <- function(dp, max_gap_days = 30) {
     if (is.logical(v)) return(any(v, na.rm = TRUE))
     # controlled vocabularies take the value that covers the most time
     if (is.factor(v)) return(v[which.max(tapply(w, v, sum)[as.character(v)])])
+    # tags are key: value pairs, so each key keeps a single value
+    if (col == "deploymentTags") return(.merge_tags(as.character(v), w))
     # free text keeps every distinct value, collapsed together
     return(paste(sort(unique(stats::na.omit(as.character(v)))), collapse = " | "))
   } # end merge_values
@@ -343,6 +349,71 @@ recombine_deployment_groups <- function(dp, max_gap_days = 30) {
   return(as.data.frame(out))
 
 } # end .collapse_pieces
+
+
+#' Merge the deploymentTags of several pieces into one tag string
+#'
+#' @param tags character vector, one pipe-delimited \code{key: value} string per piece.
+#' @param w numeric vector, the days each piece ran.
+#' @return a single tag string holding each key once, in the order keys first appear.
+#'   Placeholder values only survive when a key has no real value; among real
+#'   values the one covering the most time wins, ties going to the earliest piece.
+#' @noRd
+.merge_tags <- function(tags, w) {
+
+  ## values that mean "not recorded", checked ignoring case
+  ## agreed from a scan of PROD deploymentTags; none, nil, no and 0 are real values
+  placeholders <- c("unspecified", "unknown", "-", "na", "")
+
+  # init an empty table of pairs
+  pairs <- NULL
+  # for each piece's tag string
+  for (i in seq_along(tags)) {
+    # pieces without tags add nothing
+    if (is.na(tags[i])) next
+    # split into key: value pairs, the same way extract_tags() does
+    p <- trimws(strsplit(tags[i], " | ", fixed = TRUE)[[1]])
+    # drop blanks left by trailing delimiters
+    p <- p[p != ""]
+    # find the first colon, which separates key from value
+    colon <- regexpr(":", p, fixed = TRUE)
+    # and save one row per pair, carrying this piece's duration
+    pairs <- rbind(pairs, data.frame(
+      # malformed pairs with no colon act as their own key
+      key = ifelse(colon > 0, trimws(substr(p, 1, colon - 1)), p),
+      value = ifelse(colon > 0, trimws(substring(p, colon + 1)), NA_character_),
+      # the pair exactly as written, which is what gets kept
+      raw = p,
+      w = rep(w[i], length(p)),
+      stringsAsFactors = FALSE
+    ))
+  } # end per piece
+
+  # if no piece had any tags, the run has none either
+  if (is.null(pairs) || nrow(pairs) == 0) return(NA_character_)
+
+  ## pick one pair per key
+  kept <- vapply(unique(pairs$key), function(k) {
+    # every pair for this key, in piece order
+    kp <- pairs[pairs$key == k, ]
+    # flag placeholder values
+    is_ph <- is.na(kp$value) | tolower(kp$value) %in% placeholders
+    # placeholders only survive when nothing real was recorded
+    if (any(!is_ph)) kp <- kp[!is_ph, ]
+    # compare values by their text, so "lure:none" and "lure: none" count together
+    val <- ifelse(is.na(kp$value), kp$raw, kp$value)
+    # total days each value covers
+    days <- tapply(kp$w, val, sum)
+    # the value covering the most time, ties going to the earliest piece
+    best <- names(days)[days == max(days)]
+    # and keep that pair as first written
+    kp$raw[val %in% best][1]
+  }, character(1))
+
+  # rebuild a single tag string
+  return(paste(kept, collapse = " | "))
+
+} # end .merge_tags
 
 
 #' Replace the deploymentGroups blocks of temporal metadata with multi-season blocks
