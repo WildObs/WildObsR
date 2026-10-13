@@ -227,6 +227,48 @@ test_that("recombine_deployment_groups keeps the tag value covering the most tim
   expect_equal(deps$deploymentTags[deps$deploymentID == "S1_ms1"], "lure: fish")
 })
 
+test_that("recombine_deployment_groups keeps NAs and date-time classes", {
+  deps <- frictionless::read_resource(make_recombine_dp(), "deployments")
+  # a logical and a text column missing on every piece
+  deps$baitUse <- NA
+  deps$habitat <- NA_character_
+  # a date-time column that differs by piece, in a non-UTC time zone
+  deps$checkDate <- as.POSIXct(c("2020-02-01 10:00", "2020-05-01 10:00", "2020-08-01 10:00",
+                                 "2020-01-20 10:00", "2020-01-20 10:00"),
+                               tz = "Australia/Brisbane")
+  dp <- frictionless::create_package()
+  dp$id <- "na_dp"
+  dp <- frictionless::add_resource(dp, "deployments", data = deps)
+
+  out <- frictionless::read_resource(recombine_deployment_groups(dp), "deployments")
+  s1 <- out[out$deploymentID == "S1_ms1", ]
+
+  # missing stays missing, not FALSE or ""
+  expect_true(is.na(s1$baitUse))
+  expect_true(is.na(s1$habitat))
+  # the date-time stays a date-time and takes a piece's value (S1_a and S1_b tie
+  # on 100 days, so the earliest wins)
+  expect_s3_class(out$checkDate, "POSIXct")
+  expect_equal(format(s1$checkDate, tz = "Australia/Brisbane"), "2020-02-01 10:00:00")
+})
+
+test_that("recombine_deployment_groups refreshes the dp$data copy", {
+  dp <- make_recombine_dp(with_media = FALSE)
+  # the copy wildobs_dp_download() adds, with an empty media table
+  dp$data <- list(deployments = frictionless::read_resource(dp, "deployments"),
+                  observations = frictionless::read_resource(dp, "observations"),
+                  covariates = frictionless::read_resource(dp, "covariates"),
+                  media = data.frame())
+  out <- recombine_deployment_groups(dp)
+
+  # every table with a resource matches it
+  for (r in c("deployments", "observations", "covariates")) {
+    expect_equal(out$data[[r]], frictionless::read_resource(out, r))
+  }
+  # the empty media table is left alone
+  expect_equal(nrow(out$data$media), 0)
+})
+
 test_that("recombine_deployment_groups numbers multi-season groups in time order", {
   dp <- make_recombine_dp()
   deps <- frictionless::read_resource(dp, "deployments")

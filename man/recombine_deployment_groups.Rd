@@ -29,15 +29,17 @@ The same data package with:
 \code{multiSeason_deploymentGroup};
 \item a new \code{deployment_crosswalk} resource with one row per original
 piece: \code{original_deploymentID}, \code{deploymentID} (the new one),
-\code{original_deploymentGroups}, \code{pieceStart} and \code{pieceEnd}.
+\code{original_deploymentGroups}, \code{pieceStart} and \code{pieceEnd};
+\item \code{dp$data}, the in-memory copy of the tables that
+\code{\link{wildobs_dp_download}} adds, refreshed to match the resources.
 }
 Stops if \code{max_gap_days} is not a single non-negative number, if a required
 resource or column is missing, or if observations or media
 hold a \code{deploymentID} that is not in the deployments.
 }
 \description{
-The WildObs curation pipeline splits long camera deployments into pieces of at
-most 100 days, so each piece fits inside a single-season survey
+The WildObs data curation pipeline splits long camera deployments into pieces
+of at most 100 days, so each piece fits inside a single-season survey
 (\code{deploymentGroups}). Long-term analyses (multi-season occupancy models,
 Living Planet Index style trends, the Threatened Species Index) want the
 opposite: one deployment per camera for as long as it ran without a break.
@@ -51,7 +53,7 @@ present, media) is updated together and stays joinable, and the package's
 \code{temporal} metadata describes the same survey groups as its data.
 }
 \details{
-Pieces are chained in three steps:
+100-day deployments (i.e., pieces) are chained in three steps:
 \enumerate{
 \item Pieces are grouped by \code{locationID}, \code{multiSeason_deploymentGroup}
 and the \code{_CamN} suffix that the camDB pipeline appends to \code{deploymentID}
@@ -69,7 +71,7 @@ multi-season groups at that station in time.
 }
 
 Columns are merged across the pieces of a chain as follows. A value shared by
-every piece is kept as is. Otherwise:
+every piece is kept as is, including \code{NA}. Otherwise:
 \itemize{
 \item \code{deploymentStart} takes the earliest piece start and
 \code{deploymentEnd} the latest piece end;
@@ -78,6 +80,8 @@ for integer columns;
 \item logical columns are \code{TRUE} if any piece is \code{TRUE};
 \item factor columns (controlled vocabularies such as \code{featureType}) take
 the value that covers the most time, so they stay inside their vocabulary;
+\item other date and date-time columns also take the value that covers the most
+time, keeping their class and time zone;
 \item \code{deploymentTags} keeps each \code{key: value} pair once. Where pieces
 disagree on a key, placeholder values (\code{unspecified}, \code{unknown},
 \code{-}, \code{NA} or empty, ignoring case) are dropped if a real value exists,
@@ -105,7 +109,7 @@ frictionless::read_resource(long_dp, "deployment_crosswalk")
 
 }
 \seealso{
-\code{\link{survey_and_deployment_generator}}, which creates the pieces
+\code{\link{survey_and_deployment_generator}}, which creates the 100-day deployments.
 }
 \author{
 Zachary Amir & Claude Opus 5.5
