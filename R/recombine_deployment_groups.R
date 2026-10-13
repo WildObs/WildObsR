@@ -415,3 +415,10 @@ recombine_deployment_groups <- function(dp) {
   return(dp)
 
 } # end .replace_resource
+
+
+## column names used inside the dplyr verbs above, declared so R CMD check
+## doesn't mistake them for undefined variables
+utils::globalVariables(c("locationID", "multiSeason_deploymentGroup", "deploymentID",
+                         "deploymentStart", "deploymentEnd", "start", "end",
+                         "..ms_start", "..cam", "..overlap", "..w"))
