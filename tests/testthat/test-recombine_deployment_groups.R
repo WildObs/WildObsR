@@ -153,6 +153,48 @@ test_that("recombine_deployment_groups splits overlapping pieces and warns", {
   expect_true(any(grepl("_part2$", new_ids)))
 })
 
+## add a fourth S1 piece in the same multi-season group, starting a year after S1_c ended
+add_late_piece <- function(dp) {
+  deps <- frictionless::read_resource(dp, "deployments")
+  late <- deps[deps$deploymentID == "S1_c", ]
+  late$deploymentID <- "S1_d"
+  late$deploymentStart <- late$deploymentEnd + 86400 * 365
+  late$deploymentEnd <- late$deploymentStart + 86400 * 60
+  .replace_resource(dp, "deployments", rbind(deps, late))
+} # end add_late_piece
+
+test_that("recombine_deployment_groups splits runs at gaps longer than max_gap_days", {
+  dp <- add_late_piece(make_recombine_dp(with_covariates = FALSE))
+
+  # a long gap is expected, so it splits without warning
+  expect_no_warning(out <- recombine_deployment_groups(dp))
+  cw <- frictionless::read_resource(out, "deployment_crosswalk")
+
+  # the first three pieces stay together, the late one becomes part 2
+  expect_equal(unique(cw$deploymentID[cw$original_deploymentID %in% c("S1_a", "S1_b", "S1_c")]),
+               "S1_ms1")
+  expect_equal(cw$deploymentID[cw$original_deploymentID == "S1_d"], "S1_ms1_part2")
+
+  # the 10 day gap between S1_b and S1_c is under the default, so it never splits
+  expect_false(any(grepl("_part3$", cw$deploymentID)))
+})
+
+test_that("recombine_deployment_groups keeps runs together under a larger max_gap_days", {
+  dp <- add_late_piece(make_recombine_dp(with_covariates = FALSE))
+  out <- recombine_deployment_groups(dp, max_gap_days = 400)
+  cw <- frictionless::read_resource(out, "deployment_crosswalk")
+
+  # all four S1 pieces form one run
+  expect_equal(unique(cw$deploymentID[grepl("^S1_", cw$original_deploymentID)]), "S1_ms1")
+})
+
+test_that("recombine_deployment_groups errors on an invalid max_gap_days", {
+  dp <- make_recombine_dp()
+  expect_error(recombine_deployment_groups(dp, max_gap_days = -1), "invalid max_gap_days")
+  expect_error(recombine_deployment_groups(dp, max_gap_days = c(10, 20)), "invalid max_gap_days")
+  expect_error(recombine_deployment_groups(dp, max_gap_days = "30"), "invalid max_gap_days")
+})
+
 test_that("recombine_deployment_groups numbers multi-season groups in time order", {
   dp <- make_recombine_dp()
   deps <- frictionless::read_resource(dp, "deployments")

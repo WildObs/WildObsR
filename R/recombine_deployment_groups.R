@@ -22,9 +22,12 @@
 #'   and the \code{_CamN} suffix that the camDB pipeline appends to \code{deploymentID}
 #'   when one station holds several cameras in the same survey (e.g. a lured and an
 #'   unlured camera).
-#'   \item Within a group, pieces are ordered by \code{deploymentStart}. A piece that
-#'   starts before the previous one ended cannot be the same camera, so it starts a
-#'   new chain and a warning names it.
+#'   \item Within a group, pieces are ordered by \code{deploymentStart}. A piece starts
+#'   a new chain when it begins more than \code{max_gap_days} after the previous piece
+#'   ended, because the 30-day rule behind \code{multiSeason_deploymentGroup} applies
+#'   to the whole \code{locationName}, so a single station can sit idle for much
+#'   longer inside one group. A piece that starts before the previous one ended
+#'   cannot be the same camera, so it also starts a new chain and a warning names it.
 #'   \item Each chain becomes one deployment named
 #'   \code{<locationID>_ms<N>[_CamN][_partN]}, where \code{N} orders the
 #'   multi-season groups at that station in time.
@@ -44,7 +47,7 @@
 #' }
 #'
 #' The new \code{deploymentStart}/\code{deploymentEnd} span includes any gaps of up
-#' to 30 days between pieces. Calculate sampling effort from \code{pieceStart} and
+#' to \code{max_gap_days} between pieces. Calculate sampling effort from \code{pieceStart} and
 #' \code{pieceEnd} in \code{deployment_crosswalk}, not from the recombined span.
 #' \code{observationID} and \code{eventID} are left unchanged; they remain unique.
 #'
@@ -59,6 +62,10 @@
 #' resource. The deployments must include \code{deploymentID}, \code{locationID},
 #' \code{deploymentStart}, \code{deploymentEnd}, \code{deploymentGroups} and
 #' \code{multiSeason_deploymentGroup}.
+#' @param max_gap_days Numeric. The longest gap, in days, allowed between one piece
+#' ending and the next starting at the same camera before the run is split into a
+#' new \code{_partN} deployment. Defaults to 30, matching the gap that separates
+#' multi-season groups.
 #'
 #' @return The same data package with:
 #' \itemize{
@@ -72,7 +79,8 @@
 #'   piece: \code{original_deploymentID}, \code{deploymentID} (the new one),
 #'   \code{original_deploymentGroups}, \code{pieceStart} and \code{pieceEnd}.
 #' }
-#' Stops if a required resource or column is missing, or if observations or media
+#' Stops if \code{max_gap_days} is not a single non-negative number, if a required
+#' resource or column is missing, or if observations or media
 #' hold a \code{deploymentID} that is not in the deployments.
 #'
 #' @examples
@@ -91,12 +99,20 @@
 #' @importFrom stats setNames weighted.mean na.omit
 #' @importFrom utils head
 #' @export
-recombine_deployment_groups <- function(dp) {
+recombine_deployment_groups <- function(dp, max_gap_days = 30) {
 
 
   #
   ##
   ### Make sure the package holds what the chaining relies on ----
+
+  # the gap threshold must be one usable number of days
+  if (!is.numeric(max_gap_days) || length(max_gap_days) != 1 || is.na(max_gap_days) ||
+      max_gap_days < 0) {
+    # so hard stop and say what it should look like
+    stop(dp$id, " was given an invalid max_gap_days in recombine_deployment_groups().\n",
+         "Provide a single non-negative number of days, e.g. max_gap_days = 30.")
+  } # end max_gap_days condition
 
   # the deployments resource is the one thing we cannot work without
   if (!"deployments" %in% frictionless::resource_names(dp)) {
@@ -157,11 +173,16 @@ recombine_deployment_groups <- function(dp) {
     # put them in time order
     dplyr::arrange(deploymentStart, .by_group = TRUE) |>
     dplyr::mutate(
+      # the latest end among the earlier pieces of this camera (NA for the first piece)
+      ..prev_end = dplyr::lag(cummax(as.numeric(deploymentEnd))),
       # flag pieces that start before an earlier piece of this camera has ended
-      ..overlap = as.numeric(deploymentStart) < dplyr::lag(cummax(as.numeric(deploymentEnd)),
-                                                           default = -Inf),
-      # every overlap opens a new part, so no chain ever runs two cameras at once
-      ..part = cumsum(..overlap) + 1
+      ..overlap = !is.na(..prev_end) & as.numeric(deploymentStart) < ..prev_end,
+      # flag pieces that start too long after the camera last stopped
+      ..gap = !is.na(..prev_end) &
+        as.numeric(deploymentStart) - ..prev_end > max_gap_days * 86400,
+      # every overlap or long gap opens a new part, so no chain runs two cameras at once
+      # or spans a long idle period
+      ..part = cumsum(..overlap | ..gap) + 1
     ) |>
     # drop the grouping
     dplyr::ungroup()
@@ -421,4 +442,4 @@ recombine_deployment_groups <- function(dp) {
 ## doesn't mistake them for undefined variables
 utils::globalVariables(c("locationID", "multiSeason_deploymentGroup", "deploymentID",
                          "deploymentStart", "deploymentEnd", "start", "end",
-                         "..ms_start", "..cam", "..overlap", "..w"))
+                         "..ms_start", "..cam", "..prev_end", "..overlap", "..gap", "..w"))

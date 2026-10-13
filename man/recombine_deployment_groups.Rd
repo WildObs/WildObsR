@@ -4,7 +4,7 @@
 \alias{recombine_deployment_groups}
 \title{Recombine 100-Day Deployments Into Continuous Long-Term Deployments}
 \usage{
-recombine_deployment_groups(dp)
+recombine_deployment_groups(dp, max_gap_days = 30)
 }
 \arguments{
 \item{dp}{A WildObs camtrap data package, as returned by
@@ -12,6 +12,11 @@ recombine_deployment_groups(dp)
 resource. The deployments must include \code{deploymentID}, \code{locationID},
 \code{deploymentStart}, \code{deploymentEnd}, \code{deploymentGroups} and
 \code{multiSeason_deploymentGroup}.}
+
+\item{max_gap_days}{Numeric. The longest gap, in days, allowed between one piece
+ending and the next starting at the same camera before the run is split into a
+new \code{_partN} deployment. Defaults to 30, matching the gap that separates
+multi-season groups.}
 }
 \value{
 The same data package with:
@@ -26,7 +31,8 @@ The same data package with:
 piece: \code{original_deploymentID}, \code{deploymentID} (the new one),
 \code{original_deploymentGroups}, \code{pieceStart} and \code{pieceEnd}.
 }
-Stops if a required resource or column is missing, or if observations or media
+Stops if \code{max_gap_days} is not a single non-negative number, if a required
+resource or column is missing, or if observations or media
 hold a \code{deploymentID} that is not in the deployments.
 }
 \description{
@@ -51,9 +57,12 @@ Pieces are chained in three steps:
 and the \code{_CamN} suffix that the camDB pipeline appends to \code{deploymentID}
 when one station holds several cameras in the same survey (e.g. a lured and an
 unlured camera).
-\item Within a group, pieces are ordered by \code{deploymentStart}. A piece that
-starts before the previous one ended cannot be the same camera, so it starts a
-new chain and a warning names it.
+\item Within a group, pieces are ordered by \code{deploymentStart}. A piece starts
+a new chain when it begins more than \code{max_gap_days} after the previous piece
+ended, because the 30-day rule behind \code{multiSeason_deploymentGroup} applies
+to the whole \code{locationName}, so a single station can sit idle for much
+longer inside one group. A piece that starts before the previous one ended
+cannot be the same camera, so it also starts a new chain and a warning names it.
 \item Each chain becomes one deployment named
 \code{<locationID>_ms<N>[_CamN][_partN]}, where \code{N} orders the
 multi-season groups at that station in time.
@@ -73,7 +82,7 @@ the value that covers the most time, so they stay inside their vocabulary;
 }
 
 The new \code{deploymentStart}/\code{deploymentEnd} span includes any gaps of up
-to 30 days between pieces. Calculate sampling effort from \code{pieceStart} and
+to \code{max_gap_days} between pieces. Calculate sampling effort from \code{pieceStart} and
 \code{pieceEnd} in \code{deployment_crosswalk}, not from the recombined span.
 \code{observationID} and \code{eventID} are left unchanged; they remain unique.
 
