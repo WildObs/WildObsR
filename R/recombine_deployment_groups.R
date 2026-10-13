@@ -27,7 +27,8 @@
 #'   ended, because the 30-day rule behind \code{multiSeason_deploymentGroup} applies
 #'   to the whole \code{locationName}, so a single station can sit idle for much
 #'   longer inside one group. A piece that starts before the previous one ended
-#'   cannot be the same camera, so it also starts a new chain and a warning names it.
+#'   cannot be the same camera, so the function stops and names it; the cameras need
+#'   relabelling in curation before the package can be recombined.
 #'   \item Each chain becomes one deployment named
 #'   \code{<locationID>_ms<N>[_CamN][_partN]}, where \code{N} orders the
 #'   multi-season groups at that station in time.
@@ -78,7 +79,9 @@
 #'   \item one \code{deployments} row per continuous camera run, with
 #'   \code{deploymentGroups} replaced by its \code{multiSeason_deploymentGroup};
 #'   \item \code{covariates} collapsed to match the new deployments;
-#'   \item \code{deploymentID} remapped in \code{observations} and \code{media};
+#'   \item \code{deploymentID} remapped in \code{observations} and \code{media},
+#'   except obscured threatened-species rows (\code{obscured_for_<category>_species}),
+#'   which have no camera and are kept unchanged with a message;
 #'   \item \code{temporal} metadata holding one block per
 #'   \code{multiSeason_deploymentGroup};
 #'   \item a new \code{deployment_crosswalk} resource with one row per original
@@ -88,8 +91,9 @@
 #'   \code{\link{wildobs_dp_download}} adds, refreshed to match the resources.
 #' }
 #' Stops if \code{max_gap_days} is not a single non-negative number, if a required
-#' resource or column is missing, or if observations or media
-#' hold a \code{deploymentID} that is not in the deployments.
+#' resource or column is missing, if two pieces of the same camera overlap in time,
+#' or if observations or media hold a \code{deploymentID} (other than an obscured
+#' placeholder) that is not in the deployments.
 #'
 #' @examples
 #' \dontrun{
@@ -188,21 +192,20 @@ recombine_deployment_groups <- function(dp, max_gap_days = 30) {
       # flag pieces that start too long after the camera last stopped
       ..gap = !is.na(..prev_end) &
         as.numeric(deploymentStart) - ..prev_end > max_gap_days * 86400,
-      # every overlap or long gap opens a new part, so no chain runs two cameras at once
-      # or spans a long idle period
-      ..part = cumsum(..overlap | ..gap) + 1
+      # every long gap opens a new part, so no chain spans a long idle period
+      ..part = cumsum(..gap) + 1
     ) |>
     # drop the grouping
     dplyr::ungroup()
 
-  # the _CamN suffix should prevent overlaps, so name any pieces that had to be split off
+  # one camera cant run two pieces at once, so overlaps mean mislabelled cameras
   if (any(deps$..overlap)) {
-    warning(sprintf("%s has %d deployment(s) overlapping an earlier piece of the same camera: %s.\n",
-                    dp$id, sum(deps$..overlap),
-                    paste(deps$deploymentID[deps$..overlap], collapse = ", ")),
-            "They were kept as separate long deployments (suffix _partN). ",
-            "Check these deployments for duplicated or mislabelled cameras.")
-  } # end overlap warning
+    # hard stop naming the first few, since the chains would be wrong
+    stop(sprintf("%s has %d deployment(s) overlapping an earlier piece of the same camera in recombine_deployment_groups(): %s.\n",
+                 dp$id, sum(deps$..overlap),
+                 paste(utils::head(deps$deploymentID[deps$..overlap], 5), collapse = ", ")),
+         "Check these deployments for duplicated or mislabelled cameras and fix them in curation.")
+  } # end overlap condition
 
   ## name each chain <locationID>_ms<N>, then the camera and part only where needed
   deps$..new_id <- paste0(deps$locationID, "_ms", deps$..ms_n,
@@ -264,16 +267,25 @@ recombine_deployment_groups <- function(dp, max_gap_days = 30) {
   for (r in intersect(c("observations", "media"), frictionless::resource_names(dp))) {
     # grab the resource
     x <- frictionless::read_resource(dp, r)
-    # find any deploymentID without a matching deployment
-    unknown <- setdiff(unique(x$deploymentID), names(id_map))
+    ## threatened-species records are obscured for public users and carry a
+    ## placeholder (obscured_for_<category>_species) instead of a real deploymentID
+    obscured <- grepl("^obscured_for_", x$deploymentID)
+    # find any other deploymentID without a matching deployment
+    unknown <- setdiff(unique(x$deploymentID[!obscured]), names(id_map))
     # those records would silently lose their deployment, so hard stop
     if (length(unknown) > 0) {
       stop(sprintf("%s %s has %d deploymentID(s) missing from deployments in recombine_deployment_groups(): %s.\n",
                    dp$id, r, length(unknown), paste(utils::head(unknown, 5), collapse = ", ")),
            "The package's resources do not join; re-download it before recombining.")
     } # end unknown deploymentID condition
-    # point every record at its long deployment
-    x$deploymentID <- unname(id_map[x$deploymentID])
+    # point every other record at its long deployment
+    x$deploymentID[!obscured] <- unname(id_map[x$deploymentID[!obscured]])
+    # say how many obscured records were left as supplied
+    if (any(obscured)) {
+      message(sprintf("%s: %d obscured %s row(s) kept unchanged in recombine_deployment_groups(); ",
+                      dp$id, sum(obscured), r),
+              "they have no camera to join to.")
+    } # end obscured message
     # and put the resource back
     dp <- .replace_resource(dp, r, x)
   } # end per resource

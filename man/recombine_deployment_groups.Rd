@@ -24,7 +24,9 @@ The same data package with:
 \item one \code{deployments} row per continuous camera run, with
 \code{deploymentGroups} replaced by its \code{multiSeason_deploymentGroup};
 \item \code{covariates} collapsed to match the new deployments;
-\item \code{deploymentID} remapped in \code{observations} and \code{media};
+\item \code{deploymentID} remapped in \code{observations} and \code{media},
+except obscured threatened-species rows (\code{obscured_for_<category>_species}),
+which have no camera and are kept unchanged with a message;
 \item \code{temporal} metadata holding one block per
 \code{multiSeason_deploymentGroup};
 \item a new \code{deployment_crosswalk} resource with one row per original
@@ -34,8 +36,9 @@ piece: \code{original_deploymentID}, \code{deploymentID} (the new one),
 \code{\link{wildobs_dp_download}} adds, refreshed to match the resources.
 }
 Stops if \code{max_gap_days} is not a single non-negative number, if a required
-resource or column is missing, or if observations or media
-hold a \code{deploymentID} that is not in the deployments.
+resource or column is missing, if two pieces of the same camera overlap in time,
+or if observations or media hold a \code{deploymentID} (other than an obscured
+placeholder) that is not in the deployments.
 }
 \description{
 The WildObs data curation pipeline splits long camera deployments into pieces
@@ -64,7 +67,8 @@ a new chain when it begins more than \code{max_gap_days} after the previous piec
 ended, because the 30-day rule behind \code{multiSeason_deploymentGroup} applies
 to the whole \code{locationName}, so a single station can sit idle for much
 longer inside one group. A piece that starts before the previous one ended
-cannot be the same camera, so it also starts a new chain and a warning names it.
+cannot be the same camera, so the function stops and names it; the cameras need
+relabelling in curation before the package can be recombined.
 \item Each chain becomes one deployment named
 \code{<locationID>_ms<N>[_CamN][_partN]}, where \code{N} orders the
 multi-season groups at that station in time.

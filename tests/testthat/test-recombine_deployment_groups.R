@@ -139,7 +139,7 @@ test_that("recombine_deployment_groups works without media or covariates", {
   expect_true("deployment_crosswalk" %in% frictionless::resource_names(out))
 })
 
-test_that("recombine_deployment_groups splits overlapping pieces and warns", {
+test_that("recombine_deployment_groups stops when pieces of one camera overlap", {
   dp <- make_recombine_dp()
   deps <- frictionless::read_resource(dp, "deployments")
   # make S1_b start before S1_a has finished
@@ -147,10 +147,34 @@ test_that("recombine_deployment_groups splits overlapping pieces and warns", {
     deps$deploymentStart[deps$deploymentID == "S1_b"] - 86400 * 20
   dp <- .replace_resource(dp, "deployments", deps)
 
-  expect_warning(out <- recombine_deployment_groups(dp), "overlapping an earlier piece")
+  # the error names the overlapping piece
+  expect_error(recombine_deployment_groups(dp), "overlapping an earlier piece.*S1_b")
+})
 
-  new_ids <- frictionless::read_resource(out, "deployments")$deploymentID
-  expect_true(any(grepl("_part2$", new_ids)))
+test_that("recombine_deployment_groups keeps obscured threatened-species rows unchanged", {
+  dp <- make_recombine_dp()
+  # obscure two observations and one media file, as the public API does
+  obs <- frictionless::read_resource(dp, "observations")
+  obs$deploymentID[c(1, 5)] <- c("obscured_for_vulnerable_species",
+                                 "obscured_for_endangered_species")
+  dp <- .replace_resource(dp, "observations", obs)
+  media <- frictionless::read_resource(dp, "media")
+  media$deploymentID[2] <- "obscured_for_vulnerable_species"
+  dp <- .replace_resource(dp, "media", media)
+
+  # recombining succeeds and says how many were kept
+  expect_message(out <- recombine_deployment_groups(dp), "2 obscured observations")
+  obs_out <- frictionless::read_resource(out, "observations")
+  deps_out <- frictionless::read_resource(out, "deployments")
+
+  # no rows lost, placeholders untouched
+  expect_equal(nrow(obs_out), 6)
+  expect_equal(obs_out$deploymentID[c(1, 5)], c("obscured_for_vulnerable_species",
+                                                "obscured_for_endangered_species"))
+  # every other record still joins to a deployment
+  expect_true(all(obs_out$deploymentID[-c(1, 5)] %in% deps_out$deploymentID))
+  expect_equal(frictionless::read_resource(out, "media")$deploymentID[2],
+               "obscured_for_vulnerable_species")
 })
 
 ## add a fourth S1 piece in the same multi-season group, starting a year after S1_c ended
