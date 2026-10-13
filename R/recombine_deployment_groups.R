@@ -204,7 +204,8 @@ recombine_deployment_groups <- function(dp, max_gap_days = 30) {
     stop(sprintf("%s has %d deployment(s) overlapping an earlier piece of the same camera in recombine_deployment_groups(): %s.\n",
                  dp$id, sum(deps$..overlap),
                  paste(utils::head(deps$deploymentID[deps$..overlap], 5), collapse = ", ")),
-         "Check these deployments for duplicated or mislabelled cameras and fix them in curation.")
+         "Two pieces of one camera cannot run at once; check these deployments for duplicated ",
+         "rows or a missing _CamN suffix and correct deploymentID before recombining.")
   } # end overlap condition
 
   ## name each chain <locationID>_ms<N>, then the camera and part only where needed
