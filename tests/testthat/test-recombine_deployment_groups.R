@@ -41,6 +41,14 @@ make_recombine_dp <- function(with_media = TRUE, with_covariates = TRUE) {
   ## bundle into a frictionless package
   dp <- frictionless::create_package()
   dp$id <- "test_dp"
+  # temporal metadata as WildObs stores it: package extent plus one block per survey
+  dp$temporal <- list(
+    start = "2020-01-01",
+    end = "2020-10-27",
+    timeZone = "Australia/Brisbane",
+    survey1 = list(start = "2020-01-01", end = "2020-07-19"),
+    survey2 = list(start = "2020-07-29", end = "2020-10-27")
+  )
   dp <- frictionless::add_resource(dp, "deployments", data = deps)
   if (with_covariates) dp <- frictionless::add_resource(dp, "covariates", data = covs)
   dp <- frictionless::add_resource(dp, "observations", data = obs)
@@ -166,12 +174,41 @@ test_that("recombine_deployment_groups errors on missing resources and columns",
   empty$id <- "empty_dp"
   expect_error(recombine_deployment_groups(empty), "no deployments resource")
 
-  # a required column is missing
-  dp <- make_recombine_dp()
-  deps <- frictionless::read_resource(dp, "deployments")
+  # a required column is missing; build a fresh package, since the old schema
+  # would still declare the dropped column
+  deps <- frictionless::read_resource(make_recombine_dp(), "deployments")
   deps$multiSeason_deploymentGroup <- NULL
-  dp <- .replace_resource(dp, "deployments", deps)
+  dp <- frictionless::create_package()
+  dp$id <- "no_ms_dp"
+  dp <- frictionless::add_resource(dp, "deployments", data = deps)
   expect_error(recombine_deployment_groups(dp), "multiSeason_deploymentGroup")
+})
+
+test_that("recombine_deployment_groups rebuilds temporal blocks per multi-season group", {
+  out <- recombine_deployment_groups(make_recombine_dp())
+  tmp <- out$temporal
+
+  # package-level extent and timeZone are untouched
+  expect_equal(tmp$start, "2020-01-01")
+  expect_equal(tmp$end, "2020-10-27")
+  expect_equal(tmp$timeZone, "Australia/Brisbane")
+
+  # survey blocks are replaced by one block per multi-season group
+  expect_setequal(names(tmp), c("start", "end", "timeZone", "ms_S1", "ms_S2"))
+
+  # ms_S1 absorbs survey1 and survey2, so spans both
+  expect_equal(tmp$ms_S1, list(start = "2020-01-01", end = "2020-10-27"))
+  # ms_S2 absorbs survey1 only
+  expect_equal(tmp$ms_S2, list(start = "2020-01-01", end = "2020-07-19"))
+})
+
+test_that("recombine_deployment_groups warns when a survey has no temporal block", {
+  dp <- make_recombine_dp()
+  dp$temporal$survey2 <- NULL
+
+  expect_warning(out <- recombine_deployment_groups(dp), "no temporal block")
+  # ms_S1 falls back to survey1's dates only
+  expect_equal(out$temporal$ms_S1$end, "2020-07-19")
 })
 
 test_that("recombine_deployment_groups errors when observations have orphan deploymentIDs", {
