@@ -12,25 +12,8 @@
 #'
 #' A data package goes in and a data package comes out, so every resource that
 #' carries \code{deploymentID} (deployments, covariates, observations and, if
-#' present, media) is updated together and stays joinable.
-#'
-#' @param dp A WildObs camtrap data package, as returned by
-#' \code{\link{wildobs_dp_download}}, holding at least the \code{deployments}
-#' resource. The deployments must include \code{deploymentID}, \code{locationID},
-#' \code{deploymentStart}, \code{deploymentEnd}, \code{deploymentGroups} and
-#' \code{multiSeason_deploymentGroup}.
-#'
-#' @return The same data package with:
-#' \itemize{
-#'   \item one \code{deployments} row per continuous camera run, with
-#'   \code{deploymentGroups} replaced by its \code{multiSeason_deploymentGroup};
-#'   \item \code{covariates} collapsed to match the new deployments;
-#'   \item \code{deploymentID} remapped in \code{observations} and \code{media};
-#'   \item a new \code{deployment_crosswalk} resource with one row per original
-#'   piece: \code{original_deploymentID}, \code{deploymentID} (the new one),
-#'   \code{original_deploymentGroups}, \code{pieceStart} and \code{pieceEnd}.
-#' }
-#' Stops if a required resource or column is missing.
+#' present, media) is updated together and stays joinable, and the package's
+#' \code{temporal} metadata describes the same survey groups as its data.
 #'
 #' @details
 #' Pieces are chained in three steps:
@@ -64,8 +47,33 @@
 #' to 30 days between pieces. Calculate sampling effort from \code{pieceStart} and
 #' \code{pieceEnd} in \code{deployment_crosswalk}, not from the recombined span.
 #' \code{observationID} and \code{eventID} are left unchanged; they remain unique.
-#' Package-level metadata (e.g. the per-deploymentGroup \code{temporal} blocks) is
-#' not rewritten.
+#'
+#' In the \code{temporal} metadata, the per-\code{deploymentGroups} blocks are
+#' replaced by one block per \code{multiSeason_deploymentGroup}. Each new block
+#' starts at the earliest start and ends at the latest end of the single-season
+#' blocks it absorbs. The package-level \code{start}, \code{end} and
+#' \code{timeZone} are left unchanged.
+#'
+#' @param dp A WildObs camtrap data package, as returned by
+#' \code{\link{wildobs_dp_download}}, holding at least the \code{deployments}
+#' resource. The deployments must include \code{deploymentID}, \code{locationID},
+#' \code{deploymentStart}, \code{deploymentEnd}, \code{deploymentGroups} and
+#' \code{multiSeason_deploymentGroup}.
+#'
+#' @return The same data package with:
+#' \itemize{
+#'   \item one \code{deployments} row per continuous camera run, with
+#'   \code{deploymentGroups} replaced by its \code{multiSeason_deploymentGroup};
+#'   \item \code{covariates} collapsed to match the new deployments;
+#'   \item \code{deploymentID} remapped in \code{observations} and \code{media};
+#'   \item \code{temporal} metadata holding one block per
+#'   \code{multiSeason_deploymentGroup};
+#'   \item a new \code{deployment_crosswalk} resource with one row per original
+#'   piece: \code{original_deploymentID}, \code{deploymentID} (the new one),
+#'   \code{original_deploymentGroups}, \code{pieceStart} and \code{pieceEnd}.
+#' }
+#' Stops if a required resource or column is missing, or if observations or media
+#' hold a \code{deploymentID} that is not in the deployments.
 #'
 #' @examples
 #' \dontrun{
@@ -78,80 +86,92 @@
 #'
 #' @seealso \code{\link{survey_and_deployment_generator}}, which creates the pieces
 #'
+#' @importFrom frictionless resource_names read_resource schema remove_resource add_resource
+#' @importFrom dplyr group_by summarise arrange mutate ungroup select left_join filter lag across cur_column all_of
+#' @importFrom stats setNames weighted.mean na.omit
+#' @importFrom utils head
 #' @export
 recombine_deployment_groups <- function(dp) {
+
+
   #
   ##
-  ### data validation -----
+  ### Make sure the package holds what the chaining relies on ----
 
-  ## the deployments resource is the one thing we cannot work without
+  # the deployments resource is the one thing we cannot work without
   if (!"deployments" %in% frictionless::resource_names(dp)) {
+    # so hard stop and say how to get it
     stop(dp$id, " has no deployments resource in recombine_deployment_groups().\n",
          "Download the data package with tabular data (not metadata_only) and try again.")
   } # end missing deployments condition
 
-  ## grab the deployments
+  # grab the deployments
   deps <- frictionless::read_resource(dp, "deployments")
 
-  ## Specify the columns the chaining relies on
+  ## the columns the chaining relies on
   required_cols <- c("deploymentID", "locationID", "deploymentStart", "deploymentEnd",
                      "deploymentGroups", "multiSeason_deploymentGroup")
   # check if any are missing
   missing_cols <- setdiff(required_cols, names(deps))
   # and if so, hard stop naming them
   if (length(missing_cols) > 0) {
-    stop(dp$id, " deployments are missing ", paste(missing_cols, collapse = ", "),
-         " in recombine_deployment_groups().\n",
+    stop(sprintf("%s deployments are missing %s in recombine_deployment_groups().\n",
+                 dp$id, paste(missing_cols, collapse = ", ")),
          "These come from Step 4 of the camDB pipeline; re-download the package from WildObs.")
   } # end missing columns condition
+
 
   #
   ##
   ### First, chain the 100-day pieces into continuous camera runs ----
 
-  ## pull the camera number appended to deploymentID via camDB pipeline,
-  ## which happens when a deployment holds several cameras without a suffix
+  ## the camDB pipeline appends _CamN to deploymentID when a station holds
+  ## several cameras in one survey, so pull that suffix (blank when absent)
   deps$..cam <- ifelse(grepl("_Cam[0-9]+$", deps$deploymentID),
                        sub("^.*_(Cam[0-9]+)$", "\\1", deps$deploymentID),
                        "")
 
   ## number each multi-season group at a location in time order, for short readable IDs
-  ms_order <- deps %>%
+  ms_order <- deps |>
     # one row per location and multi-season group
-    dplyr::group_by(locationID, multiSeason_deploymentGroup) %>%
+    dplyr::group_by(locationID, multiSeason_deploymentGroup) |>
     # keep when that group started
-    dplyr::summarise(..ms_start = min(deploymentStart), .groups = "drop") %>%
+    dplyr::summarise(..ms_start = min(deploymentStart), .groups = "drop") |>
     # order the groups within each location
-    dplyr::arrange(locationID, ..ms_start) %>%
+    dplyr::arrange(locationID, ..ms_start) |>
+    # restart the count at each location
+    dplyr::group_by(locationID) |>
     # and count them off 1, 2, 3...
-    dplyr::group_by(locationID) %>%
-    dplyr::mutate(..ms_n = seq_along(..ms_start)) %>%
-    dplyr::ungroup() %>%
+    dplyr::mutate(..ms_n = seq_along(..ms_start)) |>
+    # drop the grouping
+    dplyr::ungroup() |>
     # dropping the start time we only needed for ordering
     dplyr::select(-..ms_start)
   # attach that number to every piece
   deps <- dplyr::left_join(deps, ms_order, by = c("locationID", "multiSeason_deploymentGroup"))
 
   ## Build the chains
-  deps <- deps %>%
+  deps <- deps |>
     # group pieces of the same camera at the same station in the same multi-season group
-    dplyr::group_by(locationID, multiSeason_deploymentGroup, ..cam) %>%
+    dplyr::group_by(locationID, multiSeason_deploymentGroup, ..cam) |>
     # put them in time order
-    dplyr::arrange(deploymentStart, .by_group = TRUE) %>%
+    dplyr::arrange(deploymentStart, .by_group = TRUE) |>
     dplyr::mutate(
       # flag pieces that start before an earlier piece of this camera has ended
       ..overlap = as.numeric(deploymentStart) < dplyr::lag(cummax(as.numeric(deploymentEnd)),
                                                            default = -Inf),
       # every overlap opens a new part, so no chain ever runs two cameras at once
       ..part = cumsum(..overlap) + 1
-    ) %>%
+    ) |>
+    # drop the grouping
     dplyr::ungroup()
 
-  ## say which pieces had to be split off, since the suffix should prevent this
+  # the _CamN suffix should prevent overlaps, so name any pieces that had to be split off
   if (any(deps$..overlap)) {
-    warning(dp$id, " has ", sum(deps$..overlap), " deployment(s) overlapping an earlier piece ",
-            "of the same camera: ", paste(deps$deploymentID[deps$..overlap], collapse = ", "),
-            ".\nThey were kept as separate long deployments (suffix _partN). ",
+    warning(sprintf("%s has %d deployment(s) overlapping an earlier piece of the same camera: %s.\n",
+                    dp$id, sum(deps$..overlap),
+                    paste(deps$deploymentID[deps$..overlap], collapse = ", ")),
+            "They were kept as separate long deployments (suffix _partN). ",
             "Check these deployments for duplicated or mislabelled cameras.")
   } # end overlap warning
 
@@ -174,25 +194,30 @@ recombine_deployment_groups <- function(dp) {
     stringsAsFactors = FALSE
   )
 
+
   #
   ##
   ### Then, collapse deployments and covariates onto the new IDs ----
 
-  ## a lookup from old to new deploymentID, used for every resource
+  # a lookup from old to new deploymentID, used for every resource
   id_map <- stats::setNames(crosswalk$deploymentID, crosswalk$original_deploymentID)
-  ## and how long each original deployment ran, used to weight the merged values
+  # and how long each original deployment ran, used to weight the merged values
   piece_days <- stats::setNames(
     as.numeric(difftime(crosswalk$pieceEnd, crosswalk$pieceStart, units = "days")),
     crosswalk$original_deploymentID)
 
-  ## drop the helper columns before the deployments go back into the package
+  # drop the helper columns before the deployments go back into the package
   deps <- deps[, !grepl("^\\.\\.", names(deps))]
+  # which multi-season group each single-season survey now belongs to
+  group_map <- unique(data.frame(original_deploymentGroups = deps$deploymentGroups,
+                                 multiSeason_deploymentGroup = deps$multiSeason_deploymentGroup,
+                                 stringsAsFactors = FALSE))
   # survey labels now describe the long-term group
   deps$deploymentGroups <- deps$multiSeason_deploymentGroup
 
-  ## collapse the deployments and, if present, the covariates the same way
+  # collapse the deployments onto one row per continuous run
   deps_long <- .collapse_pieces(deps, id_map, piece_days)
-  # replace the deployments resource, keeping its schema
+  # and replace the deployments resource, keeping its schema
   dp <- .replace_resource(dp, "deployments", deps_long)
 
   ## covariates are one row per deployment, so they collapse in step
@@ -210,12 +235,13 @@ recombine_deployment_groups <- function(dp) {
   for (r in intersect(c("observations", "media"), frictionless::resource_names(dp))) {
     # grab the resource
     x <- frictionless::read_resource(dp, r)
-    # any deploymentID without a matching deployment would silently lose its records
+    # find any deploymentID without a matching deployment
     unknown <- setdiff(unique(x$deploymentID), names(id_map))
+    # those records would silently lose their deployment, so hard stop
     if (length(unknown) > 0) {
-      stop(dp$id, " ", r, " has ", length(unknown), " deploymentID(s) missing from deployments ",
-           "in recombine_deployment_groups(): ", paste(utils::head(unknown, 5), collapse = ", "),
-           ".\nThe package's resources do not join; re-download it before recombining.")
+      stop(sprintf("%s %s has %d deploymentID(s) missing from deployments in recombine_deployment_groups(): %s.\n",
+                   dp$id, r, length(unknown), paste(utils::head(unknown, 5), collapse = ", ")),
+           "The package's resources do not join; re-download it before recombining.")
     } # end unknown deploymentID condition
     # point every record at its long deployment
     x$deploymentID <- unname(id_map[x$deploymentID])
@@ -223,8 +249,19 @@ recombine_deployment_groups <- function(dp) {
     dp <- .replace_resource(dp, r, x)
   } # end per resource
 
-  ## add the crosswalk, so effort and the original IDs are never lost
+  # add the crosswalk, so effort and the original IDs are never lost
   dp <- frictionless::add_resource(dp, "deployment_crosswalk", data = crosswalk)
+
+
+  #
+  ##
+  ### Finally, match the temporal metadata to the new survey groups ----
+
+  # packages without temporal metadata have nothing to update
+  if (!is.null(dp$temporal)) {
+    # swap the single-season blocks for multi-season ones
+    dp$temporal <- .recombine_temporal(dp$temporal, group_map, dp$id)
+  } # end temporal condition
 
   # return the recombined package
   return(dp)
@@ -241,7 +278,7 @@ recombine_deployment_groups <- function(dp) {
 #' @noRd
 .collapse_pieces <- function(x, id_map, piece_days) {
 
-  ## remember the column order so the schema still lines up
+  # remember the column order so the schema still lines up
   col_order <- names(x)
   # weight each row by how long its piece ran (a zero-length piece still counts a little)
   x$..w <- pmax(unname(piece_days[x$deploymentID]), 1e-6)
@@ -268,16 +305,16 @@ recombine_deployment_groups <- function(dp) {
     # controlled vocabularies take the value that covers the most time
     if (is.factor(v)) return(v[which.max(tapply(w, v, sum)[as.character(v)])])
     # free text keeps every distinct value, collapsed together
-    paste(sort(unique(stats::na.omit(as.character(v)))), collapse = " | ")
+    return(paste(sort(unique(stats::na.omit(as.character(v)))), collapse = " | "))
   } # end merge_values
 
   ## Collapse the table
-  out <- x %>%
+  out <- x |>
     # one group per long deployment
-    dplyr::group_by(deploymentID) %>%
+    dplyr::group_by(deploymentID) |>
     # merge every other column with the rule above
     dplyr::summarise(dplyr::across(-..w, ~ merge_values(.x, ..w, dplyr::cur_column())),
-                     .groups = "drop") %>%
+                     .groups = "drop") |>
     # keep the original column order
     dplyr::select(dplyr::all_of(col_order))
 
@@ -285,6 +322,77 @@ recombine_deployment_groups <- function(dp) {
   return(as.data.frame(out))
 
 } # end .collapse_pieces
+
+
+#' Replace the deploymentGroups blocks of temporal metadata with multi-season blocks
+#'
+#' @param temporal list. The package's \code{temporal} metadata: package-level
+#'   \code{start}, \code{end} and \code{timeZone} strings, plus one
+#'   \code{list(start, end)} block per deploymentGroup.
+#' @param group_map data frame with \code{original_deploymentGroups} and
+#'   \code{multiSeason_deploymentGroup}, one row per pairing.
+#' @param dp_id character. The package id, used in the warning.
+#' @return the temporal list with the same package-level fields and one block per
+#'   multi-season group, in time order. Warns if a survey has no block to take dates from.
+#' @noRd
+.recombine_temporal <- function(temporal, group_map, dp_id) {
+
+  ### A deploymentGroup block is any entry whose value is a list
+  ## the package-level start, end and timeZone are plain strings, so this
+  ## keeps any package-level field we don't know about yet
+  is_group <- vapply(temporal, is.list, logical(1))
+  # split the blocks from the package-level fields
+  old_blocks <- temporal[is_group]
+
+  # surveys in the data that have no block in the metadata
+  no_block <- setdiff(unique(group_map$original_deploymentGroups), names(old_blocks))
+  # their dates can't be carried over, so say which ones
+  if (length(no_block) > 0) {
+    warning(sprintf("%s has %d deploymentGroups with no temporal block in recombine_deployment_groups(): %s.\n",
+                    dp_id, length(no_block), paste(no_block, collapse = ", ")),
+            "Their dates are left out of the multi-season blocks; check the package metadata.")
+  } # end missing block warning
+
+  ## one row per single-season block, holding its YYYY-MM-DD start and end
+  old_dates <- data.frame(
+    # the survey this block describes
+    original_deploymentGroups = names(old_blocks),
+    # [[ ]] rather than $, so a missing start can't partial-match another name
+    start = vapply(old_blocks, function(b) {
+      if (is.null(b[["start"]])) NA_character_ else as.character(b[["start"]])
+    }, character(1)),
+    # and the same for the end
+    end = vapply(old_blocks, function(b) {
+      if (is.null(b[["end"]])) NA_character_ else as.character(b[["end"]])
+    }, character(1)),
+    stringsAsFactors = FALSE
+  )
+
+  ## the span of each multi-season group, from the surveys it absorbs
+  new_dates <- group_map |>
+    # attach each survey's dates to its multi-season group
+    dplyr::left_join(old_dates, by = "original_deploymentGroups") |>
+    # surveys without a block were warned about above, so drop them
+    dplyr::filter(!is.na(start), !is.na(end)) |>
+    # one row per multi-season group
+    dplyr::group_by(multiSeason_deploymentGroup) |>
+    # YYYY-MM-DD strings sort in time order, so min and max give the span directly
+    dplyr::summarise(start = min(start), end = max(end), .groups = "drop") |>
+    # and list the groups in time order
+    dplyr::arrange(start, multiSeason_deploymentGroup)
+
+  # keep the package-level fields untouched, so the overall start and end never change
+  new_temporal <- temporal[!is_group]
+  # then add one block per multi-season group
+  for (i in seq_len(nrow(new_dates))) {
+    new_temporal[[new_dates$multiSeason_deploymentGroup[i]]] <- list(start = new_dates$start[i],
+                                                                     end = new_dates$end[i])
+  } # end per multi-season group
+
+  # return the updated temporal metadata
+  return(new_temporal)
+
+} # end .recombine_temporal
 
 
 #' Swap one resource of a data package for new data, keeping its schema
