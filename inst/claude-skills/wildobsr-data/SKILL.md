@@ -8,7 +8,8 @@ description: >
   WildObsMetadata); when joining those tables or counting detections; when interpreting
   deploymentID, observationID, eventID, mediaID, locationID, locationName, deploymentGroups,
   multiSeason_deploymentGroup, observationType, deltaTime_event, or covariates at the
-  _point/_1km2/_3km2/_5km2/_10km2 buffer scales; when using extract_metadata(); or when asked
+  _point/_1km2/_3km2/_5km2/_10km2 buffer scales; when using extract_metadata() or
+  recombine_deployment_groups() to build long-term deployments; or when asked
   what WildObs data can and cannot support (occupancy, abundance, activity, REM, distance
   sampling). Covers Camtrap DP and the WildObs extensions to it.
 ---
@@ -117,6 +118,8 @@ which species was seen, when and how many, but carries no camera identifier. In 
   states**. Do not estimate occupancy or abundance for a threatened species from public
   data without accounting for this.
 - `observationID` is not unique across obscured rows, since they share a placeholder.
+- `recombine_deployment_groups()` keeps obscured rows unchanged, placeholder and all, and
+  reports how many it kept.
 
 Count them, then set them aside before any spatial analysis:
 
@@ -159,11 +162,42 @@ package (one project)          id  ──►  projectName on every table
 | `locationID` | One physical camera station. A station can host several deployments over time. |
 | `locationName` | A named landscape, usually a protected area. Holds many stations. |
 | `deploymentGroups` | One **survey**: a spatio-temporal sampling unit within a single `locationName`, lasting at most **100 days**. |
-| `multiSeason_deploymentGroup` | The parent of `deploymentGroups` for long-term sampling. Continuous sampling is split into a new multi-season group wherever there is a **30-day** gap. |
+| `multiSeason_deploymentGroup` | The parent of `deploymentGroups` for long-term sampling. Continuous sampling is split into a new multi-season group wherever there is a **30-day** gap. The gap is judged across the whole `locationName`, so one station can sit idle for much longer inside a single group. |
 
 `survey_and_deployment_generator()`, `spatial_hexagon_generator()`,
 `resample_covariates_and_observations()` and `matrix_generator()` build on these to produce
 detection histories for `unmarked` and similar packages.
+
+### Long-term deployments
+
+Every deployment is a piece of **at most 100 days**, cut so it fits inside one survey. A
+camera that ran for two years appears as eight or more consecutive deployments. For
+multi-season occupancy, trend indices or anything else that wants one deployment per camera
+for as long as it ran, use `recombine_deployment_groups()`:
+
+```r
+long_dp <- recombine_deployment_groups(dp)                  # max_gap_days = 30 by default
+deps    <- frictionless::read_resource(long_dp, "deployments")
+cw      <- frictionless::read_resource(long_dp, "deployment_crosswalk")
+```
+
+- Pieces of one camera are joined: same `locationID`, same `multiSeason_deploymentGroup`,
+  same `_CamN` suffix (the pipeline appends `_Cam1`, `_Cam2` when a station holds several
+  cameras at once, such as a lured and an unlured pair). New IDs read
+  `<locationID>_ms<N>[_CamN][_partN]`.
+- A gap longer than `max_gap_days` between pieces starts a new `_partN` run. Pieces of one
+  camera that overlap in time stop the function, since they mean mislabelled cameras.
+- **Effort comes from the crosswalk**, not from the new `deploymentStart`/`deploymentEnd`,
+  whose span includes gaps of up to `max_gap_days`. Sum `pieceEnd - pieceStart` per
+  `deploymentID` in `deployment_crosswalk`, which keeps every original piece.
+- Observations and media keep every row; only `deploymentID` changes. Covariates collapse to
+  one row per new deployment: numbers become means weighted by piece duration, factors and
+  date-times take the value covering the most time, and `deploymentTags` keeps each key
+  once, preferring a real value over `unspecified`, `unknown` or `-`. Values every piece
+  shares, including `NA`, are kept as they are.
+- `deploymentGroups` becomes the `multiSeason_deploymentGroup`, and `dp$temporal` holds one
+  block per multi-season group. `dp$data` is refreshed to match.
+- Running it on an already recombined package stops with an error.
 
 ## Observations: read this before counting anything
 

@@ -33,7 +33,7 @@ data: `dp$resources[[i]]$schema$fields`.
 | `featureType` | character | ~32% | Targeted feature: `roadDirt`, `trailGame`, `waterSource`, `trailHiking`, `burrow`, `roadPaved`, `nestSite`, `roadUnderpass`; empty otherwise. |
 | `habitat` | character | ~62% | Free-text habitat description. |
 | `deploymentGroups` | character | 100% | Survey: one `locationName`, at most 100 days. |
-| `multiSeason_deploymentGroup` | character | 100% | **WildObs.** Parent of `deploymentGroups`; split at a 30-day sampling gap. |
+| `multiSeason_deploymentGroup` | character | 100% | **WildObs.** Parent of `deploymentGroups`; split at a 30-day sampling gap across the `locationName`, so one station can be idle longer within a group. `recombine_deployment_groups()` uses it to rebuild long-term deployments. |
 | `deploymentTags` | character | 100% | `key: value \| key: value` pairs (e.g. predator management, lure type). Keys differ between projects. |
 | `deploymentComments` | character | ~66% | Free-text notes. |
 

@@ -1,3 +1,37 @@
+# WildObsR (development version)
+
+## New
+
+- `recombine_deployment_groups()` rebuilds long-term deployments from the 100-day
+  pieces the curation pipeline cuts them into, for multi-season occupancy, trend
+  indices and other long-term analyses (#109). A data package goes in and a data
+  package comes out:
+  - Pieces of one camera (`locationID` × `multiSeason_deploymentGroup` × the `_CamN`
+    suffix) are joined into one deployment named
+    `<locationID>_ms<N>[_CamN][_partN]`.
+  - A gap longer than `max_gap_days` (default 30) between pieces starts a new
+    `_partN` run, since one station can sit idle much longer than the 30 days that
+    separate multi-season groups. Pieces of one camera that overlap in time stop the
+    function with an error naming them.
+  - Deployments and covariates are collapsed, and `deploymentID` is remapped in
+    observations and media. Differing values are merged by a rule per column type:
+    duration-weighted means for numbers, the value covering the most time for
+    factors and date-times, and `deploymentTags` keeps each key once, preferring
+    real values over placeholders such as `unspecified`. Missing values stay `NA`.
+  - A new `deployment_crosswalk` resource keeps every original piece with its
+    `pieceStart` and `pieceEnd`. Calculate sampling effort from it, since the
+    recombined start-to-end span includes gaps of up to `max_gap_days`.
+  - `dp$temporal` holds one block per `multiSeason_deploymentGroup`; the
+    package-level `start`, `end` and `timeZone` are unchanged. `dp$data` is
+    refreshed to match.
+  - Obscured threatened-species records (`obscured_for_<category>_species`) are
+    kept unchanged, with a message saying how many.
+
+## Breaking changes
+
+- WildObsR now requires R 4.1 or later, which the native pipe `|>` used in the
+  package already needed.
+
 # WildObsR 0.3.0
 
 The WildObs database now follows the Camtrap DP standard more closely, and
