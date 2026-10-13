@@ -24,13 +24,13 @@ library(tidyverse)
 ### create a query using wildobs_mongo_query()
 
 ### First, grab the DB connection string
-# db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
+db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
 # db_url <- Sys.getenv("MONGODB_PUB_ADMIN_URL")
 # db_url <- Sys.getenv("MONGODB_LOCAL_RO_URL")
 # db_url <- Sys.getenv("MONGODB_DEV_RO_URL")
 
 ### First, grab the API key from R environ
-api_key <- Sys.getenv("WILDOBSR_API_KEY")
+# api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 
 ## Define a temporal range to query
@@ -53,7 +53,7 @@ contributors = c() #c("Zachry Amir", "Tom Bruce")
 tabularSharingPreference = c("open", "partial", "closed")
 
 ## Gather relevant project_ids using the mongo query function
-project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url
+project_ids = wildobs_mongo_query(db_url = db_url, # api_key = api_key,
                                   temporal = temporal,
                                   spatial = spatial,
                                   taxonomic = taxonomic,
@@ -64,8 +64,8 @@ project_ids = wildobs_mongo_query(api_key = api_key, #db_url = db_url
 
 ## Who did we get?
 sort(project_ids)
-# subset to smallest dataset for testing
-project_ids <- project_ids[grepl("WildObsID_0005", project_ids)]
+# subset to few datasets for testing
+project_ids <- project_ids[grepl("WildObsID_0002|WildObsID_0040|WildObsID_00034|WildObsID_0053", project_ids)]
 ## clean up query info
 rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, temporal)
 
@@ -74,14 +74,15 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 ### use the output to access data from wildobs_dp_download()
 # set media to FALSE to make a quicker download
 start = Sys.time()
-dp_list = wildobs_dp_download(api_key = api_key,# db_url = db_url,
-                              project_ids = project_ids, media = T,
+dp_list = wildobs_dp_download(db_url = db_url, #api_key = api_key,  
+                              project_ids = project_ids, media = F,
                               metadata_only = F)
 end = Sys.time()
 
 ## how long did this take?
 end-start # 10 seconds for metadata only, 1.5 min for full dat w/ general API
 # almost 10 min for 2 DPs w/ full media.
+rm(end, start)
 
 # inspect class to make sure its a DP
 class(dp_list[[1]])
@@ -96,7 +97,6 @@ length(dp_list) == length(project_ids) # MUST BE T
 cont_table = extract_metadata(dp_list, "contributors")
 glimpse(cont_table)
 anyNA(cont_table$title) #MUST BE F
-# tbh, all should be F, but
 
 # works for single dp too and/or multiple DPs
 cont_table_1 = extract_metadata(dp_list[[1]], c("contributors", "relatedIdentifiers"))
@@ -137,7 +137,7 @@ for(i in 1:length(dp_list)){
   o = frictionless::read_resource(dp_list[[i]], "observations")
   obs[[i]] = o
   # media, but only if present
-  if("media" %in% names(dp_list[[i]]$data)){
+  if("media" %in% frictionless::resources(dp_list[[1]])){
     m = frictionless::read_resource(dp_list[[i]], "media")
     med[[i]] = m
   }
@@ -228,6 +228,175 @@ glimpse(test) # it works!
 ## try saving as darwin Core
 # camtrapdp::write_dwc(canon$camtrapdp, directory = "~/Downloads/testing_dwc_datapackage/")
 # it works! 
+
+##### Test recombined short deployments into long deployments -----
+
+## This function operates per DP, so inspect one a time
+dp <- dp_list[[3]]
+# recombine it (any overlap warnings print here, naming the deployments)
+dp_long <- recombine_deployment_groups(dp)
+
+## pull every resource from both versions
+deps_short <- frictionless::read_resource(dp, "deployments")
+deps_long  <- frictionless::read_resource(dp_long, "deployments")
+covs_short <- frictionless::read_resource(dp, "covariates")
+covs_long  <- frictionless::read_resource(dp_long, "covariates")
+obs_short  <- frictionless::read_resource(dp, "observations")
+obs_long   <- frictionless::read_resource(dp_long, "observations")
+cw         <- frictionless::read_resource(dp_long, "deployment_crosswalk")
+
+#
+##
+### Inspect effort and duration 
+
+## first, gather baseline stats about deployment length, short vs long
+dur_short <- deps_short |>
+  # one row per deployment already, so just add the duration
+  mutate(duration = as.numeric(difftime(deploymentEnd, deploymentStart, units = "days")))
+# and the same for the recombined deployments
+dur_long <- deps_long |>
+  mutate(duration = round(as.numeric(difftime(deploymentEnd, deploymentStart, units = "days")), 1))
+# compare the spread
+summary(dur_short$duration)
+summary(dur_long$duration)
+# no deployment should be longer than 100 days in the short version 
+max(dur_short$duration) <= 100 # should be TRUE
+
+## how each long deployment was built from its shorter deployments
+chains <- cw |>
+  # sort short deps in time order within each long deployment
+  arrange(deploymentID, pieceStart) |>
+  group_by(deploymentID) |>
+  summarise(
+    # how many 100-day deployments went into it
+    n_pieces = n(),
+    # the days the camera actually ran
+    effort_days = sum(as.numeric(difftime(pieceEnd, pieceStart, units = "days"))),
+    # the days from first start to last end
+    span_days = as.numeric(difftime(max(pieceEnd), min(pieceStart), units = "days")),
+    # the biggest gap between one short deployment ending and the next starting
+    max_gap_days = if (n() > 1) {
+      max(as.numeric(difftime(pieceStart[-1], pieceEnd[-n()], units = "days")))
+    } else {
+      0
+    },
+    .groups = "drop"
+  )
+# how many short deployments per long deployment
+table(chains$n_pieces) # should be mostly few cams, occasionally many 
+hist(chains$n_pieces)  # should be Poission 
+
+# total effort is unchanged
+isTRUE(all.equal(sum(chains$effort_days), sum(dur_short$duration))) # MUST BE TRUE
+# span always covers the effort
+all(chains$span_days >= chains$effort_days - 1e-6) # MUST BE TRUE
+# multi-season groups are 30 days apart or less, so no gap should exceed that
+all(chains$max_gap_days <= 30) # should be TRUE
+# inspect any gap that break it (negative gaps mean two pieces overlap in one
+filter(chains, max_gap_days > 30 | max_gap_days < 0)
+
+#
+##
+### Ensure nothing was lost or invented 
+
+## row counts
+# new depID
+nrow(obs_short) == nrow(obs_long) # MUST BE TRUE
+nrow(covs_long) == nrow(deps_long) # MUST BE TRUE
+verify_col_match(covs_long, deps_long, "deploymentID") # MUST BE TRUE
+# old depID
+nrow(cw) == nrow(deps_short) # MUST BE TRUE
+setequal(cw$original_deploymentID, deps_short$deploymentID) # MUST BE TRUE
+anyDuplicated(cw$original_deploymentID) == 0 # MUST BE TRUE, since several short deps go in one long one
+# every observation still joins to a deployment
+all(obs_long$deploymentID %in% deps_long$deploymentID) # MUST BE TRUE
+
+## animal detections per long deployment and species, rebuilt from the short deps 
+by_piece <- obs_short |>
+  # animal records only
+  filter(observationType == "animal") |>
+  # point each record at the long deployment its short one now belongs to
+  mutate(deploymentID = cw$deploymentID[match(deploymentID, cw$original_deploymentID)]) |>
+  # count records per long deployment and species
+  count(deploymentID, scientificName) |>
+  # sort so the comparison doesnt depend on row order
+  arrange(deploymentID, scientificName)
+# the same counts straight from the recombined package
+by_long <- obs_long |>
+  filter(observationType == "animal") |>
+  count(deploymentID, scientificName) |>
+  arrange(deploymentID, scientificName)
+# must be identical
+isTRUE(all.equal(as.data.frame(by_piece), as.data.frame(by_long))) # MUST BE TRUE
+
+## a quick helper to count observations outside their deployment's window
+count_outside <- function(obs, deps) {
+  obs |>
+    # attach each deployment's start and end
+    left_join(select(deps, deploymentID, deploymentStart, deploymentEnd), by = "deploymentID") |>
+    # count records that fall outside it
+    summarise(outside = sum(eventStart < deploymentStart | eventStart > deploymentEnd,
+                            na.rm = TRUE)) |>
+    pull(outside)
+} # end count_outside
+# baseline in the original package, then the recombined one
+count_outside(obs_short, deps_short) 
+count_outside(obs_long, deps_long) # should be no larger than the baseline
+
+#
+##
+### Verify temporal metadata is unchanged
+
+## ensure overall project-level metadata is consistent 
+identical(dp$temporal[c("start", "end", "timeZone")],
+          dp_long$temporal[c("start", "end", "timeZone")]) # MUST BE TRUE
+
+## a quick helper to line up temporal blocks against the deployments they describe
+temporal_vs_deps <- function(dp_x) {
+  # grab the temporal metadata
+  tmp <- dp_x$temporal
+  # a deploymentGroup block is any entry whose value is a list
+  blocks <- tmp[vapply(tmp, is.list, logical(1))]
+  # one row per block, as dates
+  block_df <- data.frame(
+    deploymentGroups = names(blocks),
+    block_start = as.Date(vapply(blocks, function(b) as.character(b[["start"]]), character(1))),
+    block_end = as.Date(vapply(blocks, function(b) as.character(b[["end"]]), character(1))),
+    stringsAsFactors = FALSE
+  )
+  # the deployment dates per group, in the package's local time zone
+  dep_dates <- frictionless::read_resource(dp_x, "deployments") |>
+    mutate(deploymentGroups = as.character(deploymentGroups)) |>
+    group_by(deploymentGroups) |>
+    summarise(dep_start = as.Date(min(deploymentStart), tz = tmp$timeZone),
+              dep_end = as.Date(max(deploymentEnd), tz = tmp$timeZone),
+              .groups = "drop")
+  # line them up, keeping groups missing from either side
+  full_join(block_df, dep_dates, by = "deploymentGroups") |>
+    # positive differences mean the block is wider than the deployments
+    mutate(start_diff_days = as.numeric(dep_start - block_start),
+           end_diff_days = as.numeric(block_end - dep_end))
+} # end temporal_vs_deps
+
+## run it on both versions
+temporal_short <- temporal_vs_deps(dp)
+temporal_long <- temporal_vs_deps(dp_long)
+# every group in the data has a block and vice versa
+anyNA(temporal_long$block_start) == FALSE # MUST BE TRUE
+anyNA(temporal_long$dep_start) == FALSE # MUST BE TRUE
+# no block ends before it starts
+all(temporal_long$block_start <= temporal_long$block_end) # MUST BE TRUE
+# blocks that dont match their deployments; compare with the baseline,
+# since any mismatch in the original carries straight through
+filter(temporal_short, start_diff_days != 0 | end_diff_days != 0)
+filter(temporal_long, start_diff_days != 0 | end_diff_days != 0)
+# extract_metadata still reads it, one row per multi-season group
+nrow(extract_metadata(dp_long, "temporal")) == nrow(temporal_long) # MUST BE TRUE
+
+## clean up
+rm(dp, dp_long, deps_short, deps_long, covs_short, covs_long, obs_short, obs_long, cw,
+   dur_short, dur_long, chains, by_piece, by_long, temporal_short, temporal_long,
+   count_outside, temporal_vs_deps)
 
 ##### Occupancy/Abundance modelling functions #####
 

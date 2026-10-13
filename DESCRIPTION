@@ -42,4 +42,4 @@ Suggests:
     jsonvalidate,
     testthat (>= 3.0.0)
 Depends: 
-    R (>= 3.5)
+    R (>= 4.1)
