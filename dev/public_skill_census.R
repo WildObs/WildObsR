@@ -9,7 +9,8 @@
 ## matching _metrics.csv, and prints any metric that moved since the previous census.
 ##
 ## How to refresh the skill after the public database is rebuilt:
-##   1. Rscript dev/public_skill_census.R   (media for every open project; can take an hour)
+##   1. Rscript dev/public_skill_census.R   (media for every open project; can take hours,
+##      and a stopped run resumes from dev/public_skill_census/census_checkpoint.rds)
 ##   2. read the "Changed since" table at the bottom of the new census file
 ##   3. update the "Scale" block and any moved percentages in the skill, then commit both
 ##
@@ -203,8 +204,45 @@ failed <- character(0)
 ## the obscured category labels and how often each occurs
 obscured_categories <- integer(0)
 
+### Resume from a checkpoint
+## the media download takes hours, so the running totals are saved after every project;
+## a run that stops (a laptop going to sleep, a dropped connection) picks up where it left off
+checkpoint_file <- file.path(out_dir, "census_checkpoint.rds")
+# the projects already measured, none on a fresh run
+done_ids <- character(0)
+# a checkpoint is only reused when it covers the same open projects as this run
+if (file.exists(checkpoint_file) && !is_pilot) {
+  cp <- readRDS(checkpoint_file)
+  if (identical(sort(cp$open_ids), sort(open_ids))) {
+    # put every running total back
+    tot <- cp$tot
+    sparse_filled <- cp$sparse_filled
+    cov_na <- cp$cov_na
+    fill <- cp$fill
+    failed <- cp$failed
+    obscured_categories <- cp$obscured_categories
+    done_ids <- cp$done_ids
+    message(sprintf("Resuming from checkpoint: %d of %d open projects already measured.",
+                    length(done_ids), length(open_ids)))
+  } else {
+    # the database changed since the checkpoint, so start again
+    message("Checkpoint is for a different set of open projects; starting the census afresh.")
+  } # end matching checkpoint condition
+} # end checkpoint condition
+## a quick helper to save the running totals once a project is finished
+save_checkpoint <- function() {
+  # a pilot run writes nothing
+  if (is_pilot) return(invisible(NULL))
+  saveRDS(list(open_ids = open_ids, done_ids = done_ids, tot = tot,
+               sparse_filled = sparse_filled, cov_na = cov_na, fill = fill,
+               failed = failed, obscured_categories = obscured_categories),
+          checkpoint_file)
+} # end save_checkpoint helper
+
 # for each open project
 for (id in open_ids) {
+  # skip projects a stopped run already measured
+  if (id %in% done_ids) next
   # say which project is running, since the media download is long
   message(sprintf("[%s] downloading %s", format(Sys.time(), "%H:%M"), id))
   # download it exactly as a user would, media included
@@ -213,6 +251,9 @@ for (id in open_ids) {
   # record a failure and move on
   if (is.character(dp)) {
     failed <- c(failed, sprintf("%s: %s", id, dp))
+    # a failure is final for this run, so it is not retried on resume
+    done_ids <- c(done_ids, id)
+    save_checkpoint()
     next
   } # end failed download
 
@@ -319,6 +360,9 @@ for (id in open_ids) {
   # drop this project before fetching the next
   rm(dp, deps, covs, obs, med, animal)
   gc(verbose = FALSE)
+  # and record it as measured, so a stopped run does not repeat it
+  done_ids <- c(done_ids, id)
+  save_checkpoint()
 } # end per open project
 
 ## a share as a percentage with one decimal, for readable metrics
@@ -472,4 +516,6 @@ if (!is.null(changes)) {
           sprintf("| %s | %s | %s |", changes$metric, changes$value_before, changes$value_now), "")
 } # end changes
 writeLines(md, file.path(out_dir, sprintf("census_%s.md", stamp)))
+# the census is complete, so the checkpoint is no longer needed
+unlink(checkpoint_file)
 message(sprintf("Census written to %s", file.path(out_dir, sprintf("census_%s.md", stamp))))

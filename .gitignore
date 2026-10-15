@@ -27,3 +27,6 @@ docs/style/*
 manuscript/
 # local pkgdown builds; the site is published from the gh-pages branch instead
 pkgdown/
+
+# Resume point of a long public skill census; deleted when the census completes
+dev/public_skill_census/census_checkpoint.rds
