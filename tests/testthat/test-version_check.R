@@ -142,3 +142,66 @@ test_that(".check_wildobs_version only contacts GitHub once per session", {
   expect_silent(.check_wildobs_version())
   expect_no_error(.check_wildobs_version())
 })
+
+
+## The network function and the wiring, with GitHub faked ----
+
+test_that(".fetch_remote_version reads the Version line from a DESCRIPTION", {
+  # GitHub answers with a DESCRIPTION file
+  local_mocked_bindings(
+    curl_fetch_memory = function(url, handle) {
+      list(status_code = 200L,
+           content = charToRaw("Package: WildObsR\nTitle: Test\nVersion:  9.8.7 \nLicense: MIT\n"))
+    },
+    .package = "curl"
+  )
+  # only the version comes back, with its spaces trimmed
+  expect_identical(.fetch_remote_version(), "9.8.7")
+})
+
+test_that(".fetch_remote_version returns NULL on any failure", {
+  # a missing file, as a private repository answers
+  local_mocked_bindings(
+    curl_fetch_memory = function(url, handle) list(status_code = 404L, content = raw(0)),
+    .package = "curl"
+  )
+  expect_null(.fetch_remote_version())
+
+  # a file with no Version line
+  local_mocked_bindings(
+    curl_fetch_memory = function(url, handle) list(status_code = 200L, content = charToRaw("Package: x\n")),
+    .package = "curl"
+  )
+  expect_null(.fetch_remote_version())
+
+  # and no connection at all
+  local_mocked_bindings(
+    curl_fetch_memory = function(url, handle) stop("Could not resolve host"),
+    .package = "curl"
+  )
+  expect_null(.fetch_remote_version())
+})
+
+test_that(".check_wildobs_version warns once when the installed copy is behind", {
+  # let the check run this time, and leave it marked as done afterwards
+  .wildobsr_warned$version_check <- NULL
+  on.exit(.wildobsr_warned$version_check <- TRUE, add = TRUE)
+  # GitHub reports a release far ahead of any installed copy
+  local_mocked_bindings(.fetch_remote_version = function() "999.0.0")
+
+  # the first call says how to update
+  expect_warning(.check_wildobs_version(), "999.0.0 is available")
+  # and a second call in the same session stays quiet
+  expect_silent(.check_wildobs_version())
+})
+
+test_that(".check_wildobs_version is silent when the installed copy is current", {
+  # let the check run this time, and leave it marked as done afterwards
+  .wildobsr_warned$version_check <- NULL
+  on.exit(.wildobsr_warned$version_check <- TRUE, add = TRUE)
+  # GitHub reports exactly the installed version
+  installed <- as.character(utils::packageVersion("WildObsR"))
+  local_mocked_bindings(.fetch_remote_version = function() installed)
+
+  expect_silent(.check_wildobs_version())
+})
