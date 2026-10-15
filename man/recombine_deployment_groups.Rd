@@ -105,11 +105,16 @@ blocks it absorbs. The package-level \code{start}, \code{end} and
 \code{timeZone} are left unchanged.
 }
 \examples{
-\dontrun{
-dp_list <- wildobs_dp_download(api_key = my_key, project_ids = my_ids)
-long_dp <- recombine_deployment_groups(dp_list[[1]])
-frictionless::read_resource(long_dp, "deployment_crosswalk")
-}
+# the cassowary project shipped with WildObsR ran across two seasons
+dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
+long_dp <- recombine_deployment_groups(dp)
+
+# fewer, longer deployments
+nrow(dp$data$deployments)
+nrow(long_dp$data$deployments)
+
+# and every original piece, for calculating effort without the gaps
+head(frictionless::read_resource(long_dp, "deployment_crosswalk"))
 
 }
 \seealso{

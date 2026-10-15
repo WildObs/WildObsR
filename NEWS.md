@@ -2,6 +2,15 @@
 
 ## New
 
+- `example_datapackages()` reads two open Wet Tropics projects shipped with the
+  package (`ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001`, systematic and unbaited;
+  `QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006`, targeted and baited), in
+  the same shape `wildobs_dp_download()` returns. Examples, tests and tutorials now
+  run offline on real data. The copies hold animal observations only, no
+  media and no contributor email addresses, and are rebuilt from the public API by `dev/make_example_data.R`. The
+  examples of `extract_metadata()`, `extract_tags()`,
+  `recombine_deployment_groups()`, `locationName_buffer_CAPAD()` and
+  `locationName_verification_CAPAD()` now run on them.
 - `cite_datapackages()` turns a list of downloaded data packages into a reference
   list: formatted text, BibTeX (`utils::bibentry`) or a table. It uses each
   package's own `bibliographicCitation` word for word (WildObs citations end with

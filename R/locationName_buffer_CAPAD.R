@@ -27,20 +27,13 @@
 #' @importFrom dplyr distinct
 #'
 #' @examples
-#' \dontrun{
-#' # Example usage:
-#' dep <- data.frame(
-#'   deploymentID = c("dep1", "dep2"),
-#'   Latitude = c(-33.8688, -27.4698),
-#'   Longitude = c(151.2093, 153.0251)
-#' )
+#' # two cameras of the Paluma project shipped with WildObsR
+#' dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
+#' dep <- dp$data$deployments[c(1, 40), c("deploymentID", "latitude", "longitude")]
 #'
-#' # Run the function with a 10 km buffer
-#' buffered_dep <- locationName_buffer_CAPAD(dep, buffer_size = 10000)
-#'
-#' # View results
-#' head(buffered_dep)
-#' }
+#' # name the protected areas within 1 km of each camera
+#' buffered_dep <- locationName_buffer_CAPAD(dep, buffer_size = 1000)
+#' buffered_dep[, c("deploymentID", "CAPADlocationNameBuffer")]
 #'
 #' @note The function uses the `terra` package for spatial processing.
 #'
