@@ -1,0 +1,199 @@
+---
+title: "Images for computer vision"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Images for computer vision}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+
+<!-- This file is the source. Edit it, then run vignettes/precompute.R with a WildObs API
+key to rebuild images.Rmd, which ships with its results already in place. -->
+
+Classifying camera trap images with machine learning needs many images of known species.
+WildObs records the species in every image of an observation, so its openly hosted images
+come labelled. This vignette finds those images, joins them to their labels, and downloads a
+small batch. It uses a baited survey in Paluma Range National Park, Queensland, many of
+whose images are hosted by WildObs.
+
+
+``` r
+library(WildObsR)
+
+# your personal API key, read from .Renviron (see the Get started vignette)
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
+
+# the project, with its media table
+id <- "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
+dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[id]]
+media <- dp$data$media
+```
+
+## Which images can be downloaded
+
+Most WildObs images stay with the people who collected them, or with Wildlife Insights.
+Only images with `filePublic = TRUE` are openly hosted by WildObs, and only those can be
+downloaded. The rest are listed, with their timestamps and labels, but their `filePath`
+reads `not_publicly_accessible`, and file names are withheld from public users.
+
+
+``` r
+# images in this project that WildObs hosts openly
+table(media$filePublic)
+#> 
+#> FALSE  TRUE 
+#> 52836 11020
+```
+
+Across the whole public database the share of openly hosted images is small, so check
+`filePublic` before planning a training set.
+
+## Label each image with its species
+
+Each media row carries the `observationID` it belongs to, a WildObs addition to Camtrap DP.
+Joining on it gives every image the species, count and observation type recorded for that
+observation:
+
+
+``` r
+# the label columns of each observation
+labels <- dp$data$observations[, c("observationID", "observationType", "scientificName", "count")]
+
+# each public image with its label
+public <- merge(media[media$filePublic, c("mediaID", "deploymentID", "observationID",
+                                          "timestamp", "filePath")],
+                labels, by = "observationID")
+
+# how many labelled images of each kind
+table(public$observationType)
+#> 
+#>       animal        human      vehicle        blank      unknown unclassified 
+#>        11020            0            0            0            0            0
+
+# the species with the most openly hosted images
+head(sort(table(public$scientificName[public$observationType == "animal"]),
+          decreasing = TRUE), 8)
+#> 
+#>               Sus scrofa     Thylogale stigmatica               Bos taurus 
+#>                     3275                     2375                     1032 
+#>         Alectura lathami                 Mammalia              Canis dingo 
+#>                     1014                      720                      588 
+#>        Isoodon macrourus Hypsiprymnodon moschatus 
+#>                      404                      323
+```
+
+Projects differ in which images they host openly; this one hosts only images with animals
+in them. Where a project also hosts blank images (`observationType == "blank"`), keep some:
+models must also learn to say that nothing is there.
+
+## Download a batch
+
+`wildobs_media_download()` saves each file into a folder per project and deployment, skips
+files already on disk, and reports what happened to each one. Start with a few files to
+check the setup before downloading thousands:
+
+
+``` r
+# the two species with the most images
+top <- names(sort(table(public$scientificName[public$observationType == "animal"]),
+                  decreasing = TRUE))[1:2]
+# three labelled images of each, as a test batch
+batch <- do.call(rbind, lapply(top, function(sp) {
+  # the first three images of this species
+  utils::head(public[public$scientificName %in% sp, ], 3)
+}))
+
+# download them into a temporary folder
+out_dir <- file.path(tempdir(), "wildobs_images")
+result <- wildobs_media_download(batch, out_dir = out_dir)
+#> 6 of 6 media files have a path that can be tried (6 web, 0 Google Cloud, 0 on this computer).
+#> downloaded: 6
+
+# what happened to each file, and where it went
+table(result$downloadStatus)
+#> 
+#> downloaded 
+#>          6
+basename(result$localPath)
+#> [1] "1_Pattersons_1_W_Mclean_mediaID_1189.jpg"
+#> [2] "1_Pattersons_1_W_Mclean_mediaID_1190.jpg"
+#> [3] "1_Pattersons_1_W_Mclean_mediaID_1191.jpg"
+#> [4] "11_Jarouma_W_Mclean_mediaID_3.jpg"       
+#> [5] "14_Birthday_W_Mclean_mediaID_713.jpg"    
+#> [6] "14_Birthday_W_Mclean_mediaID_714.jpg"
+```
+
+The returned table keeps every column you passed in, so the labels stay with the files:
+`result$scientificName` names the species in each `result$localPath`. Write it out with
+the images, for example as `labels.csv`, and the batch is ready for training.
+
+## Cite and credit
+
+Images are licensed with their project, usually under a Creative Commons licence that
+requires attribution. Check the media licence, and cite the project in any model or
+dataset you publish:
+
+
+``` r
+# the licence that applies to this project's images
+extract_metadata(dp, "licenses")[, c("name", "scope", "path")]
+#>        name scope                                         path
+#> 1 CC-BY-4.0  data https://creativecommons.org/licenses/by/4.0/
+#> 2 CC-BY-4.0 media https://creativecommons.org/licenses/by/4.0/
+
+# and the reference to cite
+writeLines(cite_datapackages(dp))
+#> Wren Mclean, Skye Anderson & Matthew Luskin (2023). WildObs Camera Trap Data Package: Cassowary baited camera trap observations in Paluma 2023-2024 [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/7be2c341. WildObs database version 1.1.2.
+```
+
+<details>
+<summary>Session information</summary>
+
+
+``` r
+sessionInfo()
+#> R version 4.5.1 (2025-06-13)
+#> Platform: aarch64-apple-darwin20
+#> Running under: macOS Tahoe 26.5.1
+#> 
+#> Matrix products: default
+#> BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
+#> LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
+#> 
+#> locale:
+#> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+#> 
+#> time zone: Australia/Brisbane
+#> tzcode source: internal
+#> 
+#> attached base packages:
+#> [1] stats     graphics  grDevices utils     datasets  methods   base     
+#> 
+#> other attached packages:
+#> [1] WildObsR_0.3.0.9000 here_1.0.1         
+#> 
+#> loaded via a namespace (and not attached):
+#>  [1] stringdist_0.9.17  xfun_0.61          devtools_2.4.6     remotes_2.5.0     
+#>  [5] lattice_0.22-7     tzdb_0.5.0         vctrs_0.7.3        tools_4.5.1       
+#>  [9] generics_0.1.4     curl_8.0.0         parallel_4.5.1     tibble_3.3.1      
+#> [13] proxy_0.4-29       cluster_2.1.8.1    chron_2.3-63       pkgconfig_2.0.3   
+#> [17] Matrix_1.7-3       KernSmooth_2.23-26 desc_1.4.3         lifecycle_1.0.5   
+#> [21] compiler_4.5.1     stringr_1.6.0      terra_1.9-50       codetools_0.2-20  
+#> [25] permute_0.9-10     usethis_3.2.1      class_7.3-23       pillar_1.11.1     
+#> [29] tidyr_1.3.2        MASS_7.3-65        ellipsis_0.3.2     classInt_0.4-11   
+#> [33] mongolite_4.1.0    cachem_1.1.0       vegan_2.7-6        sessioninfo_1.2.3 
+#> [37] nlme_3.1-168       tidyselect_1.2.1   stringi_1.8.9      sf_1.1-3          
+#> [41] dplyr_1.2.1        purrr_1.2.2        splines_4.5.1      rprojroot_2.1.1   
+#> [45] fastmap_1.2.0      grid_4.5.1         cli_3.6.6          magrittr_2.0.5    
+#> [49] pkgbuild_1.4.8     e1071_1.7-17       readr_2.2.0        lubridate_1.9.5   
+#> [53] timechange_0.4.0   httr_1.4.9         ozmaps_0.4.5       otel_0.2.0        
+#> [57] lutz_0.3.2         hms_1.1.4          memoise_2.0.1      evaluate_1.0.5    
+#> [61] knitr_1.52         mgcv_1.9-3         frictionless_1.3.0 rlang_1.3.0       
+#> [65] Rcpp_1.1.2         glue_1.8.1         DBI_1.3.0          geojsonsf_2.0.5   
+#> [69] pkgload_1.4.1      rstudioapi_0.17.1  jsonlite_2.0.0     R6_2.6.1          
+#> [73] plyr_1.8.9         oz_1.0-22          fs_1.6.6           units_1.0-1
+```
+
+</details>
