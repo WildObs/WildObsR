@@ -9,3 +9,8 @@
 ^CLAUDE\.md$
 ^\.Rhistory$
 \.DS_Store$
+^docs$
+^manuscript$
+^\.RData$
+^_pkgdown\.yml$
+^pkgdown$

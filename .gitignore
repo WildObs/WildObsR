@@ -23,3 +23,7 @@ config_private/
 docs/style/*
 # internal R&D skill for camDB development; the public skill ships in inst/claude-skills/
 .claude/skills/wildobs-data-internal/
+# manuscript drafts for the MEE submission stay local; never part of the repo or package
+manuscript/
+# local pkgdown builds; the site is published from the gh-pages branch instead
+pkgdown/
