@@ -15,3 +15,5 @@
 ^_pkgdown\.yml$
 ^pkgdown$
 ^CITATION\.cff$
+^vignettes/.*\.Rmd\.orig$
+^vignettes/precompute\.R$

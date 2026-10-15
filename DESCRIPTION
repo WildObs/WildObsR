@@ -23,6 +23,7 @@ LazyData: true
 LazyDataCompression: xz
 RoxygenNote: 7.3.3
 Roxygen: list(markdown = TRUE)
+VignetteBuilder: knitr
 Imports:
     chron,
     curl (>= 5.0.0),
@@ -50,6 +51,7 @@ Imports:
 Suggests:
     camtrapdp (>= 0.5.0),
     jsonvalidate,
+    rmarkdown,
     testthat (>= 3.0.0),
     withr
 Depends: 
