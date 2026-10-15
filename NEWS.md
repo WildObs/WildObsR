@@ -13,6 +13,12 @@
   histories are `NA` only where no camera ran, and a detection on a day its camera was not
   running stops with an error. On single-camera stations both agree with
   `camtrapR::detectionHistory()`. They work on any Camtrap DP package.
+- `model_matrix_input()` formats those detection histories, with site and observation
+  covariates matched to sites by name, for unmarked (`occu()`, `pcount()`, `occuComm()`,
+  and `colext()` with `seasons`), spOccupancy (`PGOcc()`, `msPGOcc()`, `tMsPGOcc()` and
+  their spatial versions), spAbundance (`NMix()`, `msNMix()`), or as plain arrays for
+  JAGS, NIMBLE or Stan. Camera-days of effort, and the share of effort under each level
+  of an `effort_matrix()` `split_by` column, are added as observation covariates.
 - `recombine_deployment_groups()` rebuilds long-term deployments from the 100-day
   pieces the curation pipeline cuts them into, for multi-season occupancy, trend
   indices and other long-term analyses (#109). A data package goes in and a data
