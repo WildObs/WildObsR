@@ -947,9 +947,9 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 #' @param body List. The request body: collection, filter and any sort or limit.
 #' @param what Character. A short description of the request, used in the error.
 #' @param attempts Integer. How many times to try before giving up.
-#' @return The records returned by the API, usually a data frame. Stops with a
-#'   message naming the request, the HTTP status and the server's reason if every
-#'   attempt fails.
+#' @return The records returned by the API, usually a data frame, with MongoDB date
+#'   fields as POSIXct in UTC. Stops with a message naming the request, the HTTP
+#'   status and the server's reason if every attempt fails.
 #' @keywords internal
 .wildobs_api_find <- function(url, api_key, body, what, attempts = 3) {
   # the reason the last attempt failed, reported if every attempt does
@@ -970,13 +970,15 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
     } else {
       # read the body as text, whatever the status
       txt <- rawToChar(resp$content)
-      # and parse it, keeping NULL if it is not JSON
-      parsed <- tryCatch(jsonlite::fromJSON(txt), error = function(e) NULL)
+      # the fields the API sends as MongoDB dates, before they are unwrapped
+      date_fields <- .api_date_fields(txt)
+      # unwrap them to plain text, then parse, keeping NULL if it is not JSON
+      parsed <- tryCatch(jsonlite::fromJSON(.unwrap_api_dates(txt)), error = function(e) NULL)
       ## a 200 with the usual [ {count, results}, status ] shape is a success
       if (resp$status_code == 200 && is.list(parsed) && length(parsed) >= 1 &&
           is.list(parsed[[1]]) && length(parsed[[1]]) >= 2) {
-        # hand back just the records
-        return(parsed[[1]][[2]])
+        # hand back just the records, with their dates read as UTC date-times
+        return(.api_dates_to_utc(parsed[[1]][[2]], date_fields))
       } # end success condition
       # otherwise keep the status and the server's own explanation, if it gave one
       server_msg <- if (is.list(parsed) && !is.null(parsed$message)) parsed$message else substr(txt, 1, 200)
@@ -1142,3 +1144,59 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
   # return every row
   return(out)
 } # end .wildobs_api_find_paged
+
+
+#' Read MongoDB Dates in an API Response as UTC Date-times
+#'
+#' @description The WildObs API sends date-times as MongoDB extended JSON,
+#'   `{"$date": "2022-12-20T20:32:18Z"}`. jsonlite converts these itself, but when a
+#'   field in one response mixes dates with nulls (an optional field such as
+#'   `classificationTimestamp`) it reads the dates in the computer's local time zone
+#'   instead of UTC, shifting every one of them by the local UTC offset. So the dates
+#'   are unwrapped to plain text before parsing, and converted here instead.
+#'   `.api_date_fields()` lists the fields sent as dates, `.unwrap_api_dates()` turns
+#'   each date object into its text, and `.api_dates_to_utc()` converts those fields
+#'   of the parsed records to POSIXct in UTC.
+#' @param txt Character. The raw JSON text of an API response.
+#' @param records The records parsed from the unwrapped text, usually a data frame.
+#' @param date_fields Character. The fields sent as dates, from `.api_date_fields()`.
+#' @return `.api_date_fields()`: the field names. `.unwrap_api_dates()`: the JSON text
+#'   with each date object replaced by its date text. `.api_dates_to_utc()`: the
+#'   records, with each top-level date field as POSIXct in UTC. A field holding text
+#'   that is not a UTC date is left as text, for [apply_schema_types()] to handle.
+#' @author Zachary Amir
+#' @keywords internal
+.api_date_fields <- function(txt) {
+  # every "field": {"$date" in the response
+  hits <- regmatches(txt, gregexpr('"[^"]+"\\s*:\\s*\\{\\s*"\\$date"', txt, perl = TRUE))[[1]]
+  # keep just the field names, once each
+  return(unique(sub('^"([^"]+)".*$', "\\1", hits)))
+} # end .api_date_fields
+
+#' @rdname dot-api_date_fields
+#' @keywords internal
+.unwrap_api_dates <- function(txt) {
+  # {"$date": "..."} becomes "..."
+  return(gsub('\\{\\s*"\\$date"\\s*:\\s*("[^"]*")\\s*\\}', "\\1", txt, perl = TRUE))
+} # end .unwrap_api_dates
+
+#' @rdname dot-api_date_fields
+#' @keywords internal
+.api_dates_to_utc <- function(records, date_fields) {
+  # only a table of records has date columns to convert
+  if (!is.data.frame(records) || length(date_fields) == 0) return(records)
+  # for each field sent as a date that is a column of the records
+  for (cl in intersect(date_fields, names(records))) {
+    # grab its text
+    x <- records[[cl]]
+    # only text can be converted; anything else is left alone
+    if (!is.character(x)) next
+    # the values present, which must all be UTC ISO date-times to convert safely
+    present <- !is.na(x)
+    if (!all(grepl("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$", x[present]))) next
+    # drop the fractional seconds and the Z, then read the rest as UTC
+    records[[cl]] <- as.POSIXct(sub("(\\.\\d+)?Z$", "", x), format = "%Y-%m-%dT%H:%M:%S", tz = "UTC")
+  } # end per date field
+  # return the records with their dates converted
+  return(records)
+} # end .api_dates_to_utc

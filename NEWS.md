@@ -52,6 +52,14 @@
 
 ## Fixed
 
+- Date-times downloaded over the API could be shifted by the computer's offset
+  from UTC (ten hours in Queensland). The API sends dates as MongoDB
+  `{"$date": ...}` objects, and when an optional date field held both dates and
+  empty values in one response, jsonlite read the dates in local time rather than
+  UTC. Required fields (`deploymentStart`, `eventStart`, media `timestamp`) are
+  never empty and were not affected; `classificationTimestamp` was, depending on
+  where you were and which projects were downloaded together. WildObsR now reads
+  every API date as UTC before applying the project's time zone.
 - Ready for frictionless 2.0.0 (#136). From that version `frictionless::add_resource()`
   writes Data Package v2 tables, which lack the `profile = "tabular-data-resource"`
   that Camtrap DP 1.0.x requires, so `as_camtrapdp()` exports would have failed the

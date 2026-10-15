@@ -18,9 +18,9 @@
 \item{attempts}{Integer. How many times to try before giving up.}
 }
 \value{
-The records returned by the API, usually a data frame. Stops with a
-message naming the request, the HTTP status and the server's reason if every
-attempt fails.
+The records returned by the API, usually a data frame, with MongoDB date
+fields as POSIXct in UTC. Stops with a message naming the request, the HTTP
+status and the server's reason if every attempt fails.
 }
 \description{
 Posts one find request to the WildObs API and returns the records

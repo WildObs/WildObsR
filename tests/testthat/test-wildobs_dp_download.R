@@ -710,3 +710,39 @@ test_that("paged download returns an empty list when nothing matches", {
                                         key = "observationID", page_size = 3,
                                         shared_key_pattern = "^obscured_for_"), 0)
 })
+
+
+#
+##
+### MongoDB dates in API responses ----
+
+test_that("API dates are read as UTC whatever the computer's time zone", {
+  ## an optional date field that is empty on one row, the case jsonlite reads in
+  ## local time when left to convert the dates itself
+  txt <- paste0('[{"count": 2, "results": [',
+                '{"id": "a", "classificationTimestamp": {"$date": "1999-12-31T14:00:00Z"}},',
+                '{"id": "b", "classificationTimestamp": null}]}, 200]')
+  # pretend the computer is in Brisbane, ten hours ahead of UTC
+  withr::local_timezone("Australia/Brisbane")
+
+  # the date fields are found before unwrapping
+  expect_identical(.api_date_fields(txt), "classificationTimestamp")
+  # and the records come back with the true instant, in UTC
+  recs <- .api_dates_to_utc(jsonlite::fromJSON(.unwrap_api_dates(txt))[[1]][[2]],
+                            .api_date_fields(txt))
+  expect_s3_class(recs$classificationTimestamp, "POSIXct")
+  expect_identical(attr(recs$classificationTimestamp, "tzone"), "UTC")
+  expect_equal(recs$classificationTimestamp[1], as.POSIXct("1999-12-31 14:00:00", tz = "UTC"))
+  # the empty value stays empty
+  expect_true(is.na(recs$classificationTimestamp[2]))
+})
+
+test_that("API dates keep their instant with fractional seconds, and other text is untouched", {
+  txt <- '[{"count": 1, "results": [{"t": {"$date": "2023-11-07T05:33:26.123Z"}, "note": "2023-11-07T05:33:26Z"}]}, 200]'
+  recs <- .api_dates_to_utc(jsonlite::fromJSON(.unwrap_api_dates(txt))[[1]][[2]],
+                            .api_date_fields(txt))
+  # the date field is read to the second
+  expect_equal(recs$t, as.POSIXct("2023-11-07 05:33:26", tz = "UTC"))
+  # a text field that only looks like a date was not sent as one, so it stays text
+  expect_type(recs$note, "character")
+})
