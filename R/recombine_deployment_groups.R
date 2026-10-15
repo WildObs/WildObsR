@@ -293,6 +293,8 @@ recombine_deployment_groups <- function(dp, max_gap_days = 30) {
 
   # add the crosswalk, so effort and the original IDs are never lost
   dp <- frictionless::add_resource(dp, "deployment_crosswalk", data = crosswalk)
+  # and keep every table, the rebuilt ones included, in the v1 form the profile expects
+  dp <- .as_v1_tabular_resources(dp)
 
 
   #

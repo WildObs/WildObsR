@@ -43,6 +43,12 @@
 
 ## Fixed
 
+- Ready for frictionless 2.0.0 (#136). From that version `frictionless::add_resource()`
+  writes Data Package v2 tables, which lack the `profile = "tabular-data-resource"`
+  that Camtrap DP 1.0.x requires, so `as_camtrapdp()` exports would have failed the
+  Camtrap DP profile. `wildobs_dp_download()`, `recombine_deployment_groups()` and
+  `as_camtrapdp()` now keep every table in the v1 form with either frictionless
+  version. The full test suite passes against the frictionless development version.
 - The `wildobs_mongo_query()` help no longer says the function filters out
   projects still under embargo. Embargoed projects are stored as `partial` until
   the embargo ends, and the help now says so. Its example uses `api_key` rather

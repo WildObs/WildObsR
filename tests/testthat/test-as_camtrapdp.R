@@ -256,6 +256,28 @@ test_that("as_camtrapdp output validates and works with camtrapdp", {
   expect_no_error(suppressMessages(camtrapdp::write_dwc(x, withr_free_tempdir())))
 })
 
+test_that("as_camtrapdp output validates when its tables were added as v2 resources", {
+  skip_if_not_installed("jsonvalidate")
+
+  ## rewrite the fixture's tables the way frictionless 2.0 adds them, so this runs
+  ## the same whichever frictionless version is installed
+  dp <- fixture()
+  dp$resources <- lapply(dp$resources, function(r) {
+    # the v2 resource carries $schema and type, and no profile
+    r$profile <- NULL
+    r[["$schema"]] <- "https://datapackage.org/profiles/2.0/dataresource.json"
+    r$type <- "table"
+    r
+  }) # end per resource
+
+  res <- suppressWarnings(as_camtrapdp(dp))
+  # Camtrap DP 1.0.2 requires every table to be a v1 tabular resource
+  profiles <- vapply(res$package$resources, function(r) r$profile, character(1))
+  expect_true(all(profiles == "tabular-data-resource"))
+  # and the descriptor then matches the Camtrap DP profile
+  expect_true(res$validation$descriptor$valid)
+})
+
 test_that("as_camtrapdp returns a camtrapdp object camtrapdp functions accept directly", {
   skip_if_not_installed("camtrapdp", minimum_version = "0.5.0")
 

@@ -903,6 +903,10 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
       } # end open data sharing condition
     } # end admin condition
 
+    ## the WildObs profile follows Data Package v1, so keep the tables in v1 form
+    ## whichever frictionless version added them
+    dp <- .as_v1_tabular_resources(dp)
+
     ## finally, add a new 'data' slot in the data package (which is redundant from resources...)
     ## to allow the data to be recognized by camtrap DP
     dp$data <- list(

@@ -412,6 +412,9 @@ as_camtrapdp <- function(dp, version = "1.0.2", keep_covariates = FALSE,
   ## the resources, where frictionless keeps them, and frictionless::write_package()
   ## would otherwise write every table a second time inside datapackage.json
   out$data <- NULL
+  ## Camtrap DP 1.0.x requires each table to be a v1 tabular resource,
+  ## which tables added with frictionless 2.0 are not
+  out <- .as_v1_tabular_resources(out)
 
   # bind the report, with an empty but well-formed table when nothing changed
   report <- if (length(report) > 0) do.call(rbind, report) else
