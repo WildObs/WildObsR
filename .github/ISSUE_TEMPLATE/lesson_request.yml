@@ -1,0 +1,24 @@
+name: Lesson or tutorial request
+description: Ask for a tutorial on a WildObs analysis that the current articles do not cover
+labels: ["documentation", "lesson request"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: What do you want to do with WildObs data?
+      description: The ecological question or analysis, for example "estimate feral cat occupancy across several projects".
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried so far?
+      description: Which articles or functions you used, and where you got stuck.
+  - type: dropdown
+    id: level
+    attributes:
+      label: Your experience with R
+      options:
+        - New to R
+        - Comfortable with R
+        - Experienced with R and camera trap analysis

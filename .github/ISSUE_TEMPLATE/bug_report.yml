@@ -1,0 +1,27 @@
+name: Bug report
+description: Something in WildObsR does not work as documented
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you got instead. Paste the full error message.
+    validations:
+      required: true
+  - type: textarea
+    id: reprex
+    attributes:
+      label: Code to reproduce it
+      description: >
+        The shortest code that shows the problem. If you can, use example_datapackages() so it
+        runs without an API key. Never paste your API key.
+      render: r
+    validations:
+      required: true
+  - type: textarea
+    id: session
+    attributes:
+      label: Session information
+      description: The output of sessionInfo() or sessioninfo::session_info().
+      render: text

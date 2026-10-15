@@ -15,7 +15,7 @@ Description: Find, download and prepare camera trap data from WildObs, the
     (state, bioregion, protected area) and turned into detection histories with
     sampling effort and covariates for occupancy and abundance models.
 License: MIT + file LICENSE
-URL: https://github.com/WildObs/WildObsR
+URL: https://wildobs.github.io/WildObsR/, https://github.com/WildObs/WildObsR
 BugReports: https://github.com/WildObs/WildObsR/issues
 SystemRequirements: GDAL (>= 3.0), PROJ, GEOS, OpenSSL
 Encoding: UTF-8
