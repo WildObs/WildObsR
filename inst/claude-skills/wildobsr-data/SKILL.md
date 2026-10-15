@@ -208,17 +208,17 @@ cw      <- frictionless::read_resource(long_dp, "deployment_crosswalk")
 - `deltaTime_event` is the seconds since the previous event at that deployment, for your own
   independence filtering.
 - **Filter `observationType == "animal"`.** About half of all observations are `blank`
-  (~52%) and about a third `animal` (~32%); the rest are `vehicle`, `unknown` and `human`. A
+  (~53%) and about a third `animal` (~32%); the rest are `vehicle`, `unknown` and `human`. A
   raw row count is not an animal count. Non-animal rows still fill `scientificName`, with
   placeholders such as `Blank`, `Homo sapiens-vehicle`, `unidentified` or `Ghost`.
-- `count` is the number of individuals. It is `NA` on blanks and unknowns, and on about 13%
+- `count` is the number of individuals. It is `NA` on blanks and unknowns, and on about 15%
   of animal records.
 - `observationLevel` is always `event`.
 - Downloaded observations also carry `taxonID`, `taxonRank` and `vernacularNamesEnglish`,
   joined from the package's taxonomic metadata, and empty on non-animal rows. Check
-  `taxonRank`: about 77% of animal records are identified to species, and the rest only to
+  `taxonRank`: about 78% of animal records are identified to species, and the rest only to
   genus, family, order, class or phylum.
-- `classificationMethod` is `human` (about 88% of animal records) or `machine`.
+- `classificationMethod` is `human` (about 89% of animal records) or `machine`.
 
 ### What the data can and cannot support
 
@@ -259,7 +259,7 @@ protected-area cover, habitat condition (`HCAS_static_`), `NDVI_`, terrain rugge
 standardised precipitation index, `HIF_`/`EII_`, fire history (`fire_events_count_`,
 `days_since_recent_fire_`, 2019/20 `GEEBAM_fire_severity_`), plus IBRA bioregion/subregion
 and Olson ecoregion names. Coverage gaps: `FLII_*` is `NA` for about a third of deployments
-and `days_since_recent_fire_*` for ~46–64%, depending on buffer size; most other covariates
+and `days_since_recent_fire_*` for ~45–66%, depending on buffer size; most other covariates
 are complete.
 
 Each covariate's schema field (in `dp$resources`, covariates resource) has a `custom` block
@@ -332,14 +332,14 @@ unconverted WildObs package. It returns `list(package, camtrapdp, report, valida
 
 ## Scale through the public API
 
-Measured through the public API on 2026-10-05 (`dev/public_skill_census.R` in the WildObsR
+Measured through the public API on 2026-10-15 (`dev/public_skill_census.R` in the WildObsR
 repository); percentages elsewhere in this skill come from the same census. These numbers
 grow with every database release:
 
-- **Projects:** 44 visible: 18 `open` with tables, 26 `partial` (metadata only).
-- **Tables of the open projects:** 4,088 deployments, ~730,000 observations and ~6.8
-  million media records.
-- **Taxa:** ~380 recorded in the open projects' observations, and ~620 listed across all 44
+- **Projects:** 49 visible: 23 `open` with tables, 26 `partial` (metadata only).
+- **Tables of the open projects:** 4,807 deployments (~239,000 camera-days), ~805,000
+  observations and ~8.2 million media records.
+- **Taxa:** ~430 recorded in the open projects' observations, and ~640 listed across all 49
   projects' metadata.
-- **Time span:** surveys from 2010 to 2024, in six Australian time zones.
-- **Obscured:** ~3,700 observations (about 1.6% of animal records), in 14 projects.
+- **Time span:** surveys from 2009 to 2026, in six Australian time zones.
+- **Obscured:** ~4,200 observations (about 1.6% of animal records), in 19 projects.
