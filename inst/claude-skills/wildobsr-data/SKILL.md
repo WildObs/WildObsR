@@ -112,8 +112,8 @@ which species was seen, when and how many, but carries no camera identifier. In 
 - A join to `deployments`, `covariates` or `media` silently drops obscured rows.
 - `resample_covariates_and_observations()` stops with "mis-matched deploymentID values"
   until they are removed. After removal, a camera whose only records were obscured has no
-  observations left, which can make the same function stop with "cellID values do not
-  perfectly match", which is more likely in projects that recorded no `blank` observations.
+  observations left; its cell is kept in the resampled covariates, with a message, as
+  sampling effort with no detections.
 - Detection histories from public data **under-count listed species in their listed
   states**. Do not estimate occupancy or abundance for a threatened species from public
   data without accounting for this.

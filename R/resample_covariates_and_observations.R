@@ -101,50 +101,27 @@
 #'         - \code{"spatially resampled covariates"}: a nested list of data frames for each spatial scale.
 #'
 #' @examples
-#' \dontrun{
-#' # Example usage with pre-processed camera trap data, accessed from WildObs:
+#' # the baited Paluma project shipped with WildObsR
+#' dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
 #'
-#' # Load the general use WildObs API key
-#' api_key <- Sys.getenv("WILDOBSR_API_KEY")
+#' # one table of deployments and their covariates, with the data source
+#' deps <- dp$data$deployments
+#' covs <- merge(deps, dp$data$covariates, by = intersect(names(deps), names(dp$data$covariates)))
+#' covs$source <- dp$id
 #'
-#' # use WildObsR function to access data
-#' dp <- WildObsR::wildobs_dp_download(api_key = api_key, project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
-#' # extract first DP from the list
-#' dp <- dp[[1]]
+#' # assign every camera to a 1 km2 hexagonal cell (scales are cell areas in m2)
+#' covs <- spatial_hexagon_generator(covs, scales = 1e6)
 #'
-#' # Extract resources from the data package
-#' covs <- frictionless::read_resource(dp, "covariates")
-#' obs  <- frictionless::read_resource(dp, "observations")
-#' deps <- frictionless::read_resource(dp, "deployments")
+#' # observations that can be placed on a camera (obscured records cannot)
+#' obs <- dp$data$observations
+#' obs <- obs[obs$deploymentID %in% covs$deploymentID, ]
 #'
-#' # Assign spatial scales
-#' # 'scales' defines the area (in square meters) covered by the hexagonal cell
-#' scales <- c(1000000, 3000000)
-#'
-#' # Add data source to the covariates
-#' covs$source <- dp$contributors[[1]]$tag
-#'
-#' # Generate spatial hexagons based on the provided scales
-#' covs <- WildObsR::spatial_hexagon_generator(covs, scales)
-#' # Identify matching columns between deployments and covariates
-#' cols <- names(deps)[names(deps) %in% names(covs)]
-#' # Merge deployment information to the covariates
-#' covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
-#' # Define columns for mode aggregation (example: 'source' and 'habitat')
-#' mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
-#' # Set the method for aggregating the total number of individuals detected:
-#' individuals <- "sum"  # Alternative: "max"
-#' # Specify observation-level covariate variables derived from deployments.
-#' # These variables capture information that varies in space and time.
-#' obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay","cameraHeight", "cameraDepth", "cameraTilt", "cameraHeading", "detectionDistance", "deploymentTags")
-#'
-#' # now spatially resample the data, noting that this function may take a few minutes to run
-#' resamp_data = WildObsR::resample_covariates_and_observations(covs, obs, individuals = "sum", mode_cols_covs, obs_covs)
-#'
-#' # Select the resampled observations and covs at the 1 km scale
-#' resamp_obs = resamp_data$spatially_resampled_observations$cellID_1km
-#' resamp_covs = resamp_data$spatially_resampled_covariates$cellID_1km
-#' }
+#' # resample to cells and days, keeping bait use and the targeted feature as
+#' # observation-level covariates
+#' resamp <- resample_covariates_and_observations(covs, obs, individuals = "sum",
+#'                                                mode_cols_covs = "source",
+#'                                                obs_covs = c("baitUse", "featureType"))
+#' head(resamp$spatially_resampled_covariates$cellID_1km2[, c("cellID_1km2", "cellEffort")])
 #'
 #' @importFrom dplyr select bind_rows
 #' @importFrom purrr map
@@ -204,6 +181,27 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
   ## Right away, remove any columns in both tables that are all NA. Wont be useful anyway
   covs = Filter(function(x)!all(is.na(x)), covs)
   obs = Filter(function(x)!all(is.na(x)), obs)
+
+  ## a requested column that is absent, or was just dropped for being all NA,
+  ## has nothing to summarise, so leave it out with a warning naming it
+  # mode columns first
+  gone_mode <- setdiff(mode_cols_covs, names(covs))
+  if (length(gone_mode) > 0) {
+    # keep only the mode columns that still exist
+    mode_cols_covs <- intersect(mode_cols_covs, names(covs))
+    warning(sprintf("resample_covariates_and_observations() left out mode_cols_covs with no values in covs: %s.\n",
+                    paste(gone_mode, collapse = ", ")),
+            "They are absent or entirely NA, so there is no mode to compute.", call. = FALSE)
+  } # end missing mode columns
+  # then the observation-level covariates
+  gone_obs <- setdiff(obs_covs, names(covs))
+  if (length(gone_obs) > 0) {
+    # keep only the observation-level covariates that still exist
+    obs_covs <- intersect(obs_covs, names(covs))
+    warning(sprintf("resample_covariates_and_observations() left out obs_covs with no values in covs: %s.\n",
+                    paste(gone_obs, collapse = ", ")),
+            "They are absent or entirely NA, so they cannot vary between days.", call. = FALSE)
+  } # end missing observation covariates
 
   ## Extract relevant char/numeric/modal/etc cols from covaraites
   # select all character cols that wont get averaged
@@ -538,11 +536,18 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
       dat_obs = list_obs[[f]]
       # and the cellID col
       cell = names(dat_covs)[grepl("cellID", names(dat_covs))]
-      # make sure were safe
-      if(length(setdiff(dat_covs[[cell]], dat_obs[[cell]])) +
-         length(setdiff(dat_obs[[cell]], dat_covs[[cell]])) != 0){
-        stop(paste("The", cell, "values do not perfectly match in the resampled observations and covariates for the deploymentGroup", unique(dat_covs$deploymentGroups), "\nPlease inspect this dataset carefully before running this function!"))
-      } # end condition
+      # observations in a cell that has no camera cannot be placed, so stop
+      if(length(setdiff(dat_obs[[cell]], dat_covs[[cell]])) != 0){
+        stop(paste("The", cell, "values of some resampled observations have no matching covariates for the deploymentGroup", unique(dat_covs$deploymentGroups), "\nPlease inspect this dataset carefully before running this function!"))
+      } # end unplaced observations condition
+      ## a cell whose cameras recorded nothing is sampled effort with no detections,
+      ## not an error, so say which cells and carry on
+      empty_cells <- setdiff(dat_covs[[cell]], dat_obs[[cell]])
+      if(length(empty_cells) != 0){
+        message(sprintf("%s: %d %s cell(s) have no observations, so they appear in the covariates only: %s",
+                        unique(dat_covs$deploymentGroups), length(empty_cells), cell,
+                        paste(empty_cells, collapse = ", ")))
+      } # end empty cells condition
     } # end per leng
   } # end per list length
 

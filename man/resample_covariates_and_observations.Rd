@@ -142,50 +142,27 @@ The function performs the following steps to resample the covariate and observat
 }
 }
 \examples{
-\dontrun{
-# Example usage with pre-processed camera trap data, accessed from WildObs:
+# the baited Paluma project shipped with WildObsR
+dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
 
-# Load the general use WildObs API key
-api_key <- Sys.getenv("WILDOBSR_API_KEY")
+# one table of deployments and their covariates, with the data source
+deps <- dp$data$deployments
+covs <- merge(deps, dp$data$covariates, by = intersect(names(deps), names(dp$data$covariates)))
+covs$source <- dp$id
 
-# use WildObsR function to access data
-dp <- WildObsR::wildobs_dp_download(api_key = api_key, project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
-# extract first DP from the list
-dp <- dp[[1]]
+# assign every camera to a 1 km2 hexagonal cell (scales are cell areas in m2)
+covs <- spatial_hexagon_generator(covs, scales = 1e6)
 
-# Extract resources from the data package
-covs <- frictionless::read_resource(dp, "covariates")
-obs  <- frictionless::read_resource(dp, "observations")
-deps <- frictionless::read_resource(dp, "deployments")
+# observations that can be placed on a camera (obscured records cannot)
+obs <- dp$data$observations
+obs <- obs[obs$deploymentID \%in\% covs$deploymentID, ]
 
-# Assign spatial scales
-# 'scales' defines the area (in square meters) covered by the hexagonal cell
-scales <- c(1000000, 3000000)
-
-# Add data source to the covariates
-covs$source <- dp$contributors[[1]]$tag
-
-# Generate spatial hexagons based on the provided scales
-covs <- WildObsR::spatial_hexagon_generator(covs, scales)
-# Identify matching columns between deployments and covariates
-cols <- names(deps)[names(deps) \%in\% names(covs)]
-# Merge deployment information to the covariates
-covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
-# Define columns for mode aggregation (example: 'source' and 'habitat')
-mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
-# Set the method for aggregating the total number of individuals detected:
-individuals <- "sum"  # Alternative: "max"
-# Specify observation-level covariate variables derived from deployments.
-# These variables capture information that varies in space and time.
-obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay","cameraHeight", "cameraDepth", "cameraTilt", "cameraHeading", "detectionDistance", "deploymentTags")
-
-# now spatially resample the data, noting that this function may take a few minutes to run
-resamp_data = WildObsR::resample_covariates_and_observations(covs, obs, individuals = "sum", mode_cols_covs, obs_covs)
-
-# Select the resampled observations and covs at the 1 km scale
-resamp_obs = resamp_data$spatially_resampled_observations$cellID_1km
-resamp_covs = resamp_data$spatially_resampled_covariates$cellID_1km
-}
+# resample to cells and days, keeping bait use and the targeted feature as
+# observation-level covariates
+resamp <- resample_covariates_and_observations(covs, obs, individuals = "sum",
+                                               mode_cols_covs = "source",
+                                               obs_covs = c("baitUse", "featureType"))
+head(resamp$spatially_resampled_covariates$cellID_1km2[, c("cellID_1km2", "cellEffort")])
 
 }
 \author{

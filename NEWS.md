@@ -61,6 +61,14 @@
 
 ## Fixed
 
+- `resample_covariates_and_observations()` no longer stops when a column named in
+  `mode_cols_covs` or `obs_covs` is entirely empty (for example `habitat` in a project
+  that never recorded it). Such columns are left out with a warning naming them.
+- `resample_covariates_and_observations()` no longer stops when a cell's cameras
+  recorded no observations, which happens whenever observations are filtered (to
+  animals, or after setting obscured records aside). Those cells are kept in the
+  resampled covariates as effort without detections, and a message names them.
+  Observations in a cell with no camera still stop the function.
 - Date-times downloaded over the API could be shifted by the computer's offset
   from UTC (ten hours in Queensland). The API sends dates as MongoDB
   `{"$date": ...}` objects, and when an optional date field held both dates and
