@@ -608,3 +608,105 @@ test_that("wildobs_dp_download handles API connection failure gracefully", {
     "Failed to retrieve metadata"
   )
 })
+
+
+## Paged downloads, tested offline against a fake API ----
+
+## a stand-in for the API's find endpoint over one in-memory table: it honours the
+## key filters the pager sends ($gt, $nin, $regex), sorts on the key in byte order as
+## MongoDB does, and applies the page limit, so no network is needed
+fake_find <- function(table, key) {
+  function(url, api_key, body, what, attempts = 3) {
+    # start from the whole table
+    rows <- table
+    # the conditions placed on the key column, if any
+    cond <- body$filter[[key]]
+    # keys sorting after the last one received
+    if (!is.null(cond$`$gt`)) rows <- rows[rows[[key]] > cond$`$gt`, , drop = FALSE]
+    # keys already fetched separately
+    if (!is.null(cond$`$nin`)) rows <- rows[!rows[[key]] %in% cond$`$nin`, , drop = FALSE]
+    # keys matching a pattern
+    if (!is.null(cond$`$regex`)) rows <- rows[grepl(cond$`$regex`, rows[[key]]), , drop = FALSE]
+    # sort in byte order, as the server does
+    if (!is.null(body$sort)) rows <- rows[order(rows[[key]], method = "radix"), , drop = FALSE]
+    # apply the page size
+    if (!is.null(body$limit)) rows <- utils::head(rows, body$limit)
+    # an empty result comes back as an empty list, like the real API
+    if (nrow(rows) == 0) return(list())
+    rows
+  } # end fake find
+} # end fake_find
+
+## seven ordinary observations plus three obscured rows sharing one placeholder ID
+paged_obs <- data.frame(
+  observationID = c(sprintf("obs_%02d", 1:7), rep("obscured_for_endangered_species", 3)),
+  scientificName = c(rep("Sus scrofa", 7), rep("Casuarius casuarius", 3))
+)
+
+test_that("paged download returns every row, including repeated obscured IDs", {
+  # the fake server holds the table, and its count agrees
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(paged_obs, "observationID"),
+    .wildobs_api_count = function(...) nrow(paged_obs)
+  )
+  # a page size of 3 forces several pages, with the obscured rows spanning a boundary
+  out <- .wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                                 key = "observationID", page_size = 3,
+                                 shared_key_pattern = "^obscured_for_")
+  # nothing lost, nothing doubled
+  expect_equal(nrow(out), 10)
+  expect_setequal(out$observationID, paged_obs$observationID)
+  expect_equal(sum(out$observationID == "obscured_for_endangered_species"), 3)
+})
+
+test_that("paged download without a shared-key pattern pages through unique keys", {
+  # only the ordinary rows, so every key is unique
+  uniq <- paged_obs[1:7, ]
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(uniq, "observationID"),
+    .wildobs_api_count = function(...) nrow(uniq)
+  )
+  # a page size that divides the table exactly, so the last page is full and an
+  # empty page has to end the loop
+  out <- .wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                                 key = "observationID", page_size = 7)
+  expect_equal(out$observationID, uniq$observationID)
+})
+
+test_that("paged download stops rather than return a short table", {
+  # the server claims one more row than it serves
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(paged_obs, "observationID"),
+    .wildobs_api_count = function(...) nrow(paged_obs) + 1
+  )
+  expect_error(
+    .wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                            key = "observationID", page_size = 3,
+                            shared_key_pattern = "^obscured_for_"),
+    "fetched 10 of the 11 rows in the observations table"
+  )
+})
+
+test_that("paged download carries on when the count is unavailable", {
+  # NA means the count request failed, which should not block the download
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(paged_obs, "observationID"),
+    .wildobs_api_count = function(...) NA_integer_
+  )
+  out <- .wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                                 key = "observationID", page_size = 4,
+                                 shared_key_pattern = "^obscured_for_")
+  expect_equal(nrow(out), 10)
+})
+
+test_that("paged download returns an empty list when nothing matches", {
+  # an empty table on the server
+  empty <- paged_obs[0, ]
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(empty, "observationID"),
+    .wildobs_api_count = function(...) 0L
+  )
+  expect_length(.wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                                        key = "observationID", page_size = 3,
+                                        shared_key_pattern = "^obscured_for_"), 0)
+})

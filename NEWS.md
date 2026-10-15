@@ -32,6 +32,19 @@
 - WildObsR now requires R 4.1 or later, which the native pipe `|>` used in the
   package already needed.
 
+## Fixed
+
+- `wildobs_dp_download()` over the API now downloads any number of projects in one
+  call. Previously each table came back in a single request, and asking for many
+  projects at once failed with `HTTP 504` because the response was too large to
+  arrive before the API timed out. Each table is now fetched in pages: 10,000
+  deployments, 50,000 observations or 5,000 covariate rows at a time. All 23 open
+  projects now download in one call in about three minutes.
+- After the pages are in, the number of rows in each table is checked against the
+  server's own count, and `wildobs_dp_download()` stops with an error rather than
+  return part of a table. Obscured threatened-species observations, which share one
+  placeholder `observationID`, are fetched separately so paging cannot skip them.
+
 # WildObsR 0.3.0
 
 The WildObs database now follows the Camtrap DP standard more closely, and

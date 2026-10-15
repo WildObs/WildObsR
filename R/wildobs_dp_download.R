@@ -492,15 +492,32 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
 
     ### Add a condition to query metadata only or full records
     if(!isTRUE(metadata_only)){
+      ## each table is fetched in pages ordered by its key column, because one request for
+      ## many projects is too large for the API gateway to answer before it times out
+      # the column each table is paged on
+      page_keys <- c(deployments = "deploymentID", observations = "observationID",
+                     covariates = "deploymentID")
+      # rows per page, sized so one page returns in roughly ten seconds
+      page_sizes <- c(deployments = 10000, observations = 50000, covariates = 5000)
+
       ## repeat for each data resource EXCEPT media
       for(ht in 1:length(bodies)){
-        # fetch this table's records, retrying a dropped request
-        dat <- .wildobs_api_find(url, api_key, bodies[[ht]],
-                                 what = sprintf("the %s table", names(bodies)[ht]))
+        # the name of this table
+        tbl <- names(bodies)[ht]
+        # fetch every page of this table's records, checked against the server's count
+        dat <- .wildobs_api_find_paged(
+          url, api_key,
+          collection = tbl,
+          filter = bodies[[ht]]$filter,
+          key = page_keys[[tbl]],
+          page_size = page_sizes[[tbl]],
+          # obscured observations all share one placeholder ID, so they cannot be paged on it
+          shared_key_pattern = if (tbl == "observations") "^obscured_for_" else NULL
+        )
         # and save the object as the relevant name
-        if(names(bodies)[ht] == "deployments"){  deps = dat}
-        if(names(bodies)[ht] == "observations"){ obs = dat}
-        if(names(bodies)[ht] == "covariates"){   covs = dat}
+        if(tbl == "deployments"){  deps = dat}
+        if(tbl == "observations"){ obs = dat}
+        if(tbl == "covariates"){   covs = dat}
 
       } # end per bodies
 
@@ -518,50 +535,8 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
           count_filt <- list(projectName = list(`$in` = project_ids_query))
         }
 
-        # Init a body request for the API call
-        count_body <- list(
-          # only inspect the media collection
-          collection = "media",
-          #  Build an aggregation pipeline
-          aggregation = list(
-            # match our projects query
-            list(`$match` = count_filt),
-            # and only count how many docs (cheap)
-            list(`$count` = "n")
-          )
-        )
-        # Use the same API curl pattern as before
-        h_count <- curl::new_handle()
-        curl::handle_setheaders(h_count,
-                                "X-API-Key" = api_key,
-                                "Content-Type" = "application/json"
-        )
-        # Send the body, but tell curl the verb is GET.
-        curl::handle_setopt(h_count,
-                            # Setting postfields implies POST, so we must
-                            postfields = jsonlite::toJSON(count_body, auto_unbox = TRUE),
-                            ## specify a GET in the request to override POST
-                            customrequest = "GET"
-        )
-        # Try it safely - if the count fails we still want the download to run
-        count_resp_raw <- try(
-          curl::curl_fetch_memory(sub("/find$", "/aggregation", url), handle = h_count),
-          silent = TRUE
-        )
-
-        # Pull the number out, or fall back to NA if anything went wrong.
-        # NA means "we don't know the total", which switches off percentage messages.
-        media_total <- NA_integer_
-        # if there is no error, and we got a valid response (200)
-        if(!inherits(count_resp_raw, "try-error") && count_resp_raw$status_code == 200){
-          # try to grab the row count safely
-          count_data <- try(jsonlite::fromJSON(rawToChar(count_resp_raw$content)), silent = TRUE)
-          # if there is no error AND we returned valid results
-          if(!inherits(count_data, "try-error") && nrow(count_data[[1]]$results) > 0){
-            # extract the row count from results
-            media_total <- count_data[[1]]$results$n
-          } # end second results condition
-        } # end inital success condition
+        # ask the server how many media rows to expect; NA (unknown) switches off percentages
+        media_total <- .wildobs_api_count(url, api_key, "media", count_filt)
 
         ### give users an update about accessing media in batches
         # if media count was NA
@@ -1014,3 +989,152 @@ wildobs_dp_download = function(db_url = NULL, api_key = NULL, project_ids,
   stop(sprintf("wildobs_dp_download() could not fetch %s from the WildObs API (%s).", what, reason),
        "\nCheck your API key and internet connection, then try again.", call. = FALSE)
 } # end function
+
+
+#' Count the Records Matching a Filter in a WildObs API Collection
+#'
+#' @description Asks the WildObs API aggregation endpoint how many documents in one
+#'   collection match a filter, without downloading them. Used to report download
+#'   progress and to confirm a paged download fetched every row.
+#' @param url Character. The API find endpoint; the aggregation endpoint is derived from it.
+#' @param api_key Character. The user's WildObs API key.
+#' @param collection Character. The collection to count, e.g. `"observations"`.
+#' @param filter List. The same filter the download uses.
+#' @return A single integer, or `NA` if the count could not be obtained. Never stops,
+#'   because a failed count should not prevent the download itself.
+#' @author Zachary Amir
+#' @keywords internal
+.wildobs_api_count <- function(url, api_key, collection, filter) {
+  # an aggregation pipeline that matches the filter and only counts the documents
+  body <- list(collection = collection,
+               aggregation = list(list(`$match` = filter), list(`$count` = "n")))
+  # a handle carrying the key and the JSON body
+  h <- curl::new_handle()
+  curl::handle_setheaders(h, "X-API-Key" = api_key, "Content-Type" = "application/json")
+  # the aggregation endpoint expects a GET that carries a body
+  curl::handle_setopt(h, postfields = jsonlite::toJSON(body, auto_unbox = TRUE),
+                      customrequest = "GET")
+  # send it, keeping any failure as a value rather than an error
+  resp <- tryCatch(curl::curl_fetch_memory(sub("/find$", "/aggregation", url), handle = h),
+                   error = function(e) NULL)
+  # no response or a failed status means the count is unknown
+  if (is.null(resp) || resp$status_code != 200) return(NA_integer_)
+  # parse the body, keeping NULL if it is not JSON
+  parsed <- tryCatch(jsonlite::fromJSON(rawToChar(resp$content)), error = function(e) NULL)
+  # pull out the results block, if the response has the usual shape
+  res <- if (is.list(parsed) && length(parsed) >= 1 && is.list(parsed[[1]])) parsed[[1]]$results else NULL
+  # a successful count over zero documents comes back as an empty result
+  if (is.null(res) || length(res) == 0 || (is.data.frame(res) && nrow(res) == 0)) {
+    return(if (is.list(parsed)) 0L else NA_integer_)
+  } # end empty result
+  # otherwise the count is the single value in n
+  return(as.integer(res$n[1]))
+} # end .wildobs_api_count
+
+
+#' Fetch Every Record Matching a Filter, One Page at a Time
+#'
+#' @description Downloads a WildObs API collection in pages ordered by a key column,
+#'   asking each time for the rows whose key sorts after the last one received
+#'   (keyset paging). One unpaged request for many projects is too large for the API
+#'   gateway to answer before it times out, and the API ignores `skip`, so paging on
+#'   a key is the only way to keep every request small.
+#'
+#'   Rows whose key matches `shared_key_pattern` are fetched separately, in one
+#'   request, and left out of the paging. This is for obscured threatened-species
+#'   observations, which all share a placeholder `observationID` such as
+#'   `obscured_for_endangered_species`: paging on a key that repeats would skip the
+#'   repeats that fall after a page boundary.
+#'
+#'   Once every page is in, the number of rows is compared with the server's own
+#'   count of the filter, and a shortfall stops with an error rather than returning
+#'   part of the table.
+#' @param url Character. The API find endpoint.
+#' @param api_key Character. The user's WildObs API key.
+#' @param collection Character. The collection to fetch, e.g. `"observations"`.
+#' @param filter List. The project filter for this download.
+#' @param key Character. The column to page on; it must be unique apart from rows
+#'   matched by `shared_key_pattern`.
+#' @param page_size Integer. Rows per request.
+#' @param shared_key_pattern Character regular expression, or `NULL`. Keys matching it
+#'   are fetched separately and excluded from paging.
+#' @return A data frame of every matching record, or an empty list if there are none.
+#'   Stops if the rows fetched do not match the server's count.
+#' @author Zachary Amir
+#' @keywords internal
+.wildobs_api_find_paged <- function(url, api_key, collection, filter, key, page_size,
+                                    shared_key_pattern = NULL) {
+  # store each page here
+  pages <- list()
+  # key values that repeat, which are fetched once and then excluded from paging
+  held_keys <- character(0)
+
+  ## First, fetch the rows whose key is a shared placeholder, all in one request
+  if (!is.null(shared_key_pattern)) {
+    # the project filter plus a pattern match on the key
+    shared_filter <- filter
+    shared_filter[[key]] <- list(`$regex` = shared_key_pattern)
+    # fetch them, retrying a dropped request
+    shared <- .wildobs_api_find(url, api_key, list(collection = collection, filter = shared_filter),
+                                what = sprintf("the %s table (rows with a shared %s)", collection, key))
+    # keep them only if there were any
+    if (is.data.frame(shared) && nrow(shared) > 0) {
+      # save them as the first page
+      pages[[1]] <- shared
+      # and remember which placeholder values to leave out of the paging
+      held_keys <- unique(shared[[key]])
+    } # end any shared rows
+  } # end shared key condition
+
+  ## Then page through everything else in key order
+  # the last key received, NULL before the first page
+  last_key <- NULL
+  repeat {
+    # conditions on the key column for this page
+    key_cond <- list()
+    # after the first page, ask only for keys sorting after the last one received
+    if (!is.null(last_key)) key_cond$`$gt` <- last_key
+    # leave out the placeholder rows already fetched; I() keeps a single value as an array
+    if (length(held_keys) > 0) key_cond$`$nin` <- I(held_keys)
+    # the project filter plus the key conditions
+    page_filter <- filter
+    if (length(key_cond) > 0) page_filter[[key]] <- key_cond
+    # how many rows are already in, for the error message if this page fails
+    n_so_far <- sum(vapply(pages, NROW, integer(1)))
+    # fetch one page, retrying a dropped request
+    page <- .wildobs_api_find(
+      url, api_key,
+      list(collection = collection, filter = page_filter,
+           sort = stats::setNames(list(1), key), limit = page_size),
+      what = sprintf("the %s table (page after %d rows)", collection, n_so_far)
+    )
+    # an empty page means everything has been fetched
+    if (!is.data.frame(page) || nrow(page) == 0) break
+    # save the page
+    pages[[length(pages) + 1]] <- page
+    ## the next page starts after this page's last row; the server sorted the page, and
+    ## R's max() would use locale collation, which can disagree with MongoDB's byte order
+    last_key <- page[[key]][nrow(page)]
+    # a short page is the last one, so stop without asking for another
+    if (nrow(page) < page_size) break
+  } # end repeat per page
+
+  # nothing at all matched the filter
+  if (length(pages) == 0) return(list())
+  # stack the pages into one table
+  out <- dplyr::bind_rows(pages)
+
+  ## Finally, make sure no rows were lost between pages
+  # the server's own count of the filter
+  expected <- .wildobs_api_count(url, api_key, collection, filter)
+  # a count that could not be obtained is not a reason to fail the download
+  if (!is.na(expected) && nrow(out) != expected) {
+    stop(sprintf("wildobs_dp_download() fetched %d of the %d rows in the %s table.",
+                 nrow(out), expected, collection),
+         "\nThe download is incomplete, so nothing was returned. Please try again, and ",
+         "report it on the WildObsR GitHub issues if it keeps happening.", call. = FALSE)
+  } # end row count check
+
+  # return every row
+  return(out)
+} # end .wildobs_api_find_paged
