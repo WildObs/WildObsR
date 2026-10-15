@@ -617,6 +617,6 @@
     "version": "1.0.2-wildobs.1",
     "upstreamVersion": "1.0.2",
     "upstreamProfile": "https://raw.githubusercontent.com/tdwg/camtrap-dp/1.0.2/camtrap-dp-profile.json",
-    "generatedBy": "code_data cleaning/utils/profiles/wildobs/build_wildobs_schemas.R"
+    "generatedBy": "WildObs curation pipeline"
   }
 }
