@@ -80,9 +80,12 @@ buffered <- locationName_buffer_CAPAD(few, buffer_size = 1000)
 buffered[, c("locationID", "CAPADlocationNameBuffer")]
 ```
 
-A recorded `locationName` can differ from the CAPAD name for good reasons: a protected area
-may be recorded under a local or older name, or a camera may sit just outside a reserve
-boundary. Treat a difference as a prompt to look, not as an error.
+A recorded `locationName` can differ from the CAPAD name for good reasons. Where protected
+areas overlap, curation gives each landscape one name. For example, the first Paluma camera
+above is nearest the Girringun Indigenous Protected Area, which overlaps Paluma Range
+National Park, and its landscape is recorded as the national park. A camera can also sit just outside a reserve
+boundary, or a reserve can be recorded under a local name. Treat a difference as a prompt to
+look, not as an error.
 
 ## Metric coordinates
 
