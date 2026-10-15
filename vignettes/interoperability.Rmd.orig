@@ -1,0 +1,155 @@
+---
+title: "Camtrap DP interoperability"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Camtrap DP interoperability}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+<!-- This file is the source. Edit it, then run vignettes/precompute.R with a WildObs API
+key to rebuild interoperability.Rmd, which ships with its results already in place. The
+dashboard screenshot is made by dev/dashboard_screenshot.R. -->
+
+WildObs data follow the [Camera Trap Data Package](https://camtrap-dp.tdwg.org/) standard
+(Camtrap DP), so they work with the growing set of tools built for it. This vignette takes
+one WildObs project to three of them: the [camtrapdp](https://inbo.github.io/camtrapdp/) R
+package, a [GBIF](https://www.gbif.org) Darwin Core export, and the
+[camtrapR](https://jniedballa.github.io/camtrapR/) package, including its interactive
+survey dashboard.
+
+WildObs packages carry a few additions to the standard (see *Inside a WildObs data
+package*). Most tools ignore what they do not know, but some check the standard strictly.
+`as_camtrapdp()` removes the additions, reports every change it made, and checks the
+result, so the package is canonical Camtrap DP.
+
+```{r download, message = FALSE}
+library(WildObsR)
+
+# your personal API key, read from .Renviron (see the Get started vignette)
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
+
+# a baited survey in Paluma Range National Park, with its media table, which Camtrap DP requires
+id <- "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
+dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[1]]
+```
+
+## Convert to canonical Camtrap DP
+
+```{r convert}
+# remove the WildObs additions and check the result
+out <- as_camtrapdp(dp, warn = "none")
+
+# what was changed: how many fields, values and tables, by the kind of change
+as.data.frame(table(where = out$report$level, change = out$report$action), responseName = "n") |>
+  subset(n > 0)
+
+# the converted package passes the Camtrap DP profile and the camtrapdp package's checks
+c(profile = out$validation$descriptor$valid, camtrapdp = out$validation$camtrapdp$valid)
+```
+
+`out$report` lists every change, one row per field or value, with where it came from. The
+`covariates` table is removed by default, because Camtrap DP has no place for it; use
+`keep_covariates = TRUE` to keep it as an extra table, which the standard allows.
+
+## Use it with camtrapdp, and export to GBIF
+
+`out$camtrapdp` is already a `camtrapdp` object, so every camtrapdp function accepts it. For
+example, its taxonomy, and a Darwin Core Archive ready to publish on GBIF:
+
+```{r camtrapdp}
+# the taxa, in camtrapdp's own format
+head(camtrapdp::taxa(out$camtrapdp)[, c("scientificName", "taxonRank")])
+
+# write the Darwin Core files GBIF reads
+dwc_dir <- file.path(tempdir(), "dwc")
+suppressMessages(camtrapdp::write_dwc(out$camtrapdp, dwc_dir))
+list.files(dwc_dir)
+```
+
+## Use it with camtrapR
+
+camtrapR reads Camtrap DP from disk. Write the converted package, then read it back with
+`camtrapR::readcamtrapDP()`, which returns camtrapR's camera table (one row per station) and
+record table (one row per detection):
+
+```{r camtrapr-read}
+# save the converted package as CSV files and a datapackage.json
+pkg_dir <- file.path(tempdir(), "paluma_camtrapdp")
+frictionless::write_package(out$package, pkg_dir)
+
+# read it the way camtrapR does
+ct <- camtrapR::readcamtrapDP(
+  deployments_file = file.path(pkg_dir, "deployments.csv"),
+  media_file = file.path(pkg_dir, "media.csv"),
+  observations_file = file.path(pkg_dir, "observations.csv"),
+  datapackage_file = file.path(pkg_dir, "datapackage.json")
+)
+
+# stations, and detection records
+dim(ct$CTtable)
+dim(ct$recordTable)
+```
+
+camtrapR joins every deployment at a station into one row and records the gaps between them
+as `Problem` periods, so its camera operation matrix counts only the days a camera was
+running. From there, camtrapR builds detection histories with effort:
+
+```{r camtrapr-dh}
+# days each station was operating
+camop <- camtrapR::cameraOperation(CTtable = ct$CTtable, stationCol = "Station",
+                                   setupCol = "Setup_date", retrievalCol = "Retrieval_date",
+                                   hasProblems = TRUE, dateFormat = "ymd HMS",
+                                   writecsv = FALSE)
+
+# animal detections that can be placed on a station
+rec <- ct$recordTable[ct$recordTable$observationType == "animal" &
+                        !grepl("^obscured_for_", ct$recordTable$deploymentID), ]
+rec$Station <- rec$locationID
+
+# weekly detection history of feral pigs, with the camera-days behind each cell
+dh <- camtrapR::detectionHistory(recordTable = rec, camOp = camop, stationCol = "Station",
+                                 speciesCol = "scientificName",
+                                 recordDateTimeCol = "DateTimeOriginal",
+                                 recordDateTimeFormat = "ymd HMS", species = "Sus scrofa",
+                                 occasionLength = 7, day1 = "station", includeEffort = TRUE,
+                                 scaleEffort = FALSE, timeZone = "UTC")
+dh$detection_history[1:5, 1:8]
+```
+
+camtrapR reads the date-times as UTC, the time zone they are written in. Pass the project's
+own time zone (`dp$temporal$timeZone`) where camtrapR asks for one if daily boundaries or
+activity times matter.
+
+## Explore it in the camtrapR survey dashboard
+
+`camtrapR::surveyDashboard()` opens an interactive app for exploring and analysing a survey:
+summaries, maps, activity patterns, species accumulation, and occupancy models. Pass it the
+two tables read above:
+
+```{r dashboard, eval = FALSE}
+camtrapR::surveyDashboard(
+  CTtable = ct$CTtable, recordTable = rec,
+  stationCol = "Station", setupCol = "Setup_date", retrievalCol = "Retrieval_date",
+  hasProblems = TRUE, CTdateFormat = "ymd HMS",
+  xcol = "longitude", ycol = "latitude", crs = "epsg:4326",
+  speciesCol = "scientificName", recordDateTimeCol = "DateTimeOriginal",
+  recordDateTimeFormat = "ymd HMS", timeZone = "Australia/Brisbane"
+)
+```
+
+![The camtrapR survey dashboard on the Paluma project: stations, records, species, survey
+dates and trap nights, with the number of records of each species.](figures/interoperability-dashboard-summary.png){width=100%}
+
+<details>
+<summary>Session information</summary>
+
+```{r session}
+sessionInfo()
+```
+
+</details>
