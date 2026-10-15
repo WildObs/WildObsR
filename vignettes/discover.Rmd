@@ -1,0 +1,305 @@
+---
+title: "Discover what exists"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Discover what exists}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+
+<!-- This file is the source. Edit it, then run vignettes/precompute.R with a WildObs API
+key to rebuild discover.Rmd, which ships with its results already in place. -->
+
+Before you download any camera data, it helps to know what the database holds: which
+projects sampled your region, when, with what design, which species they recorded, and
+whether their data are released yet. All of that lives in each project's metadata, which
+is small and quick to fetch. This vignette searches WildObs, reads the metadata of what it
+finds, and ends with the references to cite. It downloads no data tables.
+
+
+``` r
+library(WildObsR)
+
+# your personal API key, read from .Renviron (see the Get started vignette)
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
+```
+
+## Search by place, time, species, design or person
+
+`wildobs_mongo_query()` returns the IDs of projects that match every filter you give it.
+A filter left out does not restrict the search, but at least one filter is needed:
+
+| Filter | What it matches | Example |
+|---|---|---|
+| `spatial` | cameras inside a box, in decimal degrees | `list(xmin = 145, xmax = 154, ymin = -29, ymax = -10)` |
+| `temporal` | surveys running at any time in a date range | `list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2022-12-31"))` |
+| `taxonomic` | projects that recorded any of these species | `c("Phascolarctos cinereus", "Felis catus")` |
+| `samplingDesign` | the Camtrap DP sampling design | `"targeted"`, `"systematicRandom"`, `"opportunistic"`, ... |
+| `contributors` | a person's name, email or ORCID, in any role | `"Zachary Amir"` |
+
+A box over the whole continent lists every project a key can see:
+
+
+``` r
+# a box over Australia and its islands
+australia <- list(xmin = 110, xmax = 160, ymin = -45, ymax = -9)
+
+# every project visible to a public key
+all_ids <- wildobs_mongo_query(api_key = api_key, spatial = australia)
+length(all_ids)
+#> [1] 49
+
+# and those whose data tables can be downloaded today
+open_ids <- wildobs_mongo_query(api_key = api_key, spatial = australia,
+                                tabularSharingPreference = "open")
+length(open_ids)
+#> [1] 23
+```
+
+The difference is the **partial** projects. Their metadata are public, but their tables
+are withheld, usually under an embargo that will end. They are worth knowing about: a
+partial project in your study region is a dataset you could request from its contributors
+or plan to use once it is released.
+
+Filters combine as an intersection. For example, the projects that recorded feral cats in
+2022 with a targeted design:
+
+
+``` r
+# feral cats, surveyed in 2022, by a targeted design
+cat_ids <- wildobs_mongo_query(
+  api_key = api_key,
+  temporal = list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2022-12-31")),
+  taxonomic = "Felis catus",
+  samplingDesign = "targeted"
+)
+cat_ids
+#> [1] "NSW_Greater_Blue_Mountains_fire_Leigh_2021-2022_WildObsID_0044" 
+#> [2] "NSW_Murrumbidgee_Rakali_Sanders_2021-2023_WildObsID_0014"       
+#> [3] "NSW_NthCoast_BTRWallaby_Blackmore_2020-2022_WildObsID_0019"     
+#> [4] "NSW_NthCoast_PotParma_Blackmore_2021-2022_WildObsID_0017"       
+#> [5] "WA_Eurardy_Mammals_Hall_2021-2023_WildObsID_0026"               
+#> [6] "WA_Hamelin_Mammals_Hall_2021-2023_WildObsID_0023"               
+#> [7] "WA_UpperWarren_predator_monitoring_Harrison_2022_WildObsID_0024"
+```
+
+## Download metadata only
+
+`metadata_only = TRUE` downloads each project's descriptor without its tables, which takes
+seconds even for every project in the database. Partial projects always download this way.
+
+
+``` r
+# the descriptors of every visible project
+meta <- wildobs_dp_download(api_key = api_key, project_ids = all_ids, metadata_only = TRUE)
+#> metadata_only = TRUE -> skipping data resource downloads for speed.
+```
+
+## Read the metadata as tables
+
+`extract_metadata()` turns one element of the metadata, across all packages, into a table
+with a `DPID` column naming the project. Ask for several elements at once to get a named
+list of tables.
+
+
+``` r
+# design and data-sharing preference, one row per project
+project <- extract_metadata(meta, "project")
+sharing <- extract_metadata(meta, "WildObsMetadata")
+
+# how the projects were designed
+table(project$samplingDesign)
+#> 
+#>  clusteredRandom     experimental    opportunistic     simpleRandom 
+#>                8                9                1                6 
+#> systematicRandom         targeted 
+#>               13               12
+
+# and how they share their data
+table(sharing$tabularSharingPreference)
+#> 
+#>    open partial 
+#>      23      26
+```
+
+The temporal metadata hold one row per survey (a `deploymentGroup`), so they show how long
+each project has been running:
+
+
+``` r
+# start and end of every survey in every project
+temporal <- extract_metadata(meta, "temporal")
+
+# the span of each project, in years
+span <- tapply(seq_len(nrow(temporal)), temporal$DPID, function(i) {
+  # from the first survey's start to the last survey's end
+  as.numeric(difftime(max(as.Date(temporal$end[i])), min(as.Date(temporal$start[i])),
+                      units = "days")) / 365.25
+}) # end per project
+summary(span)
+#>     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+#>  0.06845  0.49281  1.29500  1.80089  2.10267 12.42163
+```
+
+The spatial metadata give a bounding box for each landscape a project sampled. Plotted
+together they show where WildObs has cameras:
+
+
+``` r
+# one bounding box per landscape per project
+spatial <- extract_metadata(meta, "spatial")
+
+# outline of Australia's states, as an sf object
+aus <- sf::st_as_sf(ozmaps::ozmap_states)
+# draw the outline with little margin around it
+par(mar = c(0, 0, 2, 0))
+plot(sf::st_geometry(aus), col = "grey95", border = "grey60",
+     xlim = c(113, 154), ylim = c(-44, -10),
+     main = sprintf("%d landscapes across %d WildObs projects",
+                    nrow(spatial), length(unique(spatial$DPID))))
+# a point at the centre of every landscape, since most are too small to see as boxes
+points((spatial$xmin + spatial$xmax) / 2, (spatial$ymin + spatial$ymax) / 2,
+       pch = 21, bg = "darkgreen", col = "white", cex = 1.3)
+# and the larger landscapes' boxes around them
+rect(spatial$xmin, spatial$ymin, spatial$xmax, spatial$ymax, border = "darkgreen")
+```
+
+<div class="figure">
+<img src="figures/discover-map-1.png" alt="Map of Australia with a point at the centre of each landscape sampled by a WildObs project."  />
+<p class="caption">plot of chunk map</p>
+</div>
+
+## Which species were recorded
+
+The taxonomic metadata list every taxon each project detected, with its rank and English
+name, so you can tell which projects hold a species before downloading anything.
+
+
+``` r
+# every taxon each project recorded
+taxa <- extract_metadata(meta, "taxonomic")
+
+# taxa named to species, by their two-part scientific name
+species <- taxa[taxa$taxonRank == "species" & grepl("^[A-Z][a-z]+ [a-z-]+$", taxa$scientificName), ]
+# the number of projects that recorded each species, most widespread first
+head(sort(table(species$scientificName), decreasing = TRUE), 10)
+#> 
+#>             Felis catus  Tachyglossus aculeatus             Canis dingo 
+#>                      47                      40                      37 
+#>           Vulpes vulpes Colluricincla harmonica   Trichosurus vulpecula 
+#>                      35                      29                      28 
+#>   Oryctolagus cuniculus        Wallabia bicolor      Gymnorhina tibicen 
+#>                      27                      27                      26 
+#>              Sus scrofa 
+#>                      26
+```
+
+## Find the publications behind a project
+
+Papers and datasets linked to a project are listed in its `relatedIdentifiers`, as DOIs.
+WildObs adds one more type, the project's [RAiD](https://raid.org), a persistent
+identifier for the research activity itself.
+
+
+``` r
+# links from each project to papers, datasets and its RAiD
+related <- extract_metadata(meta, "relatedIdentifiers")
+table(related$relatedIdentifierType, related$relationType)
+#>       
+#>        IsCitedBy IsDerivedFrom IsPartOf IsPublishedIn IsSourceOf IsSupplementTo
+#>   DOI          1             1        0            17          6              8
+#>   RAiD         0             0       49             0          0              0
+#>   URL          0             0        2             1          0              0
+```
+
+## Cite what you use
+
+Each project carries the citation its contributors asked for. `cite_datapackages()`
+returns it, with the version of the database the data came from, as text, as BibTeX for a
+reference manager, or as a table:
+
+
+``` r
+# the open Wet Tropics projects, as an example
+wet_tropics <- c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
+                 "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")
+
+# formatted references, with the date the data were accessed
+writeLines(cite_datapackages(meta[wet_tropics], accessed = Sys.Date()))
+#> Zachary Amir, Tom Bruce & Matthew Luskin (2022). WildObs Camera Trap Data Package: Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/cb5829ab. WildObs database version 1.1.1. Accessed 2026-10-15.
+#> Wren Mclean, Skye Anderson & Matthew Luskin (2023). WildObs Camera Trap Data Package: Cassowary baited camera trap observations in Paluma 2023-2024 [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/7be2c341. WildObs database version 1.1.2. Accessed 2026-10-15.
+
+# or BibTeX
+utils::toBibtex(cite_datapackages(meta[wet_tropics], format = "bibtex"))
+#> @Misc{ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001,
+#>   title = {Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates},
+#>   author = {Zachary Amir and Tom Bruce and Matthew Luskin},
+#>   year = {2022},
+#>   note = {Version 1.1.1. Licence: CC-BY-4.0},
+#>   url = {https://raid.org/10.83062/cb5829ab},
+#> }
+#> 
+#> @Misc{QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006,
+#>   title = {Cassowary baited camera trap observations in Paluma 2023-2024},
+#>   author = {Wren Mclean and Skye Anderson and Matthew Luskin},
+#>   year = {2023},
+#>   note = {Version 1.1.2. Licence: CC-BY-4.0},
+#>   url = {https://raid.org/10.83062/7be2c341},
+#> }
+```
+
+Packages downloaded with their tables can also cite the products behind the WildObs
+covariates, such as the Forest Landscape Integrity Index, with `covariates = TRUE`.
+
+<details>
+<summary>Session information</summary>
+
+
+``` r
+sessionInfo()
+#> R version 4.5.1 (2025-06-13)
+#> Platform: aarch64-apple-darwin20
+#> Running under: macOS Tahoe 26.5.1
+#> 
+#> Matrix products: default
+#> BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
+#> LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
+#> 
+#> locale:
+#> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+#> 
+#> time zone: Australia/Brisbane
+#> tzcode source: internal
+#> 
+#> attached base packages:
+#> [1] stats     graphics  grDevices utils     datasets  methods   base     
+#> 
+#> other attached packages:
+#> [1] WildObsR_0.3.0.9000 here_1.0.1         
+#> 
+#> loaded via a namespace (and not attached):
+#>  [1] stringdist_0.9.17  xfun_0.61          devtools_2.4.6     remotes_2.5.0     
+#>  [5] lattice_0.22-7     tzdb_0.5.0         vctrs_0.7.3        tools_4.5.1       
+#>  [9] generics_0.1.4     curl_8.0.0         parallel_4.5.1     tibble_3.3.1      
+#> [13] proxy_0.4-29       cluster_2.1.8.1    chron_2.3-63       pkgconfig_2.0.3   
+#> [17] Matrix_1.7-3       KernSmooth_2.23-26 desc_1.4.3         lifecycle_1.0.5   
+#> [21] compiler_4.5.1     stringr_1.6.0      terra_1.9-50       codetools_0.2-20  
+#> [25] permute_0.9-10     usethis_3.2.1      class_7.3-23       pillar_1.11.1     
+#> [29] tidyr_1.3.2        MASS_7.3-65        ellipsis_0.3.2     classInt_0.4-11   
+#> [33] mongolite_4.1.0    cachem_1.1.0       vegan_2.7-6        sessioninfo_1.2.3 
+#> [37] nlme_3.1-168       tidyselect_1.2.1   stringi_1.8.9      sf_1.1-3          
+#> [41] dplyr_1.2.1        purrr_1.2.2        splines_4.5.1      rprojroot_2.1.1   
+#> [45] fastmap_1.2.0      grid_4.5.1         cli_3.6.6          magrittr_2.0.5    
+#> [49] pkgbuild_1.4.8     e1071_1.7-17       withr_3.0.3        readr_2.2.0       
+#> [53] lubridate_1.9.5    timechange_0.4.0   httr_1.4.9         ozmaps_0.4.5      
+#> [57] otel_0.2.0         lutz_0.3.2         hms_1.1.4          memoise_2.0.1     
+#> [61] evaluate_1.0.5     knitr_1.52         mgcv_1.9-3         frictionless_1.3.0
+#> [65] rlang_1.3.0        Rcpp_1.1.2         glue_1.8.1         DBI_1.3.0         
+#> [69] geojsonsf_2.0.5    pkgload_1.4.1      rstudioapi_0.17.1  jsonlite_2.0.0    
+#> [73] R6_2.6.1           plyr_1.8.9         oz_1.0-22          fs_1.6.6          
+#> [77] units_1.0-1
+```
+
+</details>
