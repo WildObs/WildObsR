@@ -2,6 +2,17 @@
 
 ## New
 
+- `effort_matrix()` and `detection_matrix()` build detection histories with sampling
+  effort for occupancy and abundance models (#140, #110). Effort is calculated from the
+  deployments alone, as fractional camera-days per local calendar day, so it never depends
+  on where animals were detected, and every camera in a site counts. Occasions are
+  non-overlapping runs of `w` days, aligned per site or to the calendar for multi-season
+  models; effort can be split by a deployment column (for example `featureType`) for use
+  as an observation covariate, and long-term deployments rebuilt with
+  `recombine_deployment_groups()` exclude the gaps between their pieces. Detection
+  histories are `NA` only where no camera ran, and a detection on a day its camera was not
+  running stops with an error. On single-camera stations both agree with
+  `camtrapR::detectionHistory()`. They work on any Camtrap DP package.
 - `recombine_deployment_groups()` rebuilds long-term deployments from the 100-day
   pieces the curation pipeline cuts them into, for multi-season occupancy, trend
   indices and other long-term analyses (#109). A data package goes in and a data
