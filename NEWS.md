@@ -31,9 +31,22 @@
 
 - WildObsR now requires R 4.1 or later, which the native pipe `|>` used in the
   package already needed.
+- `wildobs_mongo_query()` now returns open **and** partial projects by default
+  (`tabularSharingPreference = c("open", "partial")`), so a search shows every
+  project a public key can see, including embargoed ones whose data exist but are
+  not yet released. Partial projects download as metadata only: their data
+  package has no resources, so code that calls `frictionless::read_resource()` on
+  every downloaded package stops on them. Either ask for open projects only,
+  `wildobs_mongo_query(..., tabularSharingPreference = "open")`, or skip the
+  metadata-only packages before reading their tables:
+  `dp_list <- Filter(function(dp) length(dp$resources) > 0, dp_list)`.
 
 ## Fixed
 
+- The `wildobs_mongo_query()` help no longer says the function filters out
+  projects still under embargo. Embargoed projects are stored as `partial` until
+  the embargo ends, and the help now says so. Its example uses `api_key` rather
+  than an undefined `db_url`.
 - `wildobs_dp_download()` over the API now downloads any number of projects in one
   call. Previously each table came back in a single request, and asking for many
   projects at once failed with `HTTP 504` because the response was too large to

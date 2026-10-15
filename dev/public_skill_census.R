@@ -149,6 +149,13 @@ for (el in elements) {
 ## distinct taxa listed across all visible projects
 taxa <- suppressWarnings(extract_metadata(meta_list, "taxonomic"))
 metrics <- add_metric(metrics, "taxa_listed_all_projects", length(unique(taxa$scientificName)))
+
+## publications linked to projects, which sit in relatedIdentifiers as DOIs
+related <- suppressWarnings(extract_metadata(meta_list, "relatedIdentifiers"))
+# keep only the DOI links; RAiD links identify the project itself, not a publication
+dois <- related[related$relatedIdentifierType %in% "DOI", , drop = FALSE]
+metrics <- add_metric(metrics, "doi_links_unique", length(unique(dois$relatedIdentifier)))
+metrics <- add_metric(metrics, "projects_with_doi", length(unique(dois$DPID)))
 # keep the metadata list small from here on
 rm(meta_list)
 
@@ -160,7 +167,7 @@ rm(meta_list)
 ## so each project is summarised and dropped before the next is fetched
 
 ## running totals across projects
-tot <- list(deployments = 0, covariates = 0, observations = 0, media = 0,
+tot <- list(deployments = 0, camera_days = 0, covariates = 0, observations = 0, media = 0,
             animal = 0, blank = 0, human = 0, vehicle = 0, unknown = 0,
             obs_obscured = 0, obs_obscured_animal = 0, projects_with_obscured = 0,
             obs_joined = 0, obs_id_dupes_unobscured = 0,
@@ -220,6 +227,10 @@ for (id in open_ids) {
   tot$covariates   <- tot$covariates + nrow(covs)
   tot$observations <- tot$observations + nrow(obs)
   tot$media        <- tot$media + nrow(med)
+  # sampling effort as camera-days, each deployment's start to end summed
+  tot$camera_days  <- tot$camera_days +
+    sum(as.numeric(difftime(deps$deploymentEnd, deps$deploymentStart, units = "days")),
+        na.rm = TRUE)
 
   ## how filled each column is, table by table
   fill <- add_fill(fill, "deployments", deps)
@@ -315,6 +326,7 @@ pct <- function(x, n) sprintf("%.1f", 100 * x / n)
 
 ## record the totals
 metrics <- add_metric(metrics, "rows_deployments", tot$deployments)
+metrics <- add_metric(metrics, "camera_days", round(tot$camera_days))
 metrics <- add_metric(metrics, "rows_covariates", tot$covariates)
 metrics <- add_metric(metrics, "rows_observations", tot$observations)
 metrics <- add_metric(metrics, "rows_media", tot$media)

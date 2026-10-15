@@ -241,6 +241,28 @@ test_that("wildobs_mongo_query combines multiple filters with intersection", {
 ##
 ### Sharing preferences and access ----
 
+test_that("wildobs_mongo_query returns open and partial projects by default", {
+  skip_if_no_wildobs_api()
+
+  # a box over the Queensland Wet Tropics, where the anchor project sits
+  spatial_query <- list(xmin = 145.0, xmax = 147.0, ymin = -20.0, ymax = -16.0)
+
+  # the default, with no sharing preference given
+  by_default <- wildobs_mongo_query(api_key = test_api_key, spatial = spatial_query)
+  # the same box asking for open and partial projects by name
+  both_named <- wildobs_mongo_query(api_key = test_api_key, spatial = spatial_query,
+                                    tabularSharingPreference = c("open", "partial"))
+  # and the same box asking for open projects only
+  open_only  <- wildobs_mongo_query(api_key = test_api_key, spatial = spatial_query,
+                                    tabularSharingPreference = "open")
+
+  # leaving the argument out is the same as naming both preferences
+  expect_setequal(by_default, both_named)
+  # and open-only can never find a project the default misses, however the
+  # embargoes in this box change over time
+  expect_true(all(open_only %in% by_default))
+})
+
 test_that("wildobs_mongo_query warns when requesting closed data without admin", {
   skip_if_no_wildobs_api()
 
