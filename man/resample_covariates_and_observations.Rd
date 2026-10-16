@@ -87,8 +87,8 @@ The function performs the following steps to resample the covariate and observat
 }
 \item \strong{Resampling by Deployment Group and Spatial Scale}:
 \itemize{
-\item The function loops over each unique deployment group present in the covariates data. This speeds up the process.
-\item For each deployment group:
+\item The function loops over each unique \code{deploymentGroup} present in the covariates data. This speeds up the process.
+\item For each \code{deploymentGroup}:
 \itemize{
 \item Subsets the covariates and observations to include only the relevant deployments.
 \item Merges spatial cell information (i.e., the \code{cellID} columns) from the covariates into the observations based on the \code{deploymentID}.
@@ -96,7 +96,7 @@ The function performs the following steps to resample the covariate and observat
 }
 \item \strong{Resampling of Covariates}:
 \itemize{
-\item Within each deployment group, the function iterates over each spatial scale (columns containing "cellID_").
+\item Within each \code{deploymentGroup}, the function iterates over each spatial scale (columns containing "cellID_").
 \item For each spatial scale, it loops through each unique sampling unit (i.e., each unique cell value):
 \itemize{
 \item A new row is created for each sampling unit, starting as an empty data frame with the same structure as the covariates data.
@@ -124,7 +124,7 @@ The function performs the following steps to resample the covariate and observat
 }
 \item \strong{Compilation of Resampled Data}:
 \itemize{
-\item After processing all deployment groups and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
+\item After processing all \code{deploymentGroups} and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
 \item Finally, the function assembles the resampled data into two nested lists:
 \itemize{
 \item One list contains the resampled covariates, organized by spatial scale.
@@ -142,19 +142,22 @@ The function performs the following steps to resample the covariate and observat
 }
 }
 \examples{
-# the baited Paluma project shipped with WildObsR
+# load the baited Paluma project shipped with WildObsR
 dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
 
-# one table of deployments and their covariates, with the data source
-deps <- dp$data$deployments
-covs <- merge(deps, dp$data$covariates, by = intersect(names(deps), names(dp$data$covariates)))
+# extract one table of deployments and their covariates
+deps <- frictionless::read_resource(dp, "deployments")
+covs <- frictionless::read_resource(dp, "covariates")
+# merge both tables together based on several shared columns 
+covs <- merge(deps, covs, by = intersect(names(deps), names(covs)))
+# include data source for hexagon generator function
 covs$source <- dp$id
 
 # assign every camera to a 1 km2 hexagonal cell (scales are cell areas in m2)
 covs <- spatial_hexagon_generator(covs, scales = 1e6)
 
 # observations that can be placed on a camera (obscured records cannot)
-obs <- dp$data$observations
+obs <- frictionless::read_resource(dp, "observations")
 obs <- obs[obs$deploymentID \%in\% covs$deploymentID, ]
 
 # resample to cells and days, keeping bait use and the targeted feature as

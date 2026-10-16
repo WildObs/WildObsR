@@ -46,6 +46,7 @@ Visit the project repository: \url{https://github.com/WildObs/WildObsR}
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://wildobs.github.io/WildObsR/}
   \item \url{https://github.com/WildObs/WildObsR}
   \item Report bugs at \url{https://github.com/WildObs/WildObsR/issues}
 }

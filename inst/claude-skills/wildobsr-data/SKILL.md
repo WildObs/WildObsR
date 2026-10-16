@@ -46,9 +46,9 @@ dp_list <- wildobs_dp_download(api_key = api_key, project_ids = ids,
 
 # 3. use them
 dp   <- dp_list[[1]]
-deps <- frictionless::read_resource(dp, "deployments")     # or dp$data$deployments    
-obs  <- frictionless::read_resource(dp, "observations") 
-covs <- frictionless::read_resource(dp, "covariates")  
+deps <- frictionless::read_resource(dp, "deployments")
+obs  <- frictionless::read_resource(dp, "observations")
+covs <- frictionless::read_resource(dp, "covariates")
 meta <- extract_metadata(dp_list, c("contributors", "temporal", "taxonomic"))
 ```
 
@@ -59,8 +59,11 @@ meta <- extract_metadata(dp_list, c("contributors", "temporal", "taxonomic"))
   thousands of rows per project) and is downloaded in batches, so leave it off unless you
   need image-level data.
 - `metadata_only = TRUE` skips the tables for a fast look at what exists.
-- Each package is a list with class `camtrapdp`. The tables are in `dp$data` and also as
-  Frictionless resources in `dp$resources`, each with a schema describing every field.
+- Each package is a list with class `camtrapdp`. The tables are Frictionless resources in
+  `dp$resources`, each with a schema describing every field. **Read them with
+  `frictionless::read_resource(dp, "<table>")`**, which applies the schema's column types.
+  `dp$data` holds a copy because the `camtrapdp` class expects one, but other tools do not
+  always keep it up to date, so do not read tables from it.
   `frictionless::write_package(dp, "folder")` saves it to disk as CSVs plus `datapackage.json`.
 
 ## What the public API gives you
@@ -85,8 +88,8 @@ A project's embargo is already reflected in its preference: an embargoed project
 `bibliographicCitation`; a project without one downloads as metadata only.
 
 `wildobs_dp_download()` returns `partial` projects as metadata-only packages with no
-tables, rather than failing. Check `length(dp$resources)` or `nrow(dp$data$deployments)`
-before analysis.
+tables, rather than failing. Check `length(dp$resources)` before
+analysis.
 
 `wildobs_mongo_query()` needs at least one filter: called with none, it returns
 `character(0)`. To list every project you can see, pass a box over all of Australia,
@@ -215,9 +218,12 @@ cw      <- frictionless::read_resource(long_dp, "deployment_crosswalk")
   of animal records.
 - `observationLevel` is always `event`.
 - Downloaded observations also carry `taxonID`, `taxonRank` and `vernacularNamesEnglish`,
-  joined from the package's taxonomic metadata, and empty on non-animal rows. Check
-  `taxonRank`: about 78% of animal records are identified to species, and the rest only to
-  genus, family, order, class or phylum.
+  joined from the package's taxonomic metadata. They are meant to be empty on non-animal
+  rows, but the database currently fills them on `vehicle`, `unknown` and most `human` rows
+  too (with placeholders such as `Homo sapiens-vehicle`, rank `species`). So filter on
+  `observationType == "animal"`, never on `taxonID` or `taxonRank`. Check `taxonRank`:
+  about 78% of animal records are identified to species, and the rest only to genus,
+  family, order, class or phylum.
 - `classificationMethod` is `human` (about 89% of animal records) or `machine`.
 
 ### What the data can and cannot support

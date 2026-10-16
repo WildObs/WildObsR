@@ -26,7 +26,9 @@ dp_list <- example_datapackages()
 
 # one row per camera station, from both projects
 deps <- do.call(rbind, lapply(dp_list, function(dp) {
-  dp$data$deployments[, c("deploymentID", "locationID", "locationName", "latitude", "longitude")]
+  # this project's deployments, read with their schema types
+  d <- frictionless::read_resource(dp, "deployments")
+  d[, c("deploymentID", "locationID", "locationName", "latitude", "longitude")]
 }))
 stations <- deps[!duplicated(deps$locationID), ]
 rownames(stations) <- NULL

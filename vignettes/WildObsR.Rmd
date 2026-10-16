@@ -121,9 +121,11 @@ vapply(dp_list, function(dp) length(dp$resources), integer(1))
 #>                                                       3
 ```
 
-Each package holds its tables in two places: as Frictionless resources, read with
-`frictionless::read_resource()`, and as plain data frames in `dp$data`. Columns already
-carry their types, and date-times are in the project's own time zone.
+Each package holds its tables as Frictionless resources. Read them with
+`frictionless::read_resource()`, which returns each column with the type its schema
+gives, and date-times in the project's own time zone. The package also keeps a copy in
+`dp$data`, because the `camtrapdp` class expects one, but other tools do not always keep
+that copy up to date, so read tables with `read_resource()`.
 
 
 ``` r
@@ -143,8 +145,8 @@ head(deployments[, c("deploymentID", "locationName", "deploymentStart", "deploym
 #> 5 CFRAG_03_WildObsID_0001_… Eacham_Curt… 2022-12-15 11:00:58 2023-03-06 15:18:39
 #> 6 CFRAG_03_WildObsID_0001_… Eacham_Curt… 2022-12-15 10:36:47 2023-03-03 23:08:06
 
-# its detections, the same table as in dp$data
-observations <- dp$data$observations
+# its detections
+observations <- frictionless::read_resource(dp, "observations")
 table(observations$observationType)
 #> 
 #>       animal        human      vehicle        blank      unknown unclassified 

@@ -15,7 +15,7 @@ dp <- wildobs_dp_download(db_url = Sys.getenv("MONGODB_LOCAL_RO_URL"), project_i
                           media = TRUE)[[1]]
 
 ## keep three deployments, and only the rows that belong to them
-keep_deps <- utils::head(dp$data$deployments$deploymentID, 3)
+keep_deps <- utils::head(frictionless::read_resource(dp, "deployments")$deploymentID, 3)
 # a quick helper to trim one resource's in-memory table, keeping resources and dp$data in step
 trim <- function(dp, name, rows) {
   i <- which(vapply(dp$resources, function(r) r$name, character(1)) == name)
@@ -29,7 +29,7 @@ dp <- trim(dp, "covariates", function(d) d$deploymentID %in% keep_deps)
 dp <- trim(dp, "observations", function(d) d$deploymentID %in% keep_deps &
              stats::ave(seq_len(nrow(d)), d$deploymentID, FUN = seq_along) <= 20)
 # the media for those observations
-kept_obs <- dp$data$observations$observationID
+kept_obs <- frictionless::read_resource(dp, "observations")$observationID
 dp <- trim(dp, "media", function(d) d$observationID %in% kept_obs)
 
 ## save it beside this script

@@ -29,7 +29,7 @@ api_key <- Sys.getenv("WILDOBSR_API_KEY")
 # the project, with its media table
 id <- "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[id]]
-media <- dp$data$media
+media <- frictionless::read_resource(dp, "media")
 ```
 
 ## Which images can be downloaded
@@ -54,8 +54,10 @@ Joining on it gives every image the species, count and observation type recorded
 observation:
 
 ```{r labels}
+# the observations, read with their schema types
+obs <- frictionless::read_resource(dp, "observations")
 # the label columns of each observation
-labels <- dp$data$observations[, c("observationID", "observationType", "scientificName", "count")]
+labels <- obs[, c("observationID", "observationType", "scientificName", "count")]
 
 # each public image with its label
 public <- merge(media[media$filePublic, c("mediaID", "deploymentID", "observationID",

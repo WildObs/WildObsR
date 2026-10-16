@@ -492,14 +492,15 @@ test_that("resample_covariates_and_observations handles character covariates by 
 ## the bundled Paluma project, prepared the way the README workflow does
 paluma_inputs <- function() {
   dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
-  dep <- dp$data$deployments
+  dep <- frictionless::read_resource(dp, "deployments")
+  covs <- frictionless::read_resource(dp, "covariates")
   # deployments and covariates as one table
-  covs <- merge(dep, dp$data$covariates, by = intersect(names(dep), names(dp$data$covariates)))
+  covs <- merge(dep, covs, by = intersect(names(dep), names(covs)))
   covs$source <- dp$id
   # 1 km2 cells
   covs <- spatial_hexagon_generator(covs, scales = 1e6)
   # animal observations that can be placed on a camera
-  obs <- dp$data$observations
+  obs <- frictionless::read_resource(dp, "observations")
   obs <- obs[obs$deploymentID %in% covs$deploymentID, ]
   list(covs = covs, obs = obs)
 } # end paluma inputs

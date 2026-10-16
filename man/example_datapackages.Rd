@@ -23,8 +23,9 @@ the character vector of available project IDs. Stops if an ID is not one of them
 Reads the two WildObs projects shipped with the package, so examples,
 tests and tutorials run offline on real data. They come back in the same shape as
 \code{\link[=wildobs_dp_download]{wildobs_dp_download()}} returns: a named list of Camtrap DP data packages, each with
-its tables in \code{resources} and a copy in \code{dp$data}, and date-times in the project's
-local time zone.
+its tables in \code{resources} and date-times in the project's local time zone. Read the
+tables with \code{\link[frictionless:read_resource]{frictionless::read_resource()}}. A copy also sits in \code{dp$data}, because the
+\code{camtrapdp} class expects one, but other tools do not always keep it up to date.
 
 The two projects sample the same rainforest with different designs, which is what
 makes pooling them a useful exercise:
@@ -49,7 +50,8 @@ example_datapackages(project_ids = NULL)
 # read both, exactly as wildobs_dp_download() would return them
 dp_list <- example_datapackages()
 names(dp_list)
-head(dp_list[[1]]$data$deployments[, c("deploymentID", "deploymentStart", "baitUse")])
+deps <- frictionless::read_resource(dp_list[[1]], "deployments")
+head(deps[, c("deploymentID", "deploymentStart", "baitUse")])
 
 # and cite them
 cite_datapackages(dp_list)

@@ -62,7 +62,7 @@ ids <- wildobs_mongo_query(api_key = api_key,
 dp_list <- wildobs_dp_download(api_key = api_key, project_ids = ids)
 
 # read a table, and cite the data
-deployments <- dp_list[[1]]$data$deployments
+deployments <- frictionless::read_resource(dp_list[[1]], "deployments")
 writeLines(cite_datapackages(dp_list))
 ```
 

@@ -1,8 +1,8 @@
 # The four data tables
 
-Field reference for `dp$data$deployments`, `$observations`, `$media` and `$covariates` as
-returned by `wildobs_dp_download()`. "Filled" is the approximate share of rows with a value
-across the open projects through the public API (census of 2026-10-05; see SKILL.md,
+Field reference for the `deployments`, `observations`, `media` and `covariates` tables of a
+package returned by `wildobs_dp_download()`, read with `frictionless::read_resource()`. "Filled" is the approximate share of rows with a value
+across the open projects through the public API (census of 2026-10-15; see SKILL.md,
 "Scale"); individual projects vary widely. Fields marked **WildObs** are additions to Camtrap DP. Every table also has `projectName`, the
 package `id`.
 
@@ -51,9 +51,9 @@ data: `dp$resources[[i]]$schema$fields`.
 | `observationType` | character | 100% | `blank` (~53%), `animal` (~32%), `vehicle` (~6%), `unknown` (~6%), `human` (~3%). |
 | `cameraSetupType` | character | 0% | `setup` on a handful of rows. |
 | `scientificName` | character | 100% | Taxon, at the rank in `taxonRank`. |
-| `taxonID` | character | animal rows | Added from metadata: verified taxon URI. |
-| `taxonRank` | character | animal rows | Added from metadata: `species`, `genus`, `family`, … |
-| `vernacularNamesEnglish` | character | animal rows | **WildObs.** Added from metadata: English common name. |
+| `taxonID` | character | ~47%; animal rows, plus placeholders (see SKILL.md) | Added from metadata: verified taxon URI. |
+| `taxonRank` | character | as `taxonID` | Added from metadata: `species`, `genus`, `family`, … |
+| `vernacularNamesEnglish` | character | as `taxonID` | **WildObs.** Added from metadata: English common name. |
 | `count` | integer | ~88% | Individuals; `NA` on blanks, unknowns and ~15% of animal records. |
 | `lifeStage`, `sex`, `behavior` | character | ~0% | Essentially empty. |
 | `individualID` | character | 0% | Empty. |

@@ -30,7 +30,7 @@ test_that("example_datapackages returns packages shaped like a download", {
 
 test_that("example_datapackages types columns and times as a download does", {
   dp <- example_datapackages(p6)[[1]]
-  deps <- dp$data$deployments
+  deps <- frictionless::read_resource(dp, "deployments")
 
   # date-times are POSIXct in the project's own time zone
   expect_s3_class(deps$deploymentStart, "POSIXct")
@@ -44,7 +44,7 @@ test_that("example_datapackages types columns and times as a download does", {
 })
 
 test_that("example_datapackages holds animal observations only, obscured records included", {
-  obs <- example_datapackages(p6)[[1]]$data$observations
+  obs <- frictionless::read_resource(example_datapackages(p6)[[1]], "observations")
 
   expect_true(all(obs$observationType == "animal"))
   # threatened species stay obscured, exactly as the public API serves them

@@ -22,18 +22,24 @@ test_that("wildobs_dp_download builds a typed Camtrap DP package from API record
   expect_s3_class(dp, "camtrapdp")
   # the three tables without media, as asked
   expect_setequal(frictionless::resource_names(dp), c("deployments", "observations", "covariates"))
-  # every recorded row arrives, in the resources and in the dp$data copy alike
-  expect_equal(nrow(frictionless::read_resource(dp, "deployments")), nrow(fx$deployments))
-  expect_equal(nrow(dp$data$observations), nrow(fx$observations))
-  expect_equal(nrow(dp$data$covariates), nrow(fx$covariates))
+  # the tables, read as users read them
+  deps <- frictionless::read_resource(dp, "deployments")
+  obs <- frictionless::read_resource(dp, "observations")
+  covs <- frictionless::read_resource(dp, "covariates")
+  # every recorded row arrives
+  expect_equal(nrow(deps), nrow(fx$deployments))
+  expect_equal(nrow(obs), nrow(fx$observations))
+  expect_equal(nrow(covs), nrow(fx$covariates))
+  # the dp$data copy the camtrapdp class expects is filled with the same rows and columns
+  # (read_resource() returns a tibble, the copy a plain data frame)
+  expect_equal(as.data.frame(obs), as.data.frame(dp$data$observations))
   # the schemas are applied, so date-times are date-times rather than text
-  expect_s3_class(dp$data$deployments$deploymentStart, "POSIXct")
-  expect_s3_class(dp$data$observations$eventStart, "POSIXct")
+  expect_s3_class(deps$deploymentStart, "POSIXct")
+  expect_s3_class(obs$eventStart, "POSIXct")
   # the taxonomy from the metadata is joined onto the observations
-  expect_true(all(c("taxonID", "taxonRank", "vernacularNamesEnglish") %in%
-                    names(dp$data$observations)))
+  expect_true(all(c("taxonID", "taxonRank", "vernacularNamesEnglish") %in% names(obs)))
   # and the obscured threatened-species rows come through untouched
-  expect_true(any(grepl("^obscured_for_", dp$data$observations$deploymentID)))
+  expect_true(any(grepl("^obscured_for_", obs$deploymentID)))
 })
 
 test_that("wildobs_dp_download rebuilds the descriptor in Camtrap DP form", {
@@ -69,8 +75,9 @@ test_that("wildobs_dp_download adds media in batches when asked", {
   dp <- dl[[1]]
   # media joins the other three tables, with every recorded row and no repeats
   expect_true("media" %in% frictionless::resource_names(dp))
-  expect_equal(nrow(dp$data$media), nrow(fx$media))
-  expect_false(any(duplicated(dp$data$media$mediaID)))
+  media <- frictionless::read_resource(dp, "media")
+  expect_equal(nrow(media), nrow(fx$media))
+  expect_false(any(duplicated(media$mediaID)))
 })
 
 test_that("wildobs_dp_download with metadata_only returns packages without tables", {

@@ -98,7 +98,7 @@ from what you uploaded in three ways:
 # one of your open projects, as the public receives it
 dp <- wildobs_dp_download(api_key = api_key,
                           project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")[[1]]
-obs <- dp$data$observations
+obs <- frictionless::read_resource(dp, "observations")
 
 # your records that the public cannot place on a camera, by listing category and species
 obscured <- obs[grepl("^obscured_for_", obs$deploymentID), ]

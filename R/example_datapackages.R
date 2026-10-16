@@ -3,8 +3,9 @@
 #' @description Reads the two WildObs projects shipped with the package, so examples,
 #'   tests and tutorials run offline on real data. They come back in the same shape as
 #'   [wildobs_dp_download()] returns: a named list of Camtrap DP data packages, each with
-#'   its tables in `resources` and a copy in `dp$data`, and date-times in the project's
-#'   local time zone.
+#'   its tables in `resources` and date-times in the project's local time zone. Read the
+#'   tables with [frictionless::read_resource()]. A copy also sits in `dp$data`, because the
+#'   `camtrapdp` class expects one, but other tools do not always keep it up to date.
 #'
 #'   The two projects sample the same rainforest with different designs, which is what
 #'   makes pooling them a useful exercise:
@@ -37,7 +38,8 @@
 #' # read both, exactly as wildobs_dp_download() would return them
 #' dp_list <- example_datapackages()
 #' names(dp_list)
-#' head(dp_list[[1]]$data$deployments[, c("deploymentID", "deploymentStart", "baitUse")])
+#' deps <- frictionless::read_resource(dp_list[[1]], "deployments")
+#' head(deps[, c("deploymentID", "deploymentStart", "baitUse")])
 #'
 #' # and cite them
 #' cite_datapackages(dp_list)

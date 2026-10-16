@@ -110,8 +110,8 @@ dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")
 long_dp <- recombine_deployment_groups(dp)
 
 # fewer, longer deployments
-nrow(dp$data$deployments)
-nrow(long_dp$data$deployments)
+nrow(frictionless::read_resource(dp, "deployments"))
+nrow(frictionless::read_resource(long_dp, "deployments"))
 
 # and every original piece, for calculating effort without the gaps
 head(frictionless::read_resource(long_dp, "deployment_crosswalk"))

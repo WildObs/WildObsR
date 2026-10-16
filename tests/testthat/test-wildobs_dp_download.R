@@ -277,7 +277,7 @@ test_that("wildobs_dp_download column order matches schema", {
   # lets a reader trust position as well as name when eyeballing a table
   for (resource in resource_names(dp)) {
     expect_identical(
-      names(dp$data[[resource]]),
+      names(frictionless::read_resource(dp, resource)),
       schema_field_names(dp, resource)
     )
   } # end per resource
@@ -298,7 +298,7 @@ test_that("wildobs_dp_download applies the types declared in the schema", {
 
     for (field in names(declared)) {
       # grab the column the schema is describing
-      column <- dp$data[[resource]][[field]]
+      column <- frictionless::read_resource(dp, resource)[[field]]
 
       # datetimes have to come back timezone-aware, not as bare strings, since
       # every temporal calculation downstream depends on it
@@ -363,12 +363,13 @@ test_that("wildobs_dp_download includes media when media=TRUE", {
 
   # and it arrives populated, since an empty media table would mean the request
   # was accepted but the records never came
-  expect_s3_class(dp$data$media, "data.frame")
-  expect_gt(nrow(dp$data$media), 0)
+  media <- frictionless::read_resource(dp, "media")
+  expect_s3_class(media, "data.frame")
+  expect_gt(nrow(media), 0)
 
   # the public database withholds fileName, so it comes back as an empty column
-  expect_true("fileName" %in% names(dp$data$media))
-  expect_true(all(is.na(dp$data$media$fileName)))
+  expect_true("fileName" %in% names(media))
+  expect_true(all(is.na(media$fileName)))
 })
 
 test_that("wildobs_dp_download never duplicates observations", {
@@ -381,7 +382,7 @@ test_that("wildobs_dp_download never duplicates observations", {
     api_key = test_api_key,
     project_ids = "NSW_Murrumbidgee_Rakali_Sanders_2021-2023_WildObsID_0014"
   ))
-  obs <- result[[1]]$data$observations
+  obs <- frictionless::read_resource(result[[1]], "observations")
   # obscured threatened-species rows share a placeholder ID by design, so set them aside
   obs <- obs[!grepl("^obscured_for_", obs$deploymentID), ]
 
@@ -401,8 +402,8 @@ test_that("wildobs_dp_download returns data for open projects", {
 
   # an open sharing agreement means the tabular data comes through, so empty
   # deployments here would mean the sharing preference was misread
-  expect_s3_class(dp$data$deployments, "data.frame")
-  expect_gt(nrow(dp$data$deployments), 0)
+  expect_s3_class(frictionless::read_resource(dp, "deployments"), "data.frame")
+  expect_gt(nrow(frictionless::read_resource(dp, "deployments")), 0)
 })
 
 test_that("wildobs_dp_download returns observations as a data frame", {
@@ -412,8 +413,8 @@ test_that("wildobs_dp_download returns observations as a data frame", {
 
   # observations must always be a frame, even for a project that detected
   # nothing, so callers never have to guard against a NULL
-  expect_s3_class(dp$data$observations, "data.frame")
-  expect_gt(ncol(dp$data$observations), 0)
+  expect_s3_class(frictionless::read_resource(dp, "observations"), "data.frame")
+  expect_gt(ncol(frictionless::read_resource(dp, "observations")), 0)
 })
 
 test_that("wildobs_dp_download returns covariates as a data frame", {
@@ -422,8 +423,8 @@ test_that("wildobs_dp_download returns covariates as a data frame", {
   dp <- stable_dp()
 
   # same contract as observations: shape is guaranteed, contents are not
-  expect_s3_class(dp$data$covariates, "data.frame")
-  expect_gt(ncol(dp$data$covariates), 0)
+  expect_s3_class(frictionless::read_resource(dp, "covariates"), "data.frame")
+  expect_gt(ncol(frictionless::read_resource(dp, "covariates")), 0)
 })
 
 

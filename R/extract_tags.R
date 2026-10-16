@@ -46,7 +46,7 @@
 #' @examples
 #' # deployments of the baited cassowary project shipped with WildObsR
 #' dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
-#' dep <- dp$data$deployments
+#' dep <- frictionless::read_resource(dp, "deployments")
 #'
 #' # deploymentTags holds "key: value" pairs, e.g. the lure used
 #' head(dep$deploymentTags, 3)

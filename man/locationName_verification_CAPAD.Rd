@@ -32,7 +32,8 @@ The function performs the following steps:
 \examples{
 # two cameras of the Paluma project shipped with WildObsR
 dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
-dep <- dp$data$deployments[c(1, 40), c("deploymentID", "latitude", "longitude", "locationName")]
+dep <- frictionless::read_resource(dp, "deployments")
+dep <- dep[c(1, 40), c("deploymentID", "latitude", "longitude", "locationName")]
 
 # the protected area each camera is in, or nearest to, beside the recorded locationName
 updated_dep <- locationName_verification_CAPAD(dep)
