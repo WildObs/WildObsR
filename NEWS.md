@@ -1,12 +1,6 @@
 # WildObsR (development version)
 
-
 ## New
-- `matrix_generator()` uses non-overlapping sampling occasions and retains the
-  final day and partial occasion. Detection and observation covariate matrices
-  use the same windows (#140). This changes results previously affected by
-  duplicated boundary days or omitted final days; regenerate downstream effort
-  matrices that mirrored the old windows.
 
 - `effort_matrix()` and `detection_matrix()` build detection histories with sampling
   effort for occupancy and abundance models (#140, #110). Effort is calculated from the
@@ -49,6 +43,32 @@
     refreshed to match.
   - Obscured threatened-species records (`obscured_for_<category>_species`) are
     kept unchanged, with a message saying how many.
+
+## Bug fixes
+
+These change the matrices `matrix_generator()` returns; regenerate any results built with
+it.
+
+- `matrix_generator()` uses non-overlapping sampling occasions and retains the
+  final day and partial occasion. Detection and observation covariate matrices
+  use the same windows (#140). This changes results previously affected by
+  duplicated boundary days or omitted final days; regenerate downstream effort
+  matrices that mirrored the old windows.
+- `matrix_generator()` with `all_locationNames = FALSE` now drops the landscapes where a
+  species was not detected from the site covariates as well as the detections (#105).
+- `matrix_generator()` counts a sampling unit as sampled until its sampling ends, not
+  until its last record, so a camera that kept running gives zeros rather than `NA`.
+- `matrix_generator()` places records on their local day rather than their UTC day,
+  which moved morning records in eastern Australia to the day before.
+- `matrix_generator()` returns site covariates in the same order as the matrix rows, keeps
+  sampling units with no observations as zeros (with a message), no longer carries a
+  shortened `dur` from one species to the next, and no longer drops a species whose
+  observation covariates do not vary.
+- `matrix_generator()`'s checks for `NA` covariates and non-date-time columns now run;
+  they used to pass any input.
+- `matrix_generator()` warns when `numberDeploymentsActiveAtDate` is used as an
+  observation covariate. It counts only the deployments with a record that day, so it
+  understates effort and depends on detections. Use `effort_matrix()` for effort.
 
 ## Breaking changes
 

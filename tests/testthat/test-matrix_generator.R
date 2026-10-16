@@ -446,13 +446,14 @@ test_that("matrix_generator creates observation covariate matrices", {
   obs <- create_test_obs_matrix()
   covs <- create_test_covs_matrix()
 
-  result <- matrix_generator(obs, covs, dur = 10, w = 10,
+  # numberDeploymentsActiveAtDate is not effort, and says so
+  expect_warning(result <- matrix_generator(obs, covs, dur = 10, w = 10,
                               site_covs = c("mode_habitat"),
                               obs_covs = c("numberDeploymentsActiveAtDate"),
                               all_locationNames = TRUE,
                               scientificNames = "Species A",
                               type = "occupancy",
-                              individuals = "sum") # come here!
+                              individuals = "sum"), "counts only the deployments with a record")
 
   obs_covs <- result$Species_A$observation_level_covariates
   expect_true("numberDeploymentsActiveAtDate" %in% names(obs_covs))
@@ -463,13 +464,14 @@ test_that("matrix_generator observation covariate matrices match detection matri
   obs <- create_test_obs_matrix()
   covs <- create_test_covs_matrix()
 
-  result <- matrix_generator(obs, covs, dur = 10, w = 2,
+  # numberDeploymentsActiveAtDate is not effort, and says so
+  expect_warning(result <- matrix_generator(obs, covs, dur = 10, w = 2,
                               site_covs = c("mode_habitat"),
                               obs_covs = c("numberDeploymentsActiveAtDate"),
                               all_locationNames = TRUE,
                               scientificNames = "Species A",
                               type = "occupancy",
-                              individuals = "sum")
+                              individuals = "sum"), "counts only the deployments with a record")
 
   det_mat <- result$Species_A$detection_matrix
   obs_mat <- result$Species_A$observation_level_covariates$numberDeploymentsActiveAtDate

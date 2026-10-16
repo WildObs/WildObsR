@@ -77,6 +77,8 @@ The function performs several key steps:
 \item Date-time columns in both \code{obs} and \code{covs} are properly formatted as \code{POSIXct}.
 \item The provided species names (\code{scientificNames}) exist in the \code{obs} table.
 }
+Sampling units with covariates but no observations are kept, and enter every species'
+matrices as sampled zeros, with a message naming them.
 \item \strong{Timezone Adjustment:} Date-time values are updated to the appropriate timezone based on
 the mean latitude and longitude of the sites using \code{lutz::tz_lookup_coords} and \code{lubridate::with_tz}.
 \item \strong{Date Sequence and Sampling Occasions:} A complete sequence of dates is generated for each
@@ -88,6 +90,34 @@ abundance models) or binary presence/absence data (for occupancy models).
 that align with the detection history matrix and are compressed to match sampling occasion windows.
 }
 }
+\section{Known limitations}{
+
+These come from how the inputs are built, and are why \code{\link{effort_matrix}},
+\code{\link{detection_matrix}} and \code{\link{model_matrix_input}} exist. Prefer them for
+new analyses.
+\itemize{
+\item \strong{Effort depends on detections.} \code{numberDeploymentsActiveAtDate} from
+\code{\link{resample_covariates_and_observations}} counts the deployments with a record
+that day, and a day without any record counts as one camera. Used as an observation
+covariate, it understates effort where several cameras share a sampling unit and
+varies with what was detected. \code{matrix_generator()} warns when it is used.
+\code{\link{effort_matrix}} calculates camera-days from the deployments alone.
+\item \strong{Observation covariates come from the species' own records.} On a day the
+species was detected, a covariate takes the values of the cameras that detected it; on
+other days, every value recorded at the sampling unit. So the covariate differs between
+detection and non-detection occasions for reasons unrelated to detection.
+\code{\link{model_matrix_input}} builds observation covariates from the deployments,
+weighted by camera-days.
+\item \strong{Character observation covariates are pasted together} (for example
+\code{"none - trail"}) where several values meet, and summarised by their most common
+value per occasion, so they enter models as many-level factors.
+\item \strong{One time zone} is used for every sampling unit, found from the mean
+coordinates; data spanning time zones are placed on that zone's days.
+\item \strong{A sampling unit is assumed to run continuously} from its first start to its
+last end, so gaps between deployments in a cell count as sampled days.
+}
+}
+
 \examples{
 \dontrun{
 # Example usage with pre-processed camera trap data, accessed from WildObs:
@@ -140,7 +170,7 @@ res <- matrix_generator(
   dur = 110,
   w = 3,
   site_covs = c("mode_habitat", "Avg_human_footprint_10km2", "locationName", "Avg_FLII_3km2"),
-  obs_covs = c("numberDeploymentsActiveAtDate", "cameraHeight", "featureType", "cameraModel"),
+  obs_covs = c("cameraHeight", "featureType", "cameraModel"),
   all_locationNames = TRUE,
   scientificNames = c("Orthonyx spaldingii", "Uromys caudimaculatus"),
   type = "abundance",
@@ -150,6 +180,11 @@ res <- matrix_generator(
 res[["Orthonyx_spaldingii"]][["detection_matrix"]]
 }
 
+}
+\seealso{
+\code{\link{effort_matrix}}, \code{\link{detection_matrix}} and
+\code{\link{model_matrix_input}}, which build effort from deployments and format the
+result for unmarked, spOccupancy and spAbundance.
 }
 \author{
 Zachary Amir

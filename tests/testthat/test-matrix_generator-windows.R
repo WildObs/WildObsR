@@ -35,12 +35,22 @@ window_fixture <- function(duration, detected_days = seq_len(duration)) {
 generate_window_fixture <- function(fixture, duration, width,
                                     type = "abundance", individuals = "sum",
                                     obs_covs = character()) {
-  matrix_generator(
-    fixture$obs, fixture$covs, dur = duration, w = width,
-    site_covs = c("habitat", "elevation"), obs_covs = obs_covs,
-    all_locationNames = TRUE, scientificNames = "Species A",
-    type = type, individuals = individuals
-  )$Species_A
+  ## these tests check occasion windows, so silence only the warning that
+  ## numberDeploymentsActiveAtDate is not effort, which test-matrix_generator-regressions.R covers
+  withCallingHandlers(
+    matrix_generator(
+      fixture$obs, fixture$covs, dur = duration, w = width,
+      site_covs = c("habitat", "elevation"), obs_covs = obs_covs,
+      all_locationNames = TRUE, scientificNames = "Species A",
+      type = type, individuals = individuals
+    )$Species_A,
+    # muffle that one warning and let any other through
+    warning = function(w) {
+      if (grepl("numberDeploymentsActiveAtDate counts only", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      } # end effort warning condition
+    }
+  )
 } # end helper
 
 test_that("every day is counted once, including short and partial occasions", {

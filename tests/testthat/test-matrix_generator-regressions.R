@@ -195,3 +195,8 @@ test_that("matrix_generator works with Camtrap DP deployments, using their own c
               scientificNames = "Species A")$Species_A$detection_matrix
   expect_equal(rownames(y), c("Cell_A", "Cell_B"))
 })
+
+test_that("matrix_generator warns that numberDeploymentsActiveAtDate is not effort", {
+  expect_warning(run_mg(obs_covs = "numberDeploymentsActiveAtDate"),
+                 "counts only the deployments with a record that day")
+})
