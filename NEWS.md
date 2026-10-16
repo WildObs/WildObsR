@@ -1,6 +1,12 @@
 # WildObsR (development version)
 
+
 ## New
+- `matrix_generator()` uses non-overlapping sampling occasions and retains the
+  final day and partial occasion. Detection and observation covariate matrices
+  use the same windows (#140). This changes results previously affected by
+  duplicated boundary days or omitted final days; regenerate downstream effort
+  matrices that mirrored the old windows.
 
 - `effort_matrix()` and `detection_matrix()` build detection histories with sampling
   effort for occupancy and abundance models (#140, #110). Effort is calculated from the

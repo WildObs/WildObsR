@@ -439,28 +439,22 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
 
     ## If all sampling units are active for less than 100 days, use the maximum sequence length for dur instead
     if(max(obs_land$seq) < dur){ dur = max(obs_land$seq)}
+    # Use the same non-overlapping windows for detections and observation covariates.
+    starts = seq.int(1L, dur, by = w)
+    sampling_windows = lapply(starts, function(start) {
+      seq.int(start, min(start + w - 1L, dur))
+    })
+    n_occasions = length(sampling_windows)
     ## Create a new and empty compressed matrix to fit sampling occasions
     dh_mat = matrix(nrow = nrow(mat), # number of rows are our sampling locations (same as above)
-                    ncol = round(dur/w),  # number of cols is our maximum sampling duration (dur) divided by shink window (w)
+                    ncol = n_occasions,  # include the final partial sampling window
                     dimnames = list(as.character(rownames(mat)), # row names are our sampling unit names
-                                    seq(from = 1, to = round(dur/w)))) # col names are the number of shrunk observation windows.
+                                    seq_len(n_occasions))) # col names are the number of shrunk observation windows.
     ### Sampling occasion loop-
     for(u in 1:nrow(mat)){ #Repeat for each row in the matrix
-      for(p in 1:round(dur/w)){ # Repeat for each sampling occasion window
+      for(p in seq_len(n_occasions)){ # Repeat for each sampling occasion window
 
-        # Outline the start dates of sampling occasion, using values provided in for-loop
-        starts<-seq(from=1, to=dur, by=w)
-        # Select a single start date
-        l<-starts[p]
-        ## by pass to limit matricies going out of bounds
-        if(max(l:(l+w)) > dur){
-          # create a new sequence that terminates at dur
-          seq = l:(l+w)
-          seq = seq[seq < dur]
-        }else{
-          #if its fine, save the name seq
-          seq = l:(l+w)
-        } # end out of bounds conditional
+        seq = sampling_windows[[p]]
         if(type == "abundance"){
           ## conditional statement for how to summarize individuals
           if(individuals == "sum"){
@@ -635,29 +629,15 @@ matrix_generator = function(obs, covs, dur, w, site_covs, obs_covs,all_locationN
         o_var = names(obs_mat_list)[v]
         ## Create a new and empty compressed matrix to fit sampling occasions
         obs2 = matrix(nrow = nrow(obs_mat), # number of rows are our sampling locations (same as above)
-                      ncol = round(dur/w),  # number of cols is our maximum sampling duration (dur) divided by shink window (w)
+                      ncol = n_occasions,  # include the final partial sampling window
                       dimnames = list(as.character(rownames(obs_mat)), # row names are our sampling unit names
-                                      seq(from = 1, to = round(dur/w)))) # col names are the number of shrunk observation windows.
+                                      seq_len(n_occasions))) # col names are the number of shrunk observation windows.
 
         for(u in 1:nrow(obs_mat)){ #Repeat for each row in the matrix
-          for(p in 1:round(dur/w)){ # Repeat for each sampling occasion window
-            # Outline the start dates of sampling occasion, using values provided in for-loop
-            starts<-seq(from=1, to=dur, by=w)
-            # Select a single start date
-            l<-starts[p]
-
-            ## by pass to limit matricies going out of bounds
-            if(max(l:(l+w)) > dur){
-              # create a new sequence that terminates at dur
-              seq = l:(l+w)
-              seq = seq[seq < dur]
-
-              ## bypass if seq is longer than the observation matrix
-              if(max(seq) > dim(obs_mat)[2]){seq = seq[seq <= dim(obs_mat)[2]]}  # then thin seq to only include max values
-            }else{
-              #if its fine, save the name seq
-              seq = l:(l+w)
-            } # end out of bounds conditional
+          for(p in seq_len(n_occasions)){ # Repeat for each sampling occasion window
+            seq = sampling_windows[[p]]
+            # Keep windows within the daily observation covariate matrix.
+            seq = seq[seq <= ncol(obs_mat)]
 
             ## we want the sum for effort
             if(grepl("ActiveAtDate", o_var)){
