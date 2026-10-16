@@ -96,7 +96,8 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
   ## deployments must be a table
   if (!is.data.frame(deps) || nrow(deps) == 0) {
     stop("effort_matrix() needs a data frame of deployments with at least one row.\n",
-         "Pass dp$data$deployments, or a table with deploymentID, deploymentStart and deploymentEnd.",
+         "Pass frictionless::read_resource(dp, \"deployments\"), or a table with deploymentID, ",
+         "deploymentStart and deploymentEnd.",
          call. = FALSE)
   } # end table check
   # the columns every calculation needs

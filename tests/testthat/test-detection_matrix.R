@@ -161,8 +161,9 @@ test_that("detection_matrix and effort_matrix agree with camtrapR on single-came
   skip_if_not_installed("camtrapdp", minimum_version = "0.5.0")
   skip_if_not_installed("camtrapR")
   x <- camtrapdp::example_dataset()
-  deps <- as.data.frame(camtrapdp::deployments(x))
-  obs <- as.data.frame(camtrapdp::observations(x))
+  # both tables as camtrapdp returns them, tibbles, as read_resource() also returns
+  deps <- camtrapdp::deployments(x)
+  obs <- camtrapdp::observations(x)
   # the most often detected species
   animals <- obs[obs$observationType == "animal", ]
   sp <- names(sort(table(animals$scientificName), decreasing = TRUE))[1]

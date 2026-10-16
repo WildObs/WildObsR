@@ -156,7 +156,8 @@ test_that("effort_matrix stops on inputs it cannot use", {
 
 test_that("effort_matrix runs on the camtrapdp example dataset", {
   skip_if_not_installed("camtrapdp", minimum_version = "0.5.0")
-  deps <- as.data.frame(camtrapdp::deployments(camtrapdp::example_dataset()))
+  # the deployments as camtrapdp returns them, a tibble, as read_resource() also returns
+  deps <- camtrapdp::deployments(camtrapdp::example_dataset())
 
   # one site per station, weekly occasions
   eff <- effort_matrix(deps, site_col = "locationID", w = 7)

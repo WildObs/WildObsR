@@ -91,7 +91,8 @@ detection_matrix <- function(obs, effort, scientificNames,
   if (!is.data.frame(obs) || length(missing_cols) > 0) {
     stop(sprintf("detection_matrix() needs obs as a data frame with: %s.\n",
                  paste(missing_cols, collapse = ", ")),
-         "Pass dp$data$observations, or a table with those columns.", call. = FALSE)
+         "Pass frictionless::read_resource(dp, \"observations\"), or a table with those columns.",
+         call. = FALSE)
   } # end observation column check
   # times must be date-times to find their day
   if (!inherits(obs$eventStart, "POSIXct")) {
