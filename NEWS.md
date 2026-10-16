@@ -1,6 +1,12 @@
 # WildObsR (development version)
 
+
 ## New
+- `matrix_generator()` uses non-overlapping sampling occasions and retains the
+  final day and partial occasion. Detection and observation covariate matrices
+  use the same windows (#140). This changes results previously affected by
+  duplicated boundary days or omitted final days; regenerate downstream effort
+  matrices that mirrored the old windows.
 
 - `recombine_deployment_groups()` rebuilds long-term deployments from the 100-day
   pieces the curation pipeline cuts them into, for multi-season occupancy, trend
