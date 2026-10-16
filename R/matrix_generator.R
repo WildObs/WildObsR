@@ -234,8 +234,17 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
   ### Prepare the data ----
 
   ## put every date-time in the local time zone, since frictionless reads them as UTC
+  # resampled covariates carry each cell's average coordinates, deployments their own
+  lat_col <- if ("Avg_latitude" %in% names(covs)) "Avg_latitude" else "latitude"
+  lon_col <- if ("Avg_longitude" %in% names(covs)) "Avg_longitude" else "longitude"
+  # the time zone needs coordinates
+  if (!all(c(lat_col, lon_col) %in% names(covs))) {
+    stop("matrix_generator() needs coordinates in covs to find the local time zone.\n",
+         "Keep latitude and longitude (or Avg_latitude and Avg_longitude) in the covariates.",
+         call. = FALSE)
+  } # end coordinate check
   # the time zone at the middle of the sites
-  tz <- suppressWarnings(lutz::tz_lookup_coords(mean(covs$Avg_latitude), mean(covs$Avg_longitude),
+  tz <- suppressWarnings(lutz::tz_lookup_coords(mean(covs[[lat_col]]), mean(covs[[lon_col]]),
                                                 method = "fast"))
   # observation start and end
   obs$eventEnd <- lubridate::with_tz(obs$eventEnd, tzone = tz)
@@ -243,8 +252,19 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
   # sampling start and end
   covs[[covs_date_cols[1]]] <- lubridate::with_tz(covs[[covs_date_cols[1]]], tzone = tz)
   covs[[covs_date_cols[2]]] <- lubridate::with_tz(covs[[covs_date_cols[2]]], tzone = tz)
-  # the day of each observation
-  obs$date <- as.Date(obs$eventStart)
+  # the local day of each observation; as.Date() would otherwise take the UTC day
+  obs$date <- as.Date(obs$eventStart, tz = tz)
+
+  ## the landscape of each sampling unit, for keeping only the landscapes a species was seen in
+  if (!all_locationNames) {
+    # which needs the landscapes
+    if (!"locationName" %in% names(covs)) {
+      stop("matrix_generator() needs a locationName column in covs when all_locationNames = FALSE.\n",
+           "Keep locationName in the covariates, or set all_locationNames = TRUE.", call. = FALSE)
+    } # end locationName check
+    # one row per sampling unit and its landscape
+    su_land <- dplyr::distinct(data.frame(covs[, c(row_col, "locationName")]))
+  } # end landscape condition
 
   ### Clean and standardise the site covariates
   ## keep only the sampling unit, its dates and the site covariates
@@ -266,42 +286,37 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
 
   ## the character covariates
   m_char <- data.frame(covs_dat[, vapply(covs_dat, is.character, logical(1)), drop = FALSE])
-  # count the levels of each one
-  site_sum <- data.frame("site_cov" = names(m_char), "num_levels" = NA)
-  # for each character covariate
-  for (o in 1:length(names(m_char))) {
-    # grab its values
-    s_dat <- m_char[[names(m_char)[o]]]
-    # and count the distinct ones
-    site_sum$num_levels[o] <- length(unique(s_dat))
-  } # end per character covariate
-  # the ones that vary
-  m_char_cols <- site_sum$site_cov[site_sum$num_levels > 1]
-  # warn about the ones that do not
-  if (length(m_char_cols) < length(names(m_char))) {
+  # the ones to check for variation; the sampling unit itself always stays
+  char_covs <- setdiff(names(m_char), row_col)
+  # the ones with more than one value
+  m_char_cols <- char_covs[vapply(char_covs, function(v) length(unique(m_char[[v]])) > 1, logical(1))]
+  # warn about the ones that do not vary, and drop them
+  if (length(m_char_cols) < length(char_covs)) {
     warning(paste("There was no variation in the site-level covariate:",
-                  paste(setdiff(names(m_char), m_char_cols), collapse = " & "),
+                  paste(setdiff(char_covs, m_char_cols), collapse = " & "),
                   "so it has been removed from the matrix generation function."))
   } # end invariant covariate warning
+  # keep the sampling unit and the covariates that vary
+  m_char <- m_char[, intersect(names(m_char), c(row_col, m_char_cols)), drop = FALSE]
   ## put the character, date and standardised numeric covariates back together
   covs_dat <- data.frame(m_char, m_date, m_std2)
 
   ### Number every day each sampling unit ran
   ## one row per sampling unit with its start and end dates
   s <- dplyr::distinct(dplyr::select(covs_dat, all_of(row_col), all_of(covs_date_cols)))
-  # as dates rather than date-times
-  s[[covs_date_cols[1]]] <- as.Date(s[[covs_date_cols[1]]])
-  s[[covs_date_cols[2]]] <- as.Date(s[[covs_date_cols[2]]])
+  # as local dates rather than date-times
+  s[[covs_date_cols[1]]] <- as.Date(s[[covs_date_cols[1]]], tz = tz)
+  s[[covs_date_cols[2]]] <- as.Date(s[[covs_date_cols[2]]], tz = tz)
 
   ## one row per sampling unit per day, from its first start to its last end
   s2 <- covs_dat |>
     # per sampling unit
     dplyr::group_by(dplyr::across(dplyr::all_of(row_col))) |>
-    # the list of days it spans
+    # the list of local days it spans
     dplyr::summarise(
       date = list(seq.Date(
-        from = as.Date(min(.data[[covs_date_cols[grepl("Start", covs_date_cols)]]])),
-        to   = as.Date(max(.data[[covs_date_cols[grepl("End", covs_date_cols)]]])),
+        from = as.Date(min(.data[[covs_date_cols[grepl("Start", covs_date_cols)]]]), tz = tz),
+        to   = as.Date(max(.data[[covs_date_cols[grepl("End", covs_date_cols)]]]), tz = tz),
         by   = "day"
       )), .groups = "drop"
     ) |>
@@ -330,13 +345,14 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
     res <- rbind(res, d)
   } # end per sampling unit
 
-  ## every sampling unit must appear in both the days and the observations
-  if (length(setdiff(res[[row_col]], unique(obs[[row_col]]))) +
-      length(setdiff(unique(obs[[row_col]]), res[[row_col]])) != 0) {
-    # stop and say which column disagrees
-    stop(paste("There was a mis-match in the", row_col,
-               "column when creating a sampling occasion index in the observations. Please ensure all date-time columns in the observations and covariates contain no errors before using this function.\n"))
-  } # end sampling unit check
+  ## sampling units with covariates but no observations ran with nothing detected
+  # which ones they are
+  empty_units <- setdiff(unique(res[[row_col]]), obs[[row_col]])
+  if (length(empty_units) > 0) {
+    # say so, since they enter every species' matrix as zeros
+    message(sprintf("%d sampling unit(s) have no observations and enter the matrices as zeros: %s",
+                    length(empty_units), paste(utils::head(empty_units, 5), collapse = ", ")))
+  } # end empty units message
 
   ## give each observation its day number
   obs_dat <- merge(obs, res, by = c(row_col, "date"))
@@ -379,16 +395,25 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
       # the sampling units with a detection
       locs <- unique(obs_dat[[row_col]][obs_dat$scientificName == sp])
       # the landscapes they sit in
-      land <- unique(covs_dat$locationName[covs_dat[[row_col]] %in% locs])
-      # and the covariates of those landscapes
-      covs_land <- covs_dat[covs_dat$locationName %in% land, ]
-      # with their observations
-      obs_land <- obs_dat[obs_dat[[row_col]] %in% covs_dat[[row_col]], ]
+      land <- unique(su_land$locationName[su_land[[row_col]] %in% locs])
+      # and every sampling unit in those landscapes
+      keep_units <- su_land[[row_col]][su_land$locationName %in% land]
     } else {
-      # otherwise keep everything, under new names so covs_dat and obs_dat stay whole
-      covs_land <- covs_dat
-      obs_land <- obs_dat
+      # otherwise every sampling unit
+      keep_units <- unique(covs_dat[[row_col]])
     } # end locationNames condition
+    # the covariates, observations and days of those sampling units
+    covs_land <- covs_dat[covs_dat[[row_col]] %in% keep_units, ]
+    obs_land <- obs_dat[obs_dat[[row_col]] %in% keep_units, ]
+    res_land <- res[res[[row_col]] %in% keep_units, ]
+
+    ## the rows of every matrix for this species
+    # the sampling units, in the order of the covariates
+    su_ids <- as.character(unique(covs_land[[row_col]]))
+    # the number of days each one ran, to its end rather than its last record
+    su_days <- tapply(res_land$seq, as.character(res_land[[row_col]]), max)[su_ids]
+    # and the longest of them
+    n_days <- max(su_days)
 
 
     #
@@ -398,21 +423,16 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
     ## an empty matrix: one row per sampling unit, one column per day
     mat <- matrix(NA,
                   # rows are the sampling units
-                  nrow = length(unique(obs_land[[row_col]])),
+                  nrow = length(su_ids),
                   # columns are the days
-                  ncol = length(seq(from = 1, to = max(obs_land$seq))),
+                  ncol = n_days,
                   # named by sampling unit and day
-                  dimnames = list(as.character(unique(obs_land[[row_col]])),
-                                  seq(from = 1, to = max(obs_land$seq))))
+                  dimnames = list(su_ids, seq_len(n_days)))
 
-    ## mark the days each sampling unit ran with a zero
-    for (j in 1:length(unique(obs_land[[row_col]]))) {
-      # the observations of one sampling unit
-      a <- obs_land[obs_land[[row_col]] == unique(obs_land[[row_col]])[j], ]
-      # the days it ran
-      indx <- seq(from = 1, to = max(a$seq))
+    ## mark every day each sampling unit ran with a zero
+    for (j in seq_along(su_ids)) {
       # are zeros until a detection fills them
-      mat[j, indx] <- 0
+      mat[j, seq_len(su_days[j])] <- 0
     } # end per sampling unit
 
     ## work out this species' count cap, if asked to
@@ -438,9 +458,7 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
 
     ## fill in the days with a detection
     # for each sampling unit
-    for (j in 1:length(unique(obs_land[[row_col]]))) {
-      # this sampling unit
-      su <- unique(obs_land[[row_col]])[j]
+    for (su in su_ids) {
       # its records of this species
       a <- obs_land[obs_land[[row_col]] == su & obs_land$scientificName == sp, ]
 
@@ -486,16 +504,14 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
     ##
     ### Compress the daily history into sampling occasions ----
 
-    ## no longer than the longest-running sampling unit
-    if (max(obs_land$seq) < dur) {
-      dur <- max(obs_land$seq)
-    } # end duration condition
+    ## no longer than the longest-running sampling unit, for this species only
+    dur_sp <- min(dur, n_days)
     ## non-overlapping windows of w days, shared by detections and observation covariates
     # the first day of each window
-    starts <- seq.int(1L, dur, by = w)
-    # the days in each, with the last window cut at dur
+    starts <- seq.int(1L, dur_sp, by = w)
+    # the days in each, with the last window cut at dur_sp
     sampling_windows <- lapply(starts, function(start) {
-      seq.int(start, min(start + w - 1L, dur))
+      seq.int(start, min(start + w - 1L, dur_sp))
     })
     # how many occasions that makes
     n_occasions <- length(sampling_windows)
@@ -505,7 +521,7 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
                      # the final partial window is an occasion too
                      ncol = n_occasions,
                      # named by sampling unit and occasion number
-                     dimnames = list(as.character(rownames(mat)), seq_len(n_occasions)))
+                     dimnames = list(su_ids, seq_len(n_occasions)))
     # for each sampling unit
     for (u in 1:nrow(mat)) {
       # for each occasion
@@ -533,35 +549,31 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
     ##
     ### Observation covariate matrices ----
 
-    ## no observation covariates asked for means an empty list
-    if (length(obs_covs) == 0) {
-      comp_mat_list <- list()
-    } else {
-
-      ## keep only the observation covariates that vary for this species
-      # count the levels of each one
-      obs_sum <- data.frame("obs_cov" = obs_covs, "num_levels" = NA)
-      # for each observation covariate
-      for (o in 1:length(obs_covs)) {
+    ## keep only the observation covariates that vary for this species
+    obs_covs_thin <- character(0)
+    if (length(obs_covs) > 0) {
+      # count the distinct values of each one on this species' records
+      n_levels <- vapply(obs_covs, function(v) {
         # its values on this species' records
-        o_dat <- obs_land[obs_land$scientificName == sp, obs_covs[o]]
+        o_dat <- obs_land[[v]][obs_land$scientificName == sp]
         # and the number of distinct ones
-        obs_sum$num_levels[o] <- length(unique(o_dat[o_dat != "no_detection"]))
-      } # end per observation covariate
+        length(unique(o_dat[o_dat != "no_detection"]))
+      }, integer(1))
       # the ones that vary
-      obs_covs_thin <- obs_sum$obs_cov[obs_sum$num_levels > 1]
+      obs_covs_thin <- obs_covs[n_levels > 1]
       # warn about the ones that do not
       if (length(obs_covs_thin) < length(obs_covs)) {
         warning(paste("There was no variation in the observation-level covariate:",
                       paste(setdiff(obs_covs, obs_covs_thin), collapse = " & "),
                       "for the species:", sp,
                       "so it has been removed from the matrix generation function for this species."))
-        # if none vary, move on to the next species
-        if (length(obs_covs_thin) == 0) {
-          comp_mat_list <- list()
-          next
-        } # end no covariates left condition
       } # end invariant covariate warning
+    } # end observation covariate condition
+
+    ## no observation covariates left means an empty list, but the species is still returned
+    if (length(obs_covs_thin) == 0) {
+      comp_mat_list <- list()
+    } else {
 
       ## the number of cameras running, which applies to every species
       obs_land_full <- dplyr::distinct(dplyr::select(obs_land, all_of(row_col),
@@ -581,62 +593,45 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
       for (v in 1:length(o_vars)) {
         # its name
         o_var <- o_vars[v]
-        ## an empty daily matrix
-        obs_mat <- matrix(NA,
-                          # rows are the sampling units
-                          nrow = length(unique(obs_land_full[[row_col]])),
-                          # columns are the days
-                          ncol = length(seq(from = 1, to = max(obs_land_full$seq))),
-                          # named by sampling unit and day
-                          dimnames = list(as.character(unique(obs_land_full[[row_col]])),
-                                          seq(from = 1, to = max(obs_land_full$seq))))
+        ## an empty daily matrix with the same rows and days as the detections
+        obs_mat <- matrix(NA, nrow = length(su_ids), ncol = n_days,
+                          dimnames = list(su_ids, seq_len(n_days)))
 
         # for each sampling unit
-        for (u in 1:length(unique(covs_land[[row_col]]))) {
-          # this sampling unit
-          su <- unique(covs_land[[row_col]])[u]
-          # its records
-          o <- obs_land[obs_land[[row_col]] == su, ]
+        for (su in su_ids) {
+          # its values of this covariate on any record, for days without this species
+          su_values <- unique(obs_land[[o_var]][obs_land[[row_col]] == su])
 
-          # for each day up to its last record
-          for (x in 1:max(o$seq)) {
-            # the day number
-            indx <- seq(from = 1, to = max(o$seq), by = 1)[x]
+          # for each day it ran, to its end rather than its last record
+          for (indx in seq_len(su_days[[su]])) {
             # the covariate value(s) that day
             n <- unique(obs_land_full[obs_land_full[[row_col]] == su & obs_land_full$seq == indx, o_var])
 
             ## cameras running: a day without a record counts as one camera
-            if (length(n) == 0 & indx <= max(o$seq) & grepl("ActiveAtDate", o_var)) {
+            if (length(n) == 0 & grepl("ActiveAtDate", o_var)) {
               n <- 1
             } # end no record condition
             ## cameras running: several values that day are summed
-            if (length(n) > 1 & indx <= max(o$seq) & grepl("ActiveAtDate", o_var)) {
+            if (length(n) > 1 & grepl("ActiveAtDate", o_var)) {
               n <- sum(n)
             } # end several values condition
 
             ## other covariates: several values that day are pasted together
-            if (length(n) > 1 & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)) {
+            if (length(n) > 1 & !grepl("ActiveAtDate", o_var)) {
               # split any already-pasted values, so no new combinations appear
               split_n <- unlist(strsplit(n, " - "))
               # and paste the distinct ones
               n <- paste(sort(unique(split_n)), collapse = " - ")
             } # end several values condition
 
-            ## other covariates: a day without this species takes every value at the sampling unit
-            if (length(n) == 0 & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)) {
+            ## other covariates: a day without this species, or a missing value,
+            ## takes every value recorded at the sampling unit
+            if ((length(n) == 0 || any(is.na(n))) & !grepl("ActiveAtDate", o_var)) {
               # split any already-pasted values, so no new combinations appear
-              split_n <- unlist(strsplit(unique(obs_land[[o_var]][obs_land[[row_col]] == su]), " - "))
-              # and paste the distinct ones
-              n <- paste(sort(unique(split_n)), collapse = " - ")
+              split_n <- unlist(strsplit(su_values, " - "))
+              # and paste the distinct ones, or NA where the sampling unit has no records at all
+              n <- if (length(split_n) > 0) paste(sort(unique(split_n)), collapse = " - ") else NA
             } # end no record condition
-
-            ## other covariates: a missing value takes every value at the sampling unit too
-            if (any(is.na(n)) & indx <= max(o$seq) & !grepl("ActiveAtDate", o_var)) {
-              # split any already-pasted values, so no new combinations appear
-              split_n <- unlist(strsplit(unique(obs_land[[o_var]][obs_land[[row_col]] == su]), " - "))
-              # and paste the distinct ones
-              n <- paste(sort(unique(split_n)), collapse = " - ")
-            } # end missing value condition
 
             ## the value goes in that sampling unit and day
             obs_mat[su, indx] <- n
@@ -666,7 +661,7 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
                        # the final partial window is an occasion too
                        ncol = n_occasions,
                        # named by sampling unit and occasion number
-                       dimnames = list(as.character(rownames(obs_mat)), seq_len(n_occasions)))
+                       dimnames = list(su_ids, seq_len(n_occasions)))
 
         # for each sampling unit
         for (u in 1:nrow(obs_mat)) {
@@ -674,8 +669,6 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
           for (p in seq_len(n_occasions)) {
             # the days in this occasion
             window_days <- sampling_windows[[p]]
-            # that fall inside the daily matrix
-            window_days <- window_days[window_days <= ncol(obs_mat)]
 
             ## an occasion with no values stays NA
             if (all(is.na(obs_mat[u, window_days]))) {
@@ -691,18 +684,8 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
         } # end per sampling unit
 
         ## numeric covariates are zero where no camera ran, rather than NA
-        if (is.numeric(obs_land_full[, o_var])) {
-          # a copy to fill
-          cams1 <- obs2
-          # for each sampling unit
-          for (i in 1:dim(cams1)[1]) {
-            # the occasions with a value above zero
-            a <- which(obs2[i, ] > 0)
-            # every other occasion becomes zero
-            cams1[i, -a] <- 0
-          } # end per sampling unit
-          # keep the filled copy
-          obs2 <- cams1
+        if (is.numeric(obs_land_full[[o_var]])) {
+          obs2[is.na(obs2)] <- 0
         } # end numeric condition
 
         ## save it under the covariate's name
@@ -711,9 +694,13 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
       } # end per covariate
     } # end observation covariate condition
 
+    ## the site covariates of these sampling units, in the same order as the matrix rows
+    site_level <- covs_land[match(su_ids, as.character(covs_land[[row_col]])), , drop = FALSE]
+    rownames(site_level) <- NULL
+
     ## bundle the matrices for this species
     sp_bundle <- list("detection_matrix" = dh_mat,
-                      "site_level_covariates" = covs_dat,
+                      "site_level_covariates" = site_level,
                       "observation_level_covariates" = comp_mat_list)
     # and store them under its name, with underscores for spaces
     sp_list[[y]] <- sp_bundle
