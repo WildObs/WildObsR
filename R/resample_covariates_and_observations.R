@@ -121,8 +121,6 @@
 #' # 'scales' defines the area (in square meters) covered by the hexagonal cell
 #' scales <- c(1000000, 3000000)
 #'
-#' # Add data source to the covariates
-#' covs$source <- dp$contributors[[1]]$tag
 #'
 #' # Generate spatial hexagons based on the provided scales
 #' covs <- WildObsR::spatial_hexagon_generator(covs, scales)
@@ -130,8 +128,8 @@
 #' cols <- names(deps)[names(deps) %in% names(covs)]
 #' # Merge deployment information to the covariates
 #' covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
-#' # Define columns for mode aggregation (example: 'source' and 'habitat')
-#' mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
+#' # Define columns for mode aggregation (example: 'projectName' and 'habitat')
+#' mode_cols_covs <- names(covs)[grepl("projectName|habitat", names(covs))]
 #' # Set the method for aggregating the total number of individuals detected:
 #' individuals <- "sum"  # Alternative: "max"
 #' # Specify observation-level covariate variables derived from deployments.

@@ -29,11 +29,11 @@
 #'   \item{`cellID_<scale>`}{Spatially and temporally distinct hexagon cell ID, incorporating survey year and data source}
 #' }
 #'
-#' If multiple data sources sample the same hexagon in overlapping time windows, their
+#' If multiple data projects sample the same hexagon in overlapping time windows, their
 #' deployments are grouped and flagged with a combined contributor code.
 #'
 #' @param data A dataframe of covariates that includes, at minimum, the following columns:
-#'   `deploymentID`, `locationName`, `deploymentGroups`, `source`, `latitude`, and `longitude`.
+#'   `deploymentID`, `locationName`, `deploymentGroups`, `projectName`, `latitude`, and `longitude`.
 #'   These fields are part of WildObs camtrapDP-formatted Frictionless Data Packages.
 #' @param scales A numeric vector specifying the **areas of hexagonal grid cells in square meters (m²)**.
 #'   Values smaller than 1e6 (1 km²) are allowed. The function automatically labels each scale
@@ -50,7 +50,7 @@
 #' @importFrom tibble rowid_to_column
 #' @importFrom dplyr group_by summarise distinct select full_join mutate filter
 #' @importFrom purrr reduce
-#' @importFrom stringr str_match
+#' @importFrom stringr str_match str_extract
 #'
 #' @examples
 #' # Create example camera-trap metadata
@@ -61,7 +61,7 @@
 #' data <- tibble::tibble(
 #'   deploymentID = paste0("cam_", 1:12),
 #'   locationName = rep(c("Site_A", "Site_B", "Site_C"), each = 4),
-#'   source = rep(c("UQ_team", "CSIRO_team"), length.out = 12),
+#'   projectName = rep(c("UQ_team", "CSIRO_team"), length.out = 12),
 #'
 #'   # Cluster each site around distinct centers (approx Wet Tropics, QLD)
 #'   latitude = c(
@@ -110,9 +110,9 @@ spatial_hexagon_generator = function(data, scales) {
   if(!any(grepl("deploymentGroups", names(data)))){
     stop("The data provided does not contain a column for 'deploymentGroups' and must be provided prior to generating hexagonal cells.\n The deploymentGroups column defines temporally distinct sampling efforts in distinct locationNames (i.e, temporally distinct camera trap surveys).\n Please ensure deploymentGroups is added to the covariates before proceeding with this function.\n You can use the function WildObsR::survey_and_deployment_generator() to generate deploymentGroups based on the sampling duration of your deployments and locationNames.")
   }
-  ## data source
-  if(!any(grepl("source", names(data)))){
-    stop("The data provided does not contain a column for 'source' and must be provided prior to generating hexagonal cells.\n The source column simply defines what contributor is responsible for this camera trap project and is necessary for locating spatial-temporal overlap in sampling effort.\n Please ensure source is added to the covariates before proceeding with this function.\n You can access the contributor's information from the project-level metadata in camtrap DP fricitonless data package using this code: dp$contributors[[1]]$tag, where dp is your data package.")
+  ## data projectName
+  if(!any(grepl("projectName", names(data)))){
+    stop("The data provided does not contain a column for 'projectName' and must be provided prior to generating hexagonal cells.\n The projectName column defines an identifier for this camera trap project and is necessary for locating spatial-temporal overlap in sampling effort.\n Please ensure projectName is added to the covariates before proceeding with this function.\n projectName is included in data accessed via WildObsR::wildobs_dp_download().")
   }
   ## need lats and longs
   if(!any(
@@ -237,6 +237,12 @@ spatial_hexagon_generator = function(data, scales) {
   meta$year <- meta$match[, 2]
   meta$letter <- meta$match[, 3]
 
+  ## Clean up projectName so it only takes the WildObsID 
+  # the WildObsID in each projectName, or NA where there isn't one
+  wildobs_id <- stringr::str_extract(meta$projectName, "WildObsID_[0-9]{4}")
+  # use the WildObsID as the source, otherwise the supplied projectName
+  meta$source <- ifelse(is.na(wildobs_id), meta$projectName, wildobs_id)
+
   # Combine year and letter
   meta$code <- paste0(ifelse(meta$letter != "", paste0(meta$year, "_", meta$letter),
                              meta$year), "_", meta$source)
@@ -245,10 +251,6 @@ spatial_hexagon_generator = function(data, scales) {
 
   ## find the column name with the largest scale
   largest_col = paste("polygon", names(scales)[scales == max(scales)], sep = "_")
-
-  ## TESTING
-  # meta$deploymentGroups[meta$cellID_10km == "Eacham_Curtain_Fig_NPs_6_cellID_10km"][1:5] = "test_2022"
-  # meta$source[meta$cellID_10km == "Eacham_Curtain_Fig_NPs_6_cellID_10km"][1:5] = "test"
 
   ### Before we combine, verify no collaborators sampled in the same cell at the same time
   ## for each unique cell, check how many unique sources occurred.
@@ -313,8 +315,8 @@ spatial_hexagon_generator = function(data, scales) {
                     meta$code == yl] = paste(yl, sources, sep = "_")
 
         ## print a message as well
-        warning(paste(paste("A spatial-temporal overlap was detected at the", names(scales)[scales == max(scales)], "scale from the following data sources:", gsub("_", " ", sources)),
-                      "The deployment information from these sources has been grouped into one spatially distinct hexagonal grid cell.",  sep = "\n"))
+        warning(paste(paste("A spatial-temporal overlap was detected at the", names(scales)[scales == max(scales)], "scale from the following data projectNames:", gsub("_", " ", sources)),
+                      "The deployment information from these projects have been grouped into one spatially distinct hexagonal grid cell.",  sep = "\n"))
 
       } # end overlap condition
 
@@ -334,7 +336,7 @@ spatial_hexagon_generator = function(data, scales) {
   ## Grab the new cols
   new_cols = setdiff(names(meta), names(data))
   # but remove fluff
-  new_cols = new_cols[! new_cols %in% c("match","year","letter","code")]
+  new_cols = new_cols[! new_cols %in% c("match","year","letter","code","source")]
   ## and totally remove
 
   ## and verify we didnt lose and deployments (idk how we would??)
