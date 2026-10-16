@@ -62,13 +62,13 @@
 #'         - Computes a sequential Julian date from \code{eventStart} to serve as the daily resolution for resampling. This column is removed before returning the final datasets.
 #'
 #' 3. **Resampling by Deployment Group and Spatial Scale**:
-#'    - The function loops over each unique deployment group present in the covariates data. This speeds up the process.
-#'    - For each deployment group:
+#'    - The function loops over each unique \code{deploymentGroup} present in the covariates data. This speeds up the process.
+#'    - For each \code{deploymentGroup}:
 #'         - Subsets the covariates and observations to include only the relevant deployments.
 #'         - Merges spatial cell information (i.e., the \code{cellID} columns) from the covariates into the observations based on the \code{deploymentID}.
 #'
 #' 4. **Resampling of Covariates**:
-#'    - Within each deployment group, the function iterates over each spatial scale (columns containing "cellID_").
+#'    - Within each \code{deploymentGroup}, the function iterates over each spatial scale (columns containing "cellID_").
 #'    - For each spatial scale, it loops through each unique sampling unit (i.e., each unique cell value):
 #'         - A new row is created for each sampling unit, starting as an empty data frame with the same structure as the covariates data.
 #'         - Numeric covariate values are aggregated by computing the mean (or left as \code{NA} if all values are missing). The column names are updated to indicate that these are averaged values (e.g., \code{"Avg_<column>"}).
@@ -90,7 +90,7 @@
 #'         - Numeric observation columns are averaged.
 #'
 #' 6. **Compilation of Resampled Data**:
-#'    - After processing all deployment groups and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
+#'    - After processing all \code{deploymentGroups} and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
 #'    - Finally, the function assembles the resampled data into two nested lists:
 #'         - One list contains the resampled covariates, organized by spatial scale.
 #'         - The other list contains the resampled observations, also organized by spatial scale.
@@ -101,19 +101,22 @@
 #'         - \code{"spatially resampled covariates"}: a nested list of data frames for each spatial scale.
 #'
 #' @examples
-#' # the baited Paluma project shipped with WildObsR
+#' # load the baited Paluma project shipped with WildObsR
 #' dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
 #'
-#' # one table of deployments and their covariates, with the data source
-#' deps <- dp$data$deployments
-#' covs <- merge(deps, dp$data$covariates, by = intersect(names(deps), names(dp$data$covariates)))
+#' # extract one table of deployments and their covariates
+#' deps <- frictionless::read_resource(dp, "deployments")
+#' covs <- frictionless::read_resource(dp, "covariates")
+#' # merge both tables together based on several shared columns 
+#' covs <- merge(deps, covs, by = intersect(names(deps), names(covs)))
+#' # include data source for hexagon generator function
 #' covs$source <- dp$id
 #'
 #' # assign every camera to a 1 km2 hexagonal cell (scales are cell areas in m2)
 #' covs <- spatial_hexagon_generator(covs, scales = 1e6)
 #'
 #' # observations that can be placed on a camera (obscured records cannot)
-#' obs <- dp$data$observations
+#' obs <- frictionless::read_resource(dp, "observations")
 #' obs <- obs[obs$deploymentID %in% covs$deploymentID, ]
 #'
 #' # resample to cells and days, keeping bait use and the targeted feature as
