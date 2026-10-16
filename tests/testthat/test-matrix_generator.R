@@ -52,7 +52,7 @@ test_that("matrix_generator detects mismatched cellID/deploymentID", {
                      scientificNames = "Species A",
                      type = "occupancy",
                      individuals = "sum"),
-    "mis-matched.*values"
+    "in obs that are not in covs"
   )
 })
 
@@ -88,7 +88,7 @@ test_that("matrix_generator requires POSIXct datetime columns in obs", {
                      scientificNames = "Species A",
                      type = "occupancy",
                      individuals = "sum"),
-    "does not have date-time columns.*formatted in POSIXct class"
+    "as POSIXct date-times"
   )
 })
 
@@ -106,7 +106,7 @@ test_that("matrix_generator requires POSIXct datetime columns in covs", {
                      scientificNames = "Species A",
                      type = "occupancy",
                      individuals = "sum"),
-    "does not have date-time columns.*formatted in POSIXct class"
+    "as POSIXct date-times"
   )
 })
 

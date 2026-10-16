@@ -149,12 +149,15 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
     covs_date_cols <- c("deploymentStart", "deploymentEnd")
   } # end row column condition
 
-  ## the sampling units must match between the two tables
-  if (length(setdiff(obs[[row_col]], covs[[row_col]])) +
-      length(setdiff(obs[[row_col]], covs[[row_col]])) != 0) {
-    # stop and say which column disagrees
-    stop(paste("The covariates and observations tables you have provided in this function contain mis-matched", row_col,
-               "values! Please inspect your deploymentID values or reduce each table to only the matching values.\n"))
+  ## every sampling unit with observations must have covariates
+  # the sampling units in the observations but not the covariates
+  missing_units <- setdiff(obs[[row_col]], covs[[row_col]])
+  if (length(missing_units) > 0) {
+    # stop and name a few of them
+    stop(sprintf("matrix_generator() found %d %s value(s) in obs that are not in covs, e.g. %s.\n",
+                 length(missing_units), row_col, paste(utils::head(missing_units, 3), collapse = ", ")),
+         "Give every sampling unit in the observations a row in the covariates, or drop those ",
+         "observations (obscured records, for example, belong to no deployment).", call. = FALSE)
   } # end sampling unit check
 
   ## site covariates must be columns of the covariates table
@@ -166,16 +169,35 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
     site_covs <- site_covs[site_covs %in% names(covs)]
   } # end missing site covariate check
 
+  ## observation covariates must be columns of the observations table
+  # the ones that are not
+  missing_obs_covs <- setdiff(obs_covs, names(obs))
+  if (length(missing_obs_covs) > 0) {
+    # stop and name them
+    stop(sprintf("matrix_generator() could not find the observation covariate(s) %s in obs.\n",
+                 paste(missing_obs_covs, collapse = ", ")),
+         "Choose obs_covs from the columns of the observations table.", call. = FALSE)
+  } # end missing observation covariate check
+
   ## site covariates cannot hold missing values
-  if (any(covs[, is.na(site_covs)])) {
-    # stop and ask for different covariates
-    stop("You have provided site-level covariates that contain NA values in the covariates table and this is not allowed. Please choose different site-level covariates or inspect your data to correct the NA values.")
+  # the site covariates with at least one NA
+  na_site_covs <- site_covs[vapply(site_covs, function(v) anyNA(covs[[v]]), logical(1))]
+  if (length(na_site_covs) > 0) {
+    # stop and name them
+    stop(sprintf("matrix_generator() found NA values in the site covariate(s) %s.\n",
+                 paste(na_site_covs, collapse = ", ")),
+         "Choose different site covariates, or fill or drop the sampling units with NA values.",
+         call. = FALSE)
   } # end site covariate NA check
 
   ## nor can observation covariates
-  if (any(obs[, is.na(obs_covs)])) {
-    # stop and ask for different covariates
-    stop("You have provided observation-level covariates that contain NA values in the observations table and this is not allowed. Please choose different observation-level covariates or inspect your data to correct the NA values.")
+  # the observation covariates with at least one NA
+  na_obs_covs <- obs_covs[vapply(obs_covs, function(v) anyNA(obs[[v]]), logical(1))]
+  if (length(na_obs_covs) > 0) {
+    # stop and name them
+    stop(sprintf("matrix_generator() found NA values in the observation covariate(s) %s.\n",
+                 paste(na_obs_covs, collapse = ", ")),
+         "Choose different observation covariates, or fill the NA values first.", call. = FALSE)
   } # end observation covariate NA check
 
   ## every requested species must be in the observations
@@ -186,18 +208,23 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
                "\nPlease choose species names that are present in the observations table."))
   } # end species check
 
-  ## observation times must be date-times
-  if (!any(vapply(obs[, c("eventStart", "eventEnd")],
-                  function(x) inherits(x, "POSIXct"), logical(1)))) {
+  ## observation times must both be date-times
+  if (!all(vapply(c("eventStart", "eventEnd"),
+                  function(x) inherits(obs[[x]], "POSIXct"), logical(1)))) {
     # stop and say how to convert them
-    stop("The observations table you provided in this function does not have date-time columns (i.e.,eventStart, eventEnd)formatted in POSIXct class. Please format these date-time columns to a standard format (%Y-%m-%d %H:%M:%S) using the as.posixct() function before using this function.\n ")
+    stop("matrix_generator() needs eventStart and eventEnd in obs as POSIXct date-times.\n",
+         "Read the observations with frictionless::read_resource(), or convert them with as.POSIXct().",
+         call. = FALSE)
   } # end observation date-time check
 
-  ## and so must the sampling dates
-  if (!any(vapply(covs[, covs_date_cols],
-                  function(x) inherits(x, "POSIXct"), logical(1)))) {
+  ## and so must both sampling dates
+  if (!all(vapply(covs_date_cols,
+                  function(x) inherits(covs[[x]], "POSIXct"), logical(1)))) {
     # stop and say how to convert them
-    stop("The covariates table you provided in this function does not have date-time columns (i.e.,deploymentStart, & deploymentEnd) formatted in POSIXct class. Please format these date-time columns to a standard format (%Y-%m-%d %H:%M:%S) using the as.posixct() function before using this function.\n ")
+    stop(sprintf("matrix_generator() needs %s and %s in covs as POSIXct date-times.\n",
+                 covs_date_cols[1], covs_date_cols[2]),
+         "Read the deployments with frictionless::read_resource(), or convert them with as.POSIXct().",
+         call. = FALSE)
   } # end covariate date-time check
   ## TODO: add more checks as they come up
 
