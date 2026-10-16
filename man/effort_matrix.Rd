@@ -20,7 +20,9 @@ effort_matrix(
 \code{deploymentStart} and \code{deploymentEnd} (POSIXct), and the column named in \code{site_col}.}
 
 \item{site_col}{Character. The column that defines a site. Defaults to
-\code{"deploymentID"}, one site per deployment.}
+\code{"deploymentID"}, one site per deployment. Sites with multiple camera deployments can
+be by spatially resampling the data via \code{\link[=spatial_hexagon_generator]{spatial_hexagon_generator()}} and
+\code{\link[=resample_covariates_and_observations]{resample_covariates_and_observations()}}}
 
 \item{w}{Integer. Occasion length in days.}
 
@@ -62,9 +64,9 @@ before it starts, or \code{w} is not a positive whole number.
 }
 \description{
 Calculates how long cameras were running, as camera-days, for every site
-and sampling occasion, from the deployments table alone. Because effort never looks at
-detections, it cannot depend on where or when animals were recorded, which is the
-requirement for using it as a detection covariate or offset.
+and sampling occasion, from the deployments table alone. Sampling effort happens
+regardless of what was detected, so it cannot depend on where or when animals were
+recorded, which is the requirement for using effort as a detection covariate or offset.
 
 The steps are:
 \enumerate{
@@ -76,7 +78,8 @@ days 1 to \code{w}, occasion 2 days \code{w + 1} to \verb{2w}, and so on; a fina
 is kept, and its length is reported in \code{occasions}.
 \item Camera-days are summed for every site, occasion and deployment. A site can be a
 single deployment (\code{site_col = "deploymentID"}), a camera station
-(\code{"locationID"}), or a grid cell from \code{\link[=spatial_hexagon_generator]{spatial_hexagon_generator()}}.
+(\code{"locationID"}) with several deployments, or a grid cell from
+\code{\link[=spatial_hexagon_generator]{spatial_hexagon_generator()}}.
 }
 
 With \code{align = "site"} (default), each site's occasions start on the first day any of its
@@ -85,7 +88,7 @@ every site's occasions start on the first day any camera in \code{deps} ran, so 
 covers the same dates everywhere, which multi-season and time-series models need.
 
 For long-term deployments rebuilt with \code{\link[=recombine_deployment_groups]{recombine_deployment_groups()}}, pass its
-\code{deployment_crosswalk} as \code{crosswalk}: effort is then taken from the original pieces, so
+\code{deployment_crosswalk} as \code{crosswalk}: effort is then taken from the original cameras, so
 the gaps between them (up to \code{max_gap_days}) count as no effort.
 }
 \examples{

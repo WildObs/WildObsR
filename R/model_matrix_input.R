@@ -99,7 +99,7 @@ model_matrix_input <- function(detections, effort, site_covs = NULL, obs_covs = 
 
   #
   ##
-  ### Check the inputs ----
+  ### Verify the inputs ----
 
   ## the detections must be the three-dimensional array from detection_matrix()
   if (!is.array(detections) || length(dim(detections)) != 3) {
@@ -121,7 +121,10 @@ model_matrix_input <- function(detections, effort, site_covs = NULL, obs_covs = 
   } # end matching check
   # what the values mean, recorded by detection_matrix()
   type <- attr(detections, "type")
+  # if type is missing, check if there are detections greater than 1, which signals abundance. 
+  # otherwise, occupancy. 
   if (is.null(type)) type <- if (any(detections > 1, na.rm = TRUE)) "abundance" else "occupancy"
+  # save species from detection history dimensions 
   species <- dimnames(detections)[[1]]
 
 
@@ -132,6 +135,7 @@ model_matrix_input <- function(detections, effort, site_covs = NULL, obs_covs = 
   site_df <- .match_sites(site_covs, sites, effort$settings$site_col, "site_covs")
   # missing covariate values break most model fitting functions, so say where they are
   if (!is.null(site_df) && anyNA(site_df)) {
+    # warn but dont stop the process. 
     warning(sprintf("model_matrix_input(): site_covs has missing values in %s. Most model functions need complete covariates.",
                     paste(names(site_df)[vapply(site_df, anyNA, logical(1))], collapse = ", ")),
             call. = FALSE)

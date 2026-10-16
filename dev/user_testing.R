@@ -24,13 +24,13 @@ library(tidyverse)
 ### create a query using wildobs_mongo_query()
 
 ### First, grab the DB connection string
-db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
+# db_url <- Sys.getenv("MONGODB_PROD_RO_URL")
 # db_url <- Sys.getenv("MONGODB_PUB_ADMIN_URL")
 # db_url <- Sys.getenv("MONGODB_LOCAL_RO_URL")
 # db_url <- Sys.getenv("MONGODB_DEV_RO_URL")
 
 ### First, grab the API key from R environ
-# api_key <- Sys.getenv("WILDOBSR_API_KEY")
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 
 ## Define a temporal range to query
@@ -53,7 +53,7 @@ contributors = c() #c("Zachry Amir", "Tom Bruce")
 tabularSharingPreference = c("open", "partial", "closed")
 
 ## Gather relevant project_ids using the mongo query function
-project_ids = wildobs_mongo_query(db_url = db_url, # api_key = api_key,
+project_ids = wildobs_mongo_query(api_key = api_key, # db_url = db_url,
                                   temporal = temporal,
                                   spatial = spatial,
                                   taxonomic = taxonomic,
@@ -65,7 +65,7 @@ project_ids = wildobs_mongo_query(db_url = db_url, # api_key = api_key,
 ## Who did we get?
 sort(project_ids)
 # subset to few datasets for testing
-project_ids <- project_ids[grepl("WildObsID_0002|WildObsID_0040|WildObsID_00034|WildObsID_0053", project_ids)]
+project_ids <- project_ids[grepl("WildObsID_0001|WildObsID_0014|WildObsID_0007", project_ids)]
 ## clean up query info
 rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, temporal)
 
@@ -74,13 +74,13 @@ rm(tabularSharingPreference, contributors, samplingDesign, taxonomic, spatial, t
 ### use the output to access data from wildobs_dp_download()
 # set media to FALSE to make a quicker download
 start = Sys.time()
-dp_list = wildobs_dp_download(db_url = db_url, #api_key = api_key,  
+dp_list = wildobs_dp_download(api_key = api_key, # db_url = db_url,
                               project_ids = project_ids, media = F,
                               metadata_only = F)
 end = Sys.time()
 
 ## how long did this take?
-end-start # 10 seconds for metadata only, 1.5 min for full dat w/ general API
+end-start # 5 min for all public data via API, no media. 24 min for ALL data via db_url, no media
 # almost 10 min for 2 DPs w/ full media.
 rm(end, start)
 
@@ -400,71 +400,122 @@ rm(dp, dp_long, deps_short, deps_long, covs_short, covs_long, obs_short, obs_lon
 
 ##### Occupancy/Abundance modelling functions #####
 
-# Dont forget to thin obs to the relevant deploymentIDs now that we have excluded some
-obs = obs[obs$deploymentID %in% covs$deploymentID, ]
+## load relevant libraries
+library(unmarked)
+library(spOccupancy)
 
-## format datetimes
-covs$deploymentEnd = as.POSIXct(covs$deploymentEnd, format = "%Y-%m-%dT%H:%M:%S%z")
-covs$deploymentStart = as.POSIXct(covs$deploymentStart, format = "%Y-%m-%dT%H:%M:%S%z")
+### First, spatially resample the data 
+## set the spatial scale to 3 km 
+start <- Sys.time()
+covs_cellID <- spatial_hexagon_generator(covs, 3000)
 
-
-
-# inspect deploymentTags
-unique(covs$deploymentTags) # fix one typo
-covs$deploymentTags[covs$deploymentTags %in% c("bait:none | predatorManagement: No management",
-                                               " | predatorManagement: No management")] = "bait:none | predatorManagement: No management"
-
-## Extract all tags into separate columns in covaraites
-covs_with_tags <- covs %>%
-  # create new cols to track original rows and split tags
-  mutate(
-    row_id = dplyr::row_number(),  # To track original rows
-    tag_list = stringr::str_split(deploymentTags, "\\s*\\|\\s*")
-  ) %>%
-  tidyr::unnest(tag_list) %>%
-  # Remove blanks
-  filter(!is.na(tag_list), tag_list != "") %>%
-  # split  keys and values
-  separate(tag_list, into = c("tag_key", "tag_value"), sep = ":", fill = "right") %>%
-  mutate(
-    tag_key = str_trim(tag_key),
-    tag_value = str_trim(tag_value)
-  ) %>%
-  pivot_wider(
-    id_cols = row_id,
-    names_from = tag_key,
-    values_from = tag_value
-  ) %>%
-  right_join(
-    covs %>% mutate(row_id = dplyr::row_number()),
-    by = "row_id"
-  ) %>%
-  select(-row_id)
-
-# inspect
-table(covs_with_tags$bait)
-table(covs_with_tags$predatorManagement) # can clean one value here
-covs_with_tags$predatorManagement[covs_with_tags$predatorManagement %in% c("Control deployments no management", "No management")] = "No management"
-table(covs_with_tags$experiment)
-
-## now save these extra column names that we will use later
-tag_cols = setdiff(names(covs_with_tags), names(covs))
+# Remove obscured records from obs head of resampling
+obs <- obs[!grepl("obscured", obs$deploymentID),]
+# and run the resampling function
+resamp <- resample_covariates_and_observations(covs_cellID, obs, individuals = "sum")
+end <- Sys.time()
+# how long were both processes?
+end-start # 37 min !! 
 
 
-## format their datetimes
-dt_cols = c("eventStart", "eventEnd", "observationStart", "observationEnd")
-for(i in 1:length(dt_cols)){
-  obs[[dt_cols[i]]] = as.POSIXct(obs[[dt_cols[i]]], format = "%Y-%m-%dT%H:%M:%S%z")
-}
-rm(dt_cols, i, obs1,obs2)
-dplyr::glimpse(obs)
+### Working with new effort matrix function 
+## start with non-resampled data 
+effort <- effort_matrix(deps = covs_cellID, site_col = "cellID_3000m2", w = 5, dur = 60, align = "site", split_by = "baitUse")
+class(effort);names(effort)
+# view the effort matrix 
+effort$effort
 
-## inspect species
-sort(table(obs$scientificName))
-# Canis dingo, Felis catus, Trichosurus caninus, Pitta versicolor, Geopelia humeralis
-sp = c("Felis catus", # common in both sources
-       "Ocyphaps lophotes", "Pitta versicolor", # somewhat common but detected in different sources
-       "Tachyglossus aculeatus") # rare but in both sources
+## After we have our effort matrix, we need our detection matrix
+det_mat <- detection_matrix(obs = resamp$spatially_resampled_observations$cellID_3000m2, effort = effort, 
+                             scientificNames = c("Hydromys chrysogaster", "Orthonyx spaldingii"),
+                             type = "occupancy", individuals = "max", by_camera = FALSE)
+class(det_mat) # an array 
+dimnames(det_mat) # overview, species x site x occasion x split 
+# view snippet from same species across splits ar random sites. 
+det_mat[1, c(11,15,17,33), , 1]
+det_mat[1, c(11,15,17,33), , 2]
+# samve value in 2D
+det_mat[1, c(11,15,17,33), ]
+
+### Feed both values into the model_matrix_input function
+mats <- model_matrix_input(detections = det_mat, effort = effort, site_covs = covs, output = "unmarked")
+class(mats); names(mats)
+class(mats[[1]]); mats[[2]]
+mats[[1]]
+
+## test out pcount()
+abund1 <- unmarked::pcount(~baitUse + effort ~ HIF_1km2 + HCAS_static_1km2, data = mats[[2]])
+abund1 
+
+## same for occu
+occ1 <- unmarked::occu(~effort ~HCAS_static_1km2, data = mats[[2]])
+occ1
+
+# # Dont forget to thin obs to the relevant deploymentIDs now that we have excluded some
+# # obs = obs[obs$deploymentID %in% covs$deploymentID, ]
+
+# ## format datetimes
+# covs$deploymentEnd = as.POSIXct(covs$deploymentEnd, format = "%Y-%m-%dT%H:%M:%S%z")
+# covs$deploymentStart = as.POSIXct(covs$deploymentStart, format = "%Y-%m-%dT%H:%M:%S%z")
+
+
+
+# # inspect deploymentTags
+# unique(covs$deploymentTags) # fix one typo
+# covs$deploymentTags[covs$deploymentTags %in% c("bait:none | predatorManagement: No management",
+#                                                " | predatorManagement: No management")] = "bait:none | predatorManagement: No management"
+
+# ## Extract all tags into separate columns in covaraites
+# covs_with_tags <- covs %>%
+#   # create new cols to track original rows and split tags
+#   mutate(
+#     row_id = dplyr::row_number(),  # To track original rows
+#     tag_list = stringr::str_split(deploymentTags, "\\s*\\|\\s*")
+#   ) %>%
+#   tidyr::unnest(tag_list) %>%
+#   # Remove blanks
+#   filter(!is.na(tag_list), tag_list != "") %>%
+#   # split  keys and values
+#   separate(tag_list, into = c("tag_key", "tag_value"), sep = ":", fill = "right") %>%
+#   mutate(
+#     tag_key = str_trim(tag_key),
+#     tag_value = str_trim(tag_value)
+#   ) %>%
+#   pivot_wider(
+#     id_cols = row_id,
+#     names_from = tag_key,
+#     values_from = tag_value
+#   ) %>%
+#   right_join(
+#     covs %>% mutate(row_id = dplyr::row_number()),
+#     by = "row_id"
+#   ) %>%
+#   select(-row_id)
+
+# # inspect
+# table(covs_with_tags$bait)
+# table(covs_with_tags$predatorManagement) # can clean one value here
+# covs_with_tags$predatorManagement[covs_with_tags$predatorManagement %in% c("Control deployments no management", "No management")] = "No management"
+# table(covs_with_tags$experiment)
+
+# ## now save these extra column names that we will use later
+# tag_cols = setdiff(names(covs_with_tags), names(covs))
+
+
+# ## format their datetimes
+# dt_cols = c("eventStart", "eventEnd", "observationStart", "observationEnd")
+# for(i in 1:length(dt_cols)){
+#   obs[[dt_cols[i]]] = as.POSIXct(obs[[dt_cols[i]]], format = "%Y-%m-%dT%H:%M:%S%z")
+# }
+# rm(dt_cols, i, obs1,obs2)
+# dplyr::glimpse(obs)
+
+# ## inspect species
+# sort(table(obs$scientificName))
+# # Canis dingo, Felis catus, Trichosurus caninus, Pitta versicolor, Geopelia humeralis
+# sp = c("Felis catus", # common in both sources
+#        "Ocyphaps lophotes", "Pitta versicolor", # somewhat common but detected in different sources
+#        "Tachyglossus aculeatus") # rare but in both sources
 #
 ##
 ### Import species traits information to contextualize these critters

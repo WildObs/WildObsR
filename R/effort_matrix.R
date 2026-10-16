@@ -1,9 +1,9 @@
 #' Build a Sampling Effort Matrix from Camera Deployments
 #'
 #' @description Calculates how long cameras were running, as camera-days, for every site
-#' and sampling occasion, from the deployments table alone. Because effort never looks at
-#' detections, it cannot depend on where or when animals were recorded, which is the
-#' requirement for using it as a detection covariate or offset.
+#' and sampling occasion, from the deployments table alone. Sampling effort happens 
+#' regardless of what was detected, so it cannot depend on where or when animals were
+#'  recorded, which is the requirement for using effort as a detection covariate or offset.
 #'
 #' The steps are:
 #' \enumerate{
@@ -15,7 +15,8 @@
 #'     is kept, and its length is reported in `occasions`.
 #'   \item Camera-days are summed for every site, occasion and deployment. A site can be a
 #'     single deployment (`site_col = "deploymentID"`), a camera station
-#'     (`"locationID"`), or a grid cell from [spatial_hexagon_generator()].
+#'     (`"locationID"`) with several deployments, or a grid cell from
+#'     [spatial_hexagon_generator()].
 #' }
 #'
 #' With `align = "site"` (default), each site's occasions start on the first day any of its
@@ -24,13 +25,15 @@
 #' covers the same dates everywhere, which multi-season and time-series models need.
 #'
 #' For long-term deployments rebuilt with [recombine_deployment_groups()], pass its
-#' `deployment_crosswalk` as `crosswalk`: effort is then taken from the original pieces, so
+#' `deployment_crosswalk` as `crosswalk`: effort is then taken from the original cameras, so
 #' the gaps between them (up to `max_gap_days`) count as no effort.
 #'
 #' @param deps A data frame of deployments with at least `deploymentID`,
 #'   `deploymentStart` and `deploymentEnd` (POSIXct), and the column named in `site_col`.
 #' @param site_col Character. The column that defines a site. Defaults to
-#'   `"deploymentID"`, one site per deployment.
+#'   `"deploymentID"`, one site per deployment. Sites with multiple camera deployments can
+#'   be by spatially resampling the data via [spatial_hexagon_generator()] and 
+#'   [resample_covariates_and_observations()]
 #' @param w Integer. Occasion length in days.
 #' @param dur Integer or `NULL`. Number of days, counted from each site's (or the
 #'   calendar) start, to keep. Defaults to `NULL`, which keeps every day with effort.
@@ -88,10 +91,9 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
   ## settle the choice of alignment
   align <- match.arg(align)
 
-
   #
   ##
-  ### Check the inputs ----
+  ### Verify the inputs ----
 
   ## deployments must be a table
   if (!is.data.frame(deps) || nrow(deps) == 0) {
@@ -145,6 +147,7 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
             "Pass time_zone = dp$temporal$timeZone to use local days.")
   } # end time zone fallback
   time_zone <- time_zone[1]
+  ## TODO: ideally, we should be able to handle multiple timezones... maybe this can be extrapolated to a column?
 
 
   #
@@ -177,8 +180,11 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
   # a period with no start or end has no knowable effort
   incomplete <- is.na(periods$start) | is.na(periods$end)
   if (any(incomplete)) {
+    # provide a warning if found
     warning(sprintf("effort_matrix() left out %d deployment period(s) with a missing start or end, e.g. %s.",
                     sum(incomplete), periods$deploymentID[which(incomplete)[1]]), call. = FALSE)
+    ## TODO: update the warning to note that they are removed from the effort data 
+    # and drop the deployments w/ no effort 
     periods <- periods[!incomplete, , drop = FALSE]
   } # end incomplete condition
 
@@ -189,6 +195,7 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
   if (any(daily$camera_days > 1 + 1e-6)) {
     warning("effort_matrix() found deployment pieces that overlap in time; each camera counts at most one camera-day per day.",
             call. = FALSE)
+    ## Roudn out camera days to a single day if present 
     daily$camera_days <- pmin(daily$camera_days, 1)
   } # end overlap condition
 
@@ -202,8 +209,9 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
                         site = as.character(deps[[site_col]]), stringsAsFactors = FALSE)
   # the level of split_by, kept as text so logical and factor columns behave alike
   if (!is.null(split_by)) dep_map$level <- as.character(deps[[split_by]])
-  # deployments in key order within each site, numbered as slots
+  # deployments in key order within each site
   dep_map <- dep_map[order(dep_map$site, dep_map$deploymentID), , drop = FALSE]
+  # number each deployment in a site with a slot position
   dep_map$slot <- stats::ave(seq_len(nrow(dep_map)), dep_map$site, FUN = seq_along)
   # add the site to every day
   daily$site <- dep_map$site[match(daily$deploymentID, dep_map$deploymentID)]
@@ -220,8 +228,9 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
   } # end align condition
   # the day number of every active day, counted from its site's first day
   day_number <- as.integer(daily$date - origin[daily$site]) + 1L
-  # days beyond dur are left out
+  ## if a maximum duration was provided, 
   if (!is.null(dur)) {
+    # days beyond dur are left out
     daily <- daily[day_number <= dur, , drop = FALSE]
     day_number <- day_number[day_number <= dur]
   } # end dur condition
@@ -229,16 +238,24 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
   daily$occasion <- (day_number - 1L) %/% as.integer(w) + 1L
 
   ## the dimensions of the result
+  # number of rows
   sites <- sort(unique(dep_map$site))
+  # number of columns 
   n_occ <- max(daily$occasion)
+  # create a char name for columns 
   occ_names <- paste0("o", seq_len(n_occ))
   # the third dimension: deployment slots, or the levels of split_by
+  # if there is nothing to split by, 
   if (is.null(split_by)) {
+    # the third dimension is non-existent, so stick w/ deployment per site (i.e., slot)
     units <- paste0("deployment_", seq_len(max(dep_map$slot)))
     daily$unit <- units[dep_map$slot[match(daily$deploymentID, dep_map$deploymentID)]]
   } else {
+    # but if we are splitting, grab that level 
     lv <- dep_map$level
+    # make sure its all character
     lv[is.na(lv)] <- "NA"
+    # then organize and attach via matching deployments
     units <- sort(unique(lv))
     daily$unit <- lv[match(daily$deploymentID, dep_map$deploymentID)]
   } # end third dimension condition
@@ -250,13 +267,14 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
 
   # camera-days for every site, occasion and unit that has any
   cells <- stats::aggregate(camera_days ~ site + occasion + unit, data = daily, FUN = sum)
-  # an empty array to fill
+  # init an empty array to fill
   effort <- array(0, dim = c(length(sites), n_occ, length(units)),
                   dimnames = list(site = sites, occasion = occ_names, unit = units))
   # fill it by position
   effort[cbind(match(cells$site, sites), cells$occasion, match(cells$unit, units))] <- cells$camera_days
   # the total over units
   effort_total <- apply(effort, c(1, 2), sum)
+  # save the names 
   dimnames(effort_total) <- list(site = sites, occasion = occ_names)
 
   ## one row per site and occasion, with its dates

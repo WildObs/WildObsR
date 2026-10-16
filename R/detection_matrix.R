@@ -8,7 +8,7 @@
 #' The steps are:
 #' \enumerate{
 #'   \item Obscured threatened-species records (`obscured_for_<category>_species`), which
-#'     carry no camera, and observations that are not of animals are set aside, with a
+#'     carry no camera, and observations that are not of animals, are set aside with a
 #'     message saying how many.
 #'   \item Each detection is placed on its deployment's site, and on the local calendar day
 #'     of its `eventStart` in the effort matrix's time zone. A detection on a day its camera
@@ -17,8 +17,7 @@
 #'   \item With `type = "occupancy"`, a cell is 1 if the species was detected at all. With
 #'     `type = "abundance"`, each event (`eventID`) counts the largest `count` among its
 #'     observations, and events are then combined over the occasion with `individuals`:
-#'     `"sum"` adds them (a relative abundance index), `"max"` takes the largest (the most
-#'     individuals seen together, as in N-mixture models).
+#'     `"sum"` adds them, while `"max"` takes the largest observed value per event. 
 #' }
 #'
 #' @param obs A data frame of observations with at least `deploymentID`, `eventStart`
@@ -77,18 +76,22 @@ detection_matrix <- function(obs, effort, scientificNames,
 
   #
   ##
-  ### Check the inputs ----
+  ### Verify the inputs ----
 
   ## the effort must come from effort_matrix(), which carries the day boundaries
   if (!inherits(effort, "wildobs_effort")) {
     stop("detection_matrix() needs effort from effort_matrix(), built from the same deployments.",
          call. = FALSE)
   } # end effort check
-  # the observation columns every count needs
+  # the observation columns every approach needs 
   needed <- c("deploymentID", "eventStart", "scientificName")
+  # if we are measuring abundance, we need counts too 
   if (type == "abundance") needed <- c(needed, "count")
+  # check for missing cols
   missing_cols <- setdiff(needed, names(obs))
+  # if so, 
   if (!is.data.frame(obs) || length(missing_cols) > 0) {
+    # hard stop w/ which cols are missing 
     stop(sprintf("detection_matrix() needs obs as a data frame with: %s.\n",
                  paste(missing_cols, collapse = ", ")),
          "Pass frictionless::read_resource(dp, \"observations\"), or a table with those columns.",
@@ -111,10 +114,13 @@ detection_matrix <- function(obs, effort, scientificNames,
 
   ## obscured threatened-species records carry no camera
   obscured <- grepl("^obscured_for_", obs$deploymentID)
+  # if we gathered any 
   if (any(obscured)) {
+    # warn us about them, 
     message(sprintf("detection_matrix(): set aside %d obscured observation(s), which carry no camera.\n",
                     sum(obscured)),
             "Detection histories from public data under-count those species where they are listed.")
+    # and then remove them 
     obs <- obs[!obscured, , drop = FALSE]
   } # end obscured condition
   ## only animals are detections
@@ -130,7 +136,9 @@ detection_matrix <- function(obs, effort, scientificNames,
   obs <- obs[obs$scientificName %in% scientificNames, , drop = FALSE]
   # a species with no detections at all is real data, but worth saying
   never_seen <- setdiff(scientificNames, obs$scientificName)
+  ## if there was a species supplied that is not in the data
   if (length(never_seen) > 0) {
+    # give a warning but dont stop the show 
     message(sprintf("detection_matrix(): no detections of %s; kept as zeros wherever cameras ran.",
                     paste(never_seen, collapse = ", ")))
   } # end never seen condition
@@ -138,7 +146,9 @@ detection_matrix <- function(obs, effort, scientificNames,
   ## every detection must belong to a deployment in the effort matrix
   dep_map <- effort$deployments
   unknown <- setdiff(unique(obs$deploymentID), dep_map$deploymentID)
+  # if there are unaccounted for deployments
   if (length(unknown) > 0) {
+    # hard stop and tell us who is at fault 
     stop(sprintf("detection_matrix() found observations at %d deployment(s) that are not in effort, e.g. %s.\n",
                  length(unknown), paste(utils::head(unknown, 3), collapse = ", ")),
          "Build effort_matrix() from the deployments these observations came from.", call. = FALSE)
@@ -150,14 +160,25 @@ detection_matrix <- function(obs, effort, scientificNames,
   key_obs <- paste(obs$deploymentID, obs$date)
   key_eff <- paste(effort$daily$deploymentID, effort$daily$date)
   hit <- match(key_obs, key_eff)
+
   ## a detection on a day the camera was not running means the dates disagree
   ## (detections beyond dur are left out on purpose, so check against the full days)
+  ## Grab all sampling sites matching effort matrix  
   site <- dep_map$site[match(obs$deploymentID, dep_map$deploymentID)]
+  # calculate the day the cameras were running 
   day_number <- as.integer(obs$date - effort$settings$origin[site]) + 1L
-  beyond_dur <- if (is.null(effort$settings$dur)) rep(FALSE, nrow(obs)) else
+  # if there are values beyond the max duration,
+  beyond_dur <- if (is.null(effort$settings$dur)){
+    # set them to FALSE 
+    rep(FALSE, nrow(obs)) else
+  }else{
+    # or ensure that we are greater than duration 
     day_number > effort$settings$dur
+  }
+  ## if there are detections that are beyond duration and our of scope
   off_effort <- is.na(hit) & !beyond_dur
   if (any(off_effort)) {
+    # hard stop because the dates are disorganized 
     stop(sprintf("detection_matrix() found %d detection(s) on days their camera was not running, e.g. %s on %s.\n",
                  sum(off_effort), obs$deploymentID[which(off_effort)[1]],
                  format(obs$date[which(off_effort)[1]])),
@@ -169,6 +190,7 @@ detection_matrix <- function(obs, effort, scientificNames,
     message(sprintf("detection_matrix(): left out %d detection(s) after the first %d days (dur).",
                     sum(beyond_dur), effort$settings$dur))
   } # end beyond dur condition
+  ## thin the data to match 
   obs <- obs[!beyond_dur, , drop = FALSE]
   hit <- hit[!beyond_dur]
   # each detection's site and occasion
@@ -188,38 +210,52 @@ detection_matrix <- function(obs, effort, scientificNames,
   } else {
     # a missing count is a detection of at least one animal
     no_count <- is.na(obs$count)
+    # if there were NAs in count 
     if (any(no_count)) {
+      # give us a warning that we assume this is one individual 
       message(sprintf("detection_matrix(): %d detection(s) have no count and are counted as 1 individual.",
                       sum(no_count)))
+      # store the value 
       obs$count[no_count] <- 1
     } # end no count condition
+
     ## within an event, the largest count is the number of individuals seen
-    # an observation without an eventID is its own event
+
+    ## Use eventID if its present in obs (camtrapDP), but if not, go one per row (assume independence)
     event <- if ("eventID" %in% names(obs)) obs$eventID else seq_len(nrow(obs))
+    # make a fake event if there are NA values
     event[is.na(event)] <- paste0("row_", which(is.na(event)))
+    # save the events in obs 
     obs$event <- event
+    # now aggregate, within an event, the number of individuals seen as the count 
     if (nrow(obs) > 0) {
       obs <- stats::aggregate(count ~ scientificName + site + occasion + slot + event,
                               data = obs, FUN = max)
     } # end any detections condition
+    # save this as the value we fill in the matrix 
     obs$value <- obs$count
   } # end type condition
 
-  ## combine detections within each cell
+  ## Determine how to combine detections within each cell
+  # if occupancy, take the max. If abundance, use sum or max, based on input 
   fun <- if (type == "occupancy") max else if (individuals == "sum") sum else max
+  # if we are splitting by camera, include the slot. Otherwise skip it 
   group <- if (by_camera) c("scientificName", "site", "occasion", "slot") else
     c("scientificName", "site", "occasion")
 
-  ## the empty array, NA wherever no camera was running
+  ## init the empty array, NA wherever no camera was running
   sites <- dimnames(effort$effort)[[1]]
   occs <- dimnames(effort$effort)[[2]]
+  # if we are splitting per slot, 
   if (by_camera) {
-    # species x site x occasion x deployment slot
+    # format the matrix as species x site x occasion x deployment slot
     slots <- dimnames(effort$effort)[[3]]
+    # init with all zeros 
     y <- array(0, dim = c(length(scientificNames), length(sites), length(occs), length(slots)),
                dimnames = list(species = scientificNames, site = sites, occasion = occs, unit = slots))
     # no effort in that slot means no data
     no_effort <- effort$effort == 0
+    # fill in NA pads when no effort 
     for (s in seq_along(scientificNames)) y[s, , , ][no_effort] <- NA
   } else {
     # species x site x occasion
@@ -231,11 +267,14 @@ detection_matrix <- function(obs, effort, scientificNames,
 
   ## fill the cells with detections
   if (nrow(obs) > 0) {
+    # aggregate based on pre-filled occu vs abund value, applying the grouping fun
     cells <- stats::aggregate(obs$value, by = obs[group], FUN = fun)
-    # positions in the array
+    # Determine the accurate positions in the array
     pos <- cbind(match(cells$scientificName, scientificNames), match(cells$site, sites),
                  cells$occasion)
+    # find split positions if needed
     if (by_camera) pos <- cbind(pos, cells$slot)
+    # then fill each position w/ the aggregated value 
     y[pos] <- cells$x
   } # end fill condition
 
