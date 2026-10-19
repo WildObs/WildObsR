@@ -5,7 +5,7 @@ citHeader("To cite WildObsR in publications, please use:")
 
 bibentry(
   bibtype  = "Manual",
-  title    = "{WildObsR}: Tools for Camera Trap Data Access, Management, and Analysis in R",
+  title    = "{WildObsR}: Discover, Access and Harmonise {WildObs} Camera Trap Data",
   author   = c(
     person("Zachary", "Amir"),
     person("Tom", "Bruce")

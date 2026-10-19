@@ -277,7 +277,7 @@ test_that("wildobs_dp_download column order matches schema", {
   # lets a reader trust position as well as name when eyeballing a table
   for (resource in resource_names(dp)) {
     expect_identical(
-      names(dp$data[[resource]]),
+      names(frictionless::read_resource(dp, resource)),
       schema_field_names(dp, resource)
     )
   } # end per resource
@@ -298,7 +298,7 @@ test_that("wildobs_dp_download applies the types declared in the schema", {
 
     for (field in names(declared)) {
       # grab the column the schema is describing
-      column <- dp$data[[resource]][[field]]
+      column <- frictionless::read_resource(dp, resource)[[field]]
 
       # datetimes have to come back timezone-aware, not as bare strings, since
       # every temporal calculation downstream depends on it
@@ -363,12 +363,13 @@ test_that("wildobs_dp_download includes media when media=TRUE", {
 
   # and it arrives populated, since an empty media table would mean the request
   # was accepted but the records never came
-  expect_s3_class(dp$data$media, "data.frame")
-  expect_gt(nrow(dp$data$media), 0)
+  media <- frictionless::read_resource(dp, "media")
+  expect_s3_class(media, "data.frame")
+  expect_gt(nrow(media), 0)
 
   # the public database withholds fileName, so it comes back as an empty column
-  expect_true("fileName" %in% names(dp$data$media))
-  expect_true(all(is.na(dp$data$media$fileName)))
+  expect_true("fileName" %in% names(media))
+  expect_true(all(is.na(media$fileName)))
 })
 
 test_that("wildobs_dp_download never duplicates observations", {
@@ -381,7 +382,7 @@ test_that("wildobs_dp_download never duplicates observations", {
     api_key = test_api_key,
     project_ids = "NSW_Murrumbidgee_Rakali_Sanders_2021-2023_WildObsID_0014"
   ))
-  obs <- result[[1]]$data$observations
+  obs <- frictionless::read_resource(result[[1]], "observations")
   # obscured threatened-species rows share a placeholder ID by design, so set them aside
   obs <- obs[!grepl("^obscured_for_", obs$deploymentID), ]
 
@@ -401,8 +402,8 @@ test_that("wildobs_dp_download returns data for open projects", {
 
   # an open sharing agreement means the tabular data comes through, so empty
   # deployments here would mean the sharing preference was misread
-  expect_s3_class(dp$data$deployments, "data.frame")
-  expect_gt(nrow(dp$data$deployments), 0)
+  expect_s3_class(frictionless::read_resource(dp, "deployments"), "data.frame")
+  expect_gt(nrow(frictionless::read_resource(dp, "deployments")), 0)
 })
 
 test_that("wildobs_dp_download returns observations as a data frame", {
@@ -412,8 +413,8 @@ test_that("wildobs_dp_download returns observations as a data frame", {
 
   # observations must always be a frame, even for a project that detected
   # nothing, so callers never have to guard against a NULL
-  expect_s3_class(dp$data$observations, "data.frame")
-  expect_gt(ncol(dp$data$observations), 0)
+  expect_s3_class(frictionless::read_resource(dp, "observations"), "data.frame")
+  expect_gt(ncol(frictionless::read_resource(dp, "observations")), 0)
 })
 
 test_that("wildobs_dp_download returns covariates as a data frame", {
@@ -422,8 +423,8 @@ test_that("wildobs_dp_download returns covariates as a data frame", {
   dp <- stable_dp()
 
   # same contract as observations: shape is guaranteed, contents are not
-  expect_s3_class(dp$data$covariates, "data.frame")
-  expect_gt(ncol(dp$data$covariates), 0)
+  expect_s3_class(frictionless::read_resource(dp, "covariates"), "data.frame")
+  expect_gt(ncol(frictionless::read_resource(dp, "covariates")), 0)
 })
 
 
@@ -607,4 +608,142 @@ test_that("wildobs_dp_download handles API connection failure gracefully", {
     wildobs_dp_download(api_key = "invalid_key", project_ids = stable_project),
     "Failed to retrieve metadata"
   )
+})
+
+
+## Paged downloads, tested offline against a fake API ----
+
+## a stand-in for the API's find endpoint over one in-memory table: it honours the
+## key filters the pager sends ($gt, $nin, $regex), sorts on the key in byte order as
+## MongoDB does, and applies the page limit, so no network is needed
+fake_find <- function(table, key) {
+  function(url, api_key, body, what, attempts = 3) {
+    # start from the whole table
+    rows <- table
+    # the conditions placed on the key column, if any
+    cond <- body$filter[[key]]
+    # keys sorting after the last one received
+    if (!is.null(cond$`$gt`)) rows <- rows[rows[[key]] > cond$`$gt`, , drop = FALSE]
+    # keys already fetched separately
+    if (!is.null(cond$`$nin`)) rows <- rows[!rows[[key]] %in% cond$`$nin`, , drop = FALSE]
+    # keys matching a pattern
+    if (!is.null(cond$`$regex`)) rows <- rows[grepl(cond$`$regex`, rows[[key]]), , drop = FALSE]
+    # sort in byte order, as the server does
+    if (!is.null(body$sort)) rows <- rows[order(rows[[key]], method = "radix"), , drop = FALSE]
+    # apply the page size
+    if (!is.null(body$limit)) rows <- utils::head(rows, body$limit)
+    # an empty result comes back as an empty list, like the real API
+    if (nrow(rows) == 0) return(list())
+    rows
+  } # end fake find
+} # end fake_find
+
+## seven ordinary observations plus three obscured rows sharing one placeholder ID
+paged_obs <- data.frame(
+  observationID = c(sprintf("obs_%02d", 1:7), rep("obscured_for_endangered_species", 3)),
+  scientificName = c(rep("Sus scrofa", 7), rep("Casuarius casuarius", 3))
+)
+
+test_that("paged download returns every row, including repeated obscured IDs", {
+  # the fake server holds the table, and its count agrees
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(paged_obs, "observationID"),
+    .wildobs_api_count = function(...) nrow(paged_obs)
+  )
+  # a page size of 3 forces several pages, with the obscured rows spanning a boundary
+  out <- .wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                                 key = "observationID", page_size = 3,
+                                 shared_key_pattern = "^obscured_for_")
+  # nothing lost, nothing doubled
+  expect_equal(nrow(out), 10)
+  expect_setequal(out$observationID, paged_obs$observationID)
+  expect_equal(sum(out$observationID == "obscured_for_endangered_species"), 3)
+})
+
+test_that("paged download without a shared-key pattern pages through unique keys", {
+  # only the ordinary rows, so every key is unique
+  uniq <- paged_obs[1:7, ]
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(uniq, "observationID"),
+    .wildobs_api_count = function(...) nrow(uniq)
+  )
+  # a page size that divides the table exactly, so the last page is full and an
+  # empty page has to end the loop
+  out <- .wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                                 key = "observationID", page_size = 7)
+  expect_equal(out$observationID, uniq$observationID)
+})
+
+test_that("paged download stops rather than return a short table", {
+  # the server claims one more row than it serves
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(paged_obs, "observationID"),
+    .wildobs_api_count = function(...) nrow(paged_obs) + 1
+  )
+  expect_error(
+    .wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                            key = "observationID", page_size = 3,
+                            shared_key_pattern = "^obscured_for_"),
+    "fetched 10 of the 11 rows in the observations table"
+  )
+})
+
+test_that("paged download carries on when the count is unavailable", {
+  # NA means the count request failed, which should not block the download
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(paged_obs, "observationID"),
+    .wildobs_api_count = function(...) NA_integer_
+  )
+  out <- .wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                                 key = "observationID", page_size = 4,
+                                 shared_key_pattern = "^obscured_for_")
+  expect_equal(nrow(out), 10)
+})
+
+test_that("paged download returns an empty list when nothing matches", {
+  # an empty table on the server
+  empty <- paged_obs[0, ]
+  local_mocked_bindings(
+    .wildobs_api_find = fake_find(empty, "observationID"),
+    .wildobs_api_count = function(...) 0L
+  )
+  expect_length(.wildobs_api_find_paged("u", "k", "observations", list(projectName = "p"),
+                                        key = "observationID", page_size = 3,
+                                        shared_key_pattern = "^obscured_for_"), 0)
+})
+
+
+#
+##
+### MongoDB dates in API responses ----
+
+test_that("API dates are read as UTC whatever the computer's time zone", {
+  ## an optional date field that is empty on one row, the case jsonlite reads in
+  ## local time when left to convert the dates itself
+  txt <- paste0('[{"count": 2, "results": [',
+                '{"id": "a", "classificationTimestamp": {"$date": "1999-12-31T14:00:00Z"}},',
+                '{"id": "b", "classificationTimestamp": null}]}, 200]')
+  # pretend the computer is in Brisbane, ten hours ahead of UTC
+  withr::local_timezone("Australia/Brisbane")
+
+  # the date fields are found before unwrapping
+  expect_identical(.api_date_fields(txt), "classificationTimestamp")
+  # and the records come back with the true instant, in UTC
+  recs <- .api_dates_to_utc(jsonlite::fromJSON(.unwrap_api_dates(txt))[[1]][[2]],
+                            .api_date_fields(txt))
+  expect_s3_class(recs$classificationTimestamp, "POSIXct")
+  expect_identical(attr(recs$classificationTimestamp, "tzone"), "UTC")
+  expect_equal(recs$classificationTimestamp[1], as.POSIXct("1999-12-31 14:00:00", tz = "UTC"))
+  # the empty value stays empty
+  expect_true(is.na(recs$classificationTimestamp[2]))
+})
+
+test_that("API dates keep their instant with fractional seconds, and other text is untouched", {
+  txt <- '[{"count": 1, "results": [{"t": {"$date": "2023-11-07T05:33:26.123Z"}, "note": "2023-11-07T05:33:26Z"}]}, 200]'
+  recs <- .api_dates_to_utc(jsonlite::fromJSON(.unwrap_api_dates(txt))[[1]][[2]],
+                            .api_date_fields(txt))
+  # the date field is read to the second
+  expect_equal(recs$t, as.POSIXct("2023-11-07 05:33:26", tz = "UTC"))
+  # a text field that only looks like a date was not sent as one, so it stays text
+  expect_type(recs$note, "character")
 })

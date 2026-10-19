@@ -46,9 +46,9 @@ dp_list <- wildobs_dp_download(api_key = api_key, project_ids = ids,
 
 # 3. use them
 dp   <- dp_list[[1]]
-deps <- frictionless::read_resource(dp, "deployments")     # or dp$data$deployments    
-obs  <- frictionless::read_resource(dp, "observations") 
-covs <- frictionless::read_resource(dp, "covariates")  
+deps <- frictionless::read_resource(dp, "deployments")
+obs  <- frictionless::read_resource(dp, "observations")
+covs <- frictionless::read_resource(dp, "covariates")
 meta <- extract_metadata(dp_list, c("contributors", "temporal", "taxonomic"))
 ```
 
@@ -59,8 +59,11 @@ meta <- extract_metadata(dp_list, c("contributors", "temporal", "taxonomic"))
   thousands of rows per project) and is downloaded in batches, so leave it off unless you
   need image-level data.
 - `metadata_only = TRUE` skips the tables for a fast look at what exists.
-- Each package is a list with class `camtrapdp`. The tables are in `dp$data` and also as
-  Frictionless resources in `dp$resources`, each with a schema describing every field.
+- Each package is a list with class `camtrapdp`. The tables are Frictionless resources in
+  `dp$resources`, each with a schema describing every field. **Read them with
+  `frictionless::read_resource(dp, "<table>")`**, which applies the schema's column types.
+  `dp$data` holds a copy because the `camtrapdp` class expects one, but other tools do not
+  always keep it up to date, so do not read tables from it.
   `frictionless::write_package(dp, "folder")` saves it to disk as CSVs plus `datapackage.json`.
 
 ## What the public API gives you
@@ -85,8 +88,8 @@ A project's embargo is already reflected in its preference: an embargoed project
 `bibliographicCitation`; a project without one downloads as metadata only.
 
 `wildobs_dp_download()` returns `partial` projects as metadata-only packages with no
-tables, rather than failing. Check `length(dp$resources)` or `nrow(dp$data$deployments)`
-before analysis.
+tables, rather than failing. Check `length(dp$resources)` before
+analysis.
 
 `wildobs_mongo_query()` needs at least one filter: called with none, it returns
 `character(0)`. To list every project you can see, pass a box over all of Australia,
@@ -112,8 +115,8 @@ which species was seen, when and how many, but carries no camera identifier. In 
 - A join to `deployments`, `covariates` or `media` silently drops obscured rows.
 - `resample_covariates_and_observations()` stops with "mis-matched deploymentID values"
   until they are removed. After removal, a camera whose only records were obscured has no
-  observations left, which can make the same function stop with "cellID values do not
-  perfectly match", which is more likely in projects that recorded no `blank` observations.
+  observations left; its cell is kept in the resampled covariates, with a message, as
+  sampling effort with no detections.
 - Detection histories from public data **under-count listed species in their listed
   states**. Do not estimate occupancy or abundance for a threatened species from public
   data without accounting for this.
@@ -208,17 +211,20 @@ cw      <- frictionless::read_resource(long_dp, "deployment_crosswalk")
 - `deltaTime_event` is the seconds since the previous event at that deployment, for your own
   independence filtering.
 - **Filter `observationType == "animal"`.** About half of all observations are `blank`
-  (~52%) and about a third `animal` (~32%); the rest are `vehicle`, `unknown` and `human`. A
+  (~53%) and about a third `animal` (~32%); the rest are `vehicle`, `unknown` and `human`. A
   raw row count is not an animal count. Non-animal rows still fill `scientificName`, with
   placeholders such as `Blank`, `Homo sapiens-vehicle`, `unidentified` or `Ghost`.
-- `count` is the number of individuals. It is `NA` on blanks and unknowns, and on about 13%
+- `count` is the number of individuals. It is `NA` on blanks and unknowns, and on about 15%
   of animal records.
 - `observationLevel` is always `event`.
 - Downloaded observations also carry `taxonID`, `taxonRank` and `vernacularNamesEnglish`,
-  joined from the package's taxonomic metadata, and empty on non-animal rows. Check
-  `taxonRank`: about 77% of animal records are identified to species, and the rest only to
-  genus, family, order, class or phylum.
-- `classificationMethod` is `human` (about 88% of animal records) or `machine`.
+  joined from the package's taxonomic metadata. They are meant to be empty on non-animal
+  rows, but the database currently fills them on `vehicle`, `unknown` and most `human` rows
+  too (with placeholders such as `Homo sapiens-vehicle`, rank `species`). So filter on
+  `observationType == "animal"`, never on `taxonID` or `taxonRank`. Check `taxonRank`:
+  about 78% of animal records are identified to species, and the rest only to genus,
+  family, order, class or phylum.
+- `classificationMethod` is `human` (about 89% of animal records) or `machine`.
 
 ### What the data can and cannot support
 
@@ -259,7 +265,7 @@ protected-area cover, habitat condition (`HCAS_static_`), `NDVI_`, terrain rugge
 standardised precipitation index, `HIF_`/`EII_`, fire history (`fire_events_count_`,
 `days_since_recent_fire_`, 2019/20 `GEEBAM_fire_severity_`), plus IBRA bioregion/subregion
 and Olson ecoregion names. Coverage gaps: `FLII_*` is `NA` for about a third of deployments
-and `days_since_recent_fire_*` for ~46–64%, depending on buffer size; most other covariates
+and `days_since_recent_fire_*` for ~45–66%, depending on buffer size; most other covariates
 are complete.
 
 Each covariate's schema field (in `dp$resources`, covariates resource) has a `custom` block
@@ -332,14 +338,14 @@ unconverted WildObs package. It returns `list(package, camtrapdp, report, valida
 
 ## Scale through the public API
 
-Measured through the public API on 2026-10-05 (`dev/public_skill_census.R` in the WildObsR
+Measured through the public API on 2026-10-15 (`dev/public_skill_census.R` in the WildObsR
 repository); percentages elsewhere in this skill come from the same census. These numbers
 grow with every database release:
 
-- **Projects:** 44 visible: 18 `open` with tables, 26 `partial` (metadata only).
-- **Tables of the open projects:** 4,088 deployments, ~730,000 observations and ~6.8
-  million media records.
-- **Taxa:** ~380 recorded in the open projects' observations, and ~620 listed across all 44
+- **Projects:** 49 visible: 23 `open` with tables, 26 `partial` (metadata only).
+- **Tables of the open projects:** 4,807 deployments (~239,000 camera-days), ~805,000
+  observations and ~8.2 million media records.
+- **Taxa:** ~430 recorded in the open projects' observations, and ~640 listed across all 49
   projects' metadata.
-- **Time span:** surveys from 2010 to 2024, in six Australian time zones.
-- **Obscured:** ~3,700 observations (about 1.6% of animal records), in 14 projects.
+- **Time span:** surveys from 2009 to 2026, in six Australian time zones.
+- **Obscured:** ~4,200 observations (about 1.6% of animal records), in 19 projects.

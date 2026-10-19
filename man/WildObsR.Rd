@@ -43,6 +43,15 @@ resampling, matrix generation for hierarchical models, and schema validation.
 Visit the project repository: \url{https://github.com/WildObs/WildObsR}
 }
 
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://wildobs.github.io/WildObsR/}
+  \item \url{https://github.com/WildObs/WildObsR}
+  \item Report bugs at \url{https://github.com/WildObs/WildObsR/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Zachary Amir \email{z.amir@uq.edu.au} (\href{https://orcid.org/0000-0002-8398-2059}{ORCID})
 

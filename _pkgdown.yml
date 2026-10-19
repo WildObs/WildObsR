@@ -1,0 +1,92 @@
+url: https://wildobs.github.io/WildObsR/
+
+# built into pkgdown/, because docs/ holds private style guides that must never be published
+destination: pkgdown
+
+template:
+  bootstrap: 5
+
+home:
+  title: "WildObsR: Discover, Access and Harmonise WildObs Camera Trap Data"
+
+navbar:
+  structure:
+    left: [intro, articles, reference, news]
+    right: [search, github]
+
+articles:
+- title: Find and access data
+  navbar: Find and access data
+  contents:
+  - discover
+  - data-package
+  - data-providers
+  - images
+- title: Interoperate and add context
+  navbar: Interoperate and add context
+  contents:
+  - interoperability
+  - spatial-context
+- title: About
+  navbar: About
+  contents:
+  - claude-skill
+
+reference:
+- title: Discover
+  desc: Search the WildObs database and read what each project describes.
+  contents:
+  - wildobs_mongo_query
+  - extract_metadata
+- title: Access
+  desc: Download data packages and images, and cite them.
+  contents:
+  - wildobs_dp_download
+  - wildobs_media_download
+  - cite_datapackages
+  - example_datapackages
+- title: Interoperate
+  desc: Move between WildObs and canonical Camtrap DP.
+  contents:
+  - as_camtrapdp
+  - apply_schema_types
+  - extract_tags
+- title: Harmonise
+  desc: Resample many projects to shared spatial and temporal units.
+  contents:
+  - spatial_hexagon_generator
+  - resample_covariates_and_observations
+  - update_temporally_overlapping_deployments
+  - recombine_deployment_groups
+  - reclassify_eventID
+  - survey_and_deployment_generator
+- subtitle: Legacy
+  desc: Kept for existing workflows.
+  contents:
+  - matrix_generator
+- title: Spatial context
+  desc: Place cameras in their Australian setting.
+  contents:
+  - AUS_state_locator
+  - ibra_classification
+  - locationName_verification_CAPAD
+  - locationName_buffer_CAPAD
+  - UTM_coord_generator
+  - find_nearest_neighbor_distance
+- title: Utilities
+  contents:
+  - WildObsR
+  - install_claude_skill
+  - update_common_to_binomial
+  - verify_col_match
+  - rename_or_add_column
+  - get_decimal_places
+  - "%>%"
+- title: Data
+  contents:
+  - capad
+  - ibra
+  - species_traits
+- title: Deprecated
+  contents:
+  - check_schema

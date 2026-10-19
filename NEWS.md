@@ -27,6 +27,24 @@
   their spatial versions), spAbundance (`NMix()`, `msNMix()`), or as plain arrays for
   JAGS, NIMBLE or Stan. Camera-days of effort, and the share of effort under each level
   of an `effort_matrix()` `split_by` column, are added as observation covariates.
+- `example_datapackages()` reads two open Wet Tropics projects shipped with the
+  package (`ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001`, systematic and unbaited;
+  `QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006`, targeted and baited), in
+  the same shape `wildobs_dp_download()` returns. Examples, tests and tutorials now
+  run offline on real data. The copies hold animal observations only, no
+  media and no contributor email addresses, and are rebuilt from the public API by `dev/make_example_data.R`. The
+  examples of `extract_metadata()`, `extract_tags()`,
+  `recombine_deployment_groups()`, `locationName_buffer_CAPAD()` and
+  `locationName_verification_CAPAD()` now run on them.
+- `cite_datapackages()` turns a list of downloaded data packages into a reference
+  list: formatted text, BibTeX (`utils::bibentry`) or a table. It uses each
+  package's own `bibliographicCitation` word for word (WildObs citations end with
+  the project's RAiD) and adds the WildObs database release the data came from, so
+  a reader can tell which version of a growing project was analysed. Packages
+  without a citation, such as other Camtrap DP datasets, get one built from their
+  contributors, year, title and link. `covariates = TRUE` also cites, once each, the
+  products behind the covariates table (forest integrity, human footprint, climate
+  and so on), and `accessed` adds the download date.
 - `recombine_deployment_groups()` rebuilds long-term deployments from the 100-day
   pieces the curation pipeline cuts them into, for multi-season occupancy, trend
   indices and other long-term analyses (#109). A data package goes in and a data
@@ -124,6 +142,54 @@ it.
 
 - WildObsR now requires R 4.1 or later, which the native pipe `|>` used in the
   package already needed.
+- `wildobs_mongo_query()` now returns open **and** partial projects by default
+  (`tabularSharingPreference = c("open", "partial")`), so a search shows every
+  project a public key can see, including embargoed ones whose data exist but are
+  not yet released. Partial projects download as metadata only: their data
+  package has no resources, so code that calls `frictionless::read_resource()` on
+  every downloaded package stops on them. Either ask for open projects only,
+  `wildobs_mongo_query(..., tabularSharingPreference = "open")`, or skip the
+  metadata-only packages before reading their tables:
+  `dp_list <- Filter(function(dp) length(dp$resources) > 0, dp_list)`.
+
+## Fixed
+
+- `resample_covariates_and_observations()` no longer stops when a column named in
+  `mode_cols_covs` or `obs_covs` is entirely empty (for example `habitat` in a project
+  that never recorded it). Such columns are left out with a warning naming them.
+- `resample_covariates_and_observations()` no longer stops when a cell's cameras
+  recorded no observations, which happens whenever observations are filtered (to
+  animals, or after setting obscured records aside). Those cells are kept in the
+  resampled covariates as effort without detections, and a message names them.
+  Observations in a cell with no camera still stop the function.
+- Date-times downloaded over the API could be shifted by the computer's offset
+  from UTC (ten hours in Queensland). The API sends dates as MongoDB
+  `{"$date": ...}` objects, and when an optional date field held both dates and
+  empty values in one response, jsonlite read the dates in local time rather than
+  UTC. Required fields (`deploymentStart`, `eventStart`, media `timestamp`) are
+  never empty and were not affected; `classificationTimestamp` was, depending on
+  where you were and which projects were downloaded together. WildObsR now reads
+  every API date as UTC before applying the project's time zone.
+- Ready for frictionless 2.0.0 (#136). From that version `frictionless::add_resource()`
+  writes Data Package v2 tables, which lack the `profile = "tabular-data-resource"`
+  that Camtrap DP 1.0.x requires, so `as_camtrapdp()` exports would have failed the
+  Camtrap DP profile. `wildobs_dp_download()`, `recombine_deployment_groups()` and
+  `as_camtrapdp()` now keep every table in the v1 form with either frictionless
+  version. The full test suite passes against the frictionless development version.
+- The `wildobs_mongo_query()` help no longer says the function filters out
+  projects still under embargo. Embargoed projects are stored as `partial` until
+  the embargo ends, and the help now says so. Its example uses `api_key` rather
+  than an undefined `db_url`.
+- `wildobs_dp_download()` over the API now downloads any number of projects in one
+  call. Previously each table came back in a single request, and asking for many
+  projects at once failed with `HTTP 504` because the response was too large to
+  arrive before the API timed out. Each table is now fetched in pages: 10,000
+  deployments, 50,000 observations or 5,000 covariate rows at a time. All 23 open
+  projects now download in one call in about three minutes.
+- After the pages are in, the number of rows in each table is checked against the
+  server's own count, and `wildobs_dp_download()` stops with an error rather than
+  return part of a table. Obscured threatened-species observations, which share one
+  placeholder `observationID`, are fetched separately so paging cannot skip them.
 
 # WildObsR 0.3.0
 

@@ -1,0 +1,251 @@
+---
+title: "For data providers: your projects in WildObs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{For data providers: your projects in WildObs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+
+<!-- This file is the source. Edit it, then run vignettes/precompute.R with a WildObs API
+key to rebuild data-providers.Rmd, which ships with its results already in place. -->
+
+If you contributed camera trap data to WildObs, you will want to know what others now see:
+which of your projects are listed, what their metadata say, when embargoed data will be
+released, and how people will cite you. This vignette answers those questions with the same
+public API key everyone uses. Here we use the package maintainer's projects as the example;
+put your own name, email or ORCID in their place.
+
+
+``` r
+library(WildObsR)
+
+# your personal API key, read from .Renviron (see the Get started vignette)
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
+```
+
+## Find your projects
+
+The `contributors` filter matches anyone listed on a project, in any role. Give a full name,
+an email address or an ORCID; mixing them catches projects where you were listed
+differently:
+
+
+``` r
+# projects listing this person, by name or ORCID
+mine <- wildobs_mongo_query(api_key = api_key,
+                            contributors = c("Zachary Amir", "0000-0002-8398-2059"))
+mine
+#> [1] "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
+#> [2] "QLD_Kgari_BIOL2015_2023-24_WildObsID_0004"    
+#> [3] "QLD_Kgari_potoroos_Amir_2022_WildObsID_0003"  
+#> [4] "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"
+```
+
+## Check how your projects are described
+
+The metadata are what people read first, and what they cite. Download them alone, which
+takes seconds, and check that the contributors, roles, organisations and licences are right:
+
+
+``` r
+# the descriptors of your projects, without their tables
+meta <- wildobs_dp_download(api_key = api_key, project_ids = mine, metadata_only = TRUE)
+#> metadata_only = TRUE -> skipping data resource downloads for speed.
+
+# who is credited on each project, and in what role
+contributors <- extract_metadata(meta, "contributors")
+contributors[, c("title", "role", "DPID")]
+#>                title                  role
+#> 1       Zachary Amir principalInvestigator
+#> 2      Annabel Smith          rightsHolder
+#> 3       Zachary Amir principalInvestigator
+#> 4     Matthew Luskin          rightsHolder
+#> 5  Linda Behrendorff               contact
+#> 6   Steven Salisbury           contributor
+#> 7       Zachary Amir principalInvestigator
+#> 8  Linda Behrendorff          rightsHolder
+#> 9     Matthew Luskin           contributor
+#> 10      Zachary Amir principalInvestigator
+#> 11         Tom Bruce               contact
+#> 12    Matthew Luskin          rightsHolder
+#>                                             DPID
+#> 1  QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005
+#> 2  QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005
+#> 3      QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
+#> 4      QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
+#> 5      QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
+#> 6      QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
+#> 7    QLD_Kgari_potoroos_Amir_2022_WildObsID_0003
+#> 8    QLD_Kgari_potoroos_Amir_2022_WildObsID_0003
+#> 9    QLD_Kgari_potoroos_Amir_2022_WildObsID_0003
+#> 10     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+#> 11     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+#> 12     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+
+# the licence of the data and of the images
+extract_metadata(meta, "licenses")[, c("name", "scope", "DPID")]
+#>        name scope                                          DPID
+#> 1 CC-BY-4.0  data QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005
+#> 2 CC-BY-4.0 media QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005
+#> 3   CC0-1.0  data     QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
+#> 4   CC0-1.0 media     QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
+#> 5   CC0-1.0  data   QLD_Kgari_potoroos_Amir_2022_WildObsID_0003
+#> 6   CC0-1.0 media   QLD_Kgari_potoroos_Amir_2022_WildObsID_0003
+#> 7 CC-BY-4.0  data     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+#> 8 CC-BY-4.0 media     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+```
+
+If something is wrong, contact WildObs at <support@wildobs.org.au> rather than editing a
+download: the database is the record everyone else reads.
+
+## Know when embargoed data are released
+
+A project shared as `partial` lists its metadata but withholds its tables until its embargo
+ends. The embargo runs for `embargoPeriodMonths` from the project's `created` date, and the
+tables are released at the next database update after that:
+
+
+``` r
+# sharing preference and embargo length for each project
+sharing <- extract_metadata(meta, "WildObsMetadata")
+# the date each project was created
+created <- vapply(meta, function(dp) substr(dp$created, 1, 10), character(1))
+
+# the earliest date each embargo can end
+data.frame(
+  project = sharing$DPID,
+  sharing = sharing$tabularSharingPreference,
+  embargo_months = sharing$embargoPeriodMonths,
+  embargo_ends = as.Date(created[sharing$DPID]) + round(sharing$embargoPeriodMonths * 30.44),
+  row.names = NULL
+)
+#>                                         project sharing embargo_months
+#> 1 QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005    open              0
+#> 2     QLD_Kgari_BIOL2015_2023-24_WildObsID_0004 partial             16
+#> 3   QLD_Kgari_potoroos_Amir_2022_WildObsID_0003    open              0
+#> 4     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001    open              0
+#>   embargo_ends
+#> 1   2024-12-06
+#> 2   2027-04-10
+#> 3   2024-11-06
+#> 4   2025-02-18
+```
+
+## See your data as others do
+
+A public key returns your open projects exactly as anyone else receives them, which differs
+from what you uploaded in three ways:
+
+- **Threatened species are obscured** in the states where they are listed under the
+  *Environment Protection and Biodiversity Conservation Act 1999*. The species, date and
+  count stay, but the camera identifiers are replaced, so no one can place the record.
+- **Image file names are withheld**, and only images hosted openly by WildObs
+  (`filePublic = TRUE`) can be downloaded.
+- **Embargoed projects** show their metadata only, as above.
+
+
+``` r
+# one of your open projects, as the public receives it
+dp <- wildobs_dp_download(api_key = api_key,
+                          project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")[[1]]
+obs <- frictionless::read_resource(dp, "observations")
+
+# your records that the public cannot place on a camera, by listing category and species
+obscured <- obs[grepl("^obscured_for_", obs$deploymentID), ]
+table(obscured$scientificName, obscured$deploymentID)
+#>                      
+#>                       obscured_for_endangered_species
+#>   Casuarius casuarius                             413
+#>   Dasyurus maculatus                               39
+```
+
+## How you will be cited
+
+Every project carries the citation you agreed to, ending with its
+[RAiD](https://raid.org), a persistent identifier for your research activity. Anyone using
+`cite_datapackages()` receives it with the database version they downloaded, so you can
+search for your RAiD to find where your data were used:
+
+
+``` r
+writeLines(cite_datapackages(meta))
+#> Zachary Amir & Annabel Smith (2023). WildObs Camera Trap Data Package: UQ's undergraduate widlife techonologies camera trapping module comparing human and AI comptuer vision [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/a3efd562. WildObs database version 1.0.1.
+#> Zachary Amir, Linda Behrendorff & Matthew Luskin (2022). WildObs Camera Trap Data Package: UQ & QPWS collaboration to study impacts of 2019-20 bushfires on K'gari's long-nosed potoroos [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/ba8f4587. WildObs database version 1.0.2.
+#> Zachary Amir, Matthew Luskin & Linda Behrendorff (2023). WildObs Camera Trap Data Package: Camera Trap Module for UQ's BIOL2015 Field Ecology Studies Course from 2023, 2024, 2025 [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/1b8c4374. WildObs database version 2.1.1.
+#> Zachary Amir, Tom Bruce & Matthew Luskin (2022). WildObs Camera Trap Data Package: Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/cb5829ab. WildObs database version 1.1.1.
+```
+
+Papers and datasets that already use a project are listed in its `relatedIdentifiers`:
+
+
+``` r
+related <- extract_metadata(meta, "relatedIdentifiers")
+related[related$relatedIdentifierType == "DOI", c("relationType", "relatedIdentifier", "DPID")]
+#>      relationType                               relatedIdentifier
+#> 6  IsSupplementTo              https://doi.org/10.1002/ece3.71464
+#> 8  IsSupplementTo https://doi.org/10.1016/j.scitotenv.2026.181926
+#> 9      IsSourceOf                 https://doi.org/10.15468/kjqw3f
+#> 10      IsCitedBy         https://doi.org/10.5281/zenodo.19552244
+#>                                         DPID
+#> 6  ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+#> 8  ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+#> 9  ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+#> 10 ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+```
+
+To add a publication that uses your data, send its DOI to <support@wildobs.org.au>.
+
+<details>
+<summary>Session information</summary>
+
+
+``` r
+sessionInfo()
+#> R version 4.5.1 (2025-06-13)
+#> Platform: aarch64-apple-darwin20
+#> Running under: macOS Tahoe 26.5.1
+#> 
+#> Matrix products: default
+#> BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
+#> LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
+#> 
+#> locale:
+#> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+#> 
+#> time zone: Australia/Brisbane
+#> tzcode source: internal
+#> 
+#> attached base packages:
+#> [1] stats     graphics  grDevices utils     datasets  methods   base     
+#> 
+#> other attached packages:
+#> [1] WildObsR_0.3.0.9000 here_1.0.1         
+#> 
+#> loaded via a namespace (and not attached):
+#>  [1] stringdist_0.9.17  xfun_0.61          devtools_2.4.6     remotes_2.5.0     
+#>  [5] lattice_0.22-7     tzdb_0.5.0         vctrs_0.7.3        tools_4.5.1       
+#>  [9] generics_0.1.4     curl_8.0.0         parallel_4.5.1     tibble_3.3.1      
+#> [13] proxy_0.4-29       cluster_2.1.8.1    chron_2.3-63       pkgconfig_2.0.3   
+#> [17] Matrix_1.7-3       KernSmooth_2.23-26 desc_1.4.3         lifecycle_1.0.5   
+#> [21] compiler_4.5.1     stringr_1.6.0      terra_1.9-50       codetools_0.2-20  
+#> [25] permute_0.9-10     usethis_3.2.1      class_7.3-23       crayon_1.5.3      
+#> [29] pillar_1.11.1      tidyr_1.3.2        MASS_7.3-65        ellipsis_0.3.2    
+#> [33] classInt_0.4-11    mongolite_4.1.0    cachem_1.1.0       vegan_2.7-6       
+#> [37] sessioninfo_1.2.3  nlme_3.1-168       tidyselect_1.2.1   stringi_1.8.9     
+#> [41] sf_1.1-3           dplyr_1.2.1        purrr_1.2.2        splines_4.5.1     
+#> [45] rprojroot_2.1.1    fastmap_1.2.0      grid_4.5.1         cli_3.6.6         
+#> [49] magrittr_2.0.5     utf8_1.2.6         pkgbuild_1.4.8     e1071_1.7-17      
+#> [53] withr_3.0.3        readr_2.2.0        bit64_4.8.6        lubridate_1.9.5   
+#> [57] timechange_0.4.0   httr_1.4.9         ozmaps_0.4.5       bit_4.6.0         
+#> [61] otel_0.2.0         lutz_0.3.2         hms_1.1.4          memoise_2.0.1     
+#> [65] evaluate_1.0.5     knitr_1.52         mgcv_1.9-3         frictionless_1.3.0
+#> [69] rlang_1.3.0        Rcpp_1.1.2         glue_1.8.1         DBI_1.3.0         
+#> [73] geojsonsf_2.0.5    pkgload_1.4.1      vroom_1.7.1        rstudioapi_0.17.1 
+#> [77] jsonlite_2.0.0     R6_2.6.1           plyr_1.8.9         oz_1.0-22         
+#> [81] fs_1.6.6           units_1.0-1
+```
+
+</details>

@@ -1,0 +1,128 @@
+---
+title: "Spatial context for camera locations"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Spatial context for camera locations}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Where a camera sits shapes what it can detect and how its data can be pooled with others.
+WildObsR places camera coordinates in their Australian context: the state or territory,
+the IBRA bioregion, the nearest protected area, a metric map projection, and the spacing
+between neighbouring cameras. The state, bioregion and protected-area layers ship with the
+package, so everything here runs offline. This vignette uses the two Wet Tropics projects
+bundled with WildObsR.
+
+```{r data}
+library(WildObsR)
+
+# the two projects shipped with WildObsR
+dp_list <- example_datapackages()
+
+# one row per camera station, from both projects
+deps <- do.call(rbind, lapply(dp_list, function(dp) {
+  # this project's deployments, read with their schema types
+  d <- frictionless::read_resource(dp, "deployments")
+  d[, c("deploymentID", "locationID", "locationName", "latitude", "longitude")]
+}))
+stations <- deps[!duplicated(deps$locationID), ]
+rownames(stations) <- NULL
+nrow(stations)
+```
+
+## State or territory
+
+`AUS_state_locator()` adds the state or territory each camera falls in, from the `ozmaps`
+boundaries. State matters because threatened-species listings, and so the obscuring of
+public records, differ between states.
+
+```{r state}
+# the state of every station
+stations <- AUS_state_locator(stations)
+table(stations$state)
+```
+
+## IBRA bioregion and subregion
+
+The Interim Biogeographic Regionalisation for Australia (IBRA 7) divides the continent into
+89 bioregions and 419 subregions of similar climate, geology and vegetation. It is a common
+unit for pooling surveys and for reporting.
+
+```{r ibra}
+# the bioregion and subregion of every station
+stations <- ibra_classification(stations, lat_col = "latitude", long_col = "longitude")
+table(stations$IBRAbioRegionName)
+table(stations$IBRAsubRegionName)
+```
+
+## Protected areas
+
+WildObs `locationName` values are usually a protected area. Two functions check them against
+the Collaborative Australian Protected Areas Database (CAPAD 2022).
+`locationName_verification_CAPAD()` names the protected area each camera is in, or the
+nearest one and its distance in metres. `locationName_buffer_CAPAD()` draws a buffer around
+each camera, merges buffers that overlap into one landscape, and names each landscape after
+the protected area that covers most of it, which groups nearby cameras into the same unit.
+
+```{r capad}
+# a few stations from each project, to keep the example quick
+few <- stations[c(1, 2, nrow(stations) - 1, nrow(stations)), ]
+
+# the protected area each camera is in, or nearest to, beside the recorded locationName
+verified <- locationName_verification_CAPAD(few)
+verified[, c("locationID", "locationName", "CAPADlocationName", "CAPADminDistance")]
+
+# cameras whose 1 km buffers overlap share a landscape, named by its main protected area
+buffered <- locationName_buffer_CAPAD(few, buffer_size = 1000)
+buffered[, c("locationID", "CAPADlocationNameBuffer")]
+```
+
+A recorded `locationName` can differ from the CAPAD name for good reasons. Where protected
+areas overlap, curation gives each landscape one name. For example, the first Paluma camera
+above is nearest the Girringun Indigenous Protected Area, which overlaps Paluma Range
+National Park, and its landscape is recorded as the national park. A camera can also sit just outside a reserve
+boundary, or a reserve can be recorded under a local name. Treat a difference as a prompt to
+look, not as an error.
+
+## Metric coordinates
+
+Distances and grids need coordinates in metres. `UTM_coord_generator()` projects each
+camera into the Universal Transverse Mercator zone its longitude falls in, and returns the
+zone with the coordinates.
+
+```{r utm}
+# the UTM zone, easting (X) and northing (Y) in metres for every deployment
+utm <- UTM_coord_generator(deps)
+head(utm)
+```
+
+## Spacing between cameras
+
+`find_nearest_neighbor_distance()` gives the distance from each station to its nearest
+neighbour. Camera spacing decides whether neighbouring stations can be treated as
+independent sites for a species with a given home range, and which grid cell size suits a
+pooled analysis.
+
+```{r spacing}
+# the nearest other station to each station, and how far it is
+nn <- find_nearest_neighbor_distance(deps)
+# spacing in metres
+summary(nn$distance)
+```
+
+```{r spacing-plot, fig.width = 6, fig.height = 4, fig.alt = "Histogram of distances in metres from each camera station to its nearest neighbour."}
+hist(nn$distance, breaks = 30, main = "Distance to the nearest camera station",
+     xlab = "Distance (m)", col = "darkgreen", border = "white")
+```
+
+## Data sources
+
+The CAPAD 2022 terrestrial and IBRA 7 subregion layers ship with WildObsR as the datasets
+`capad` and `ibra`, simplified for size. Both are © Commonwealth of Australia (Department of
+Climate Change, Energy, the Environment and Water), licensed under Creative Commons
+Attribution. State boundaries come from the `ozmaps` package.

@@ -71,25 +71,19 @@ package with no deploymentGroup blocks returns a single row with
 }
 
 \examples{
-\dontrun{
-# Load a single data package
-dp <- frictionless::read_package("path/to/datapackage.json")
+# the two Wet Tropics projects shipped with WildObsR
+dp_list <- example_datapackages()
 
-# Extract a single element
-contributors_df <- extract_metadata(dp, "contributors")
+# one element, as a table with a row per contributor per project
+contributors <- extract_metadata(dp_list, "contributors")
+contributors[, c("title", "role", "DPID")]
 
-# Extract multiple elements
-metadata_list <- extract_metadata(dp, c("contributors", "sources", "project"))
+# several elements at once, as a named list of tables
+meta <- extract_metadata(dp_list, c("licenses", "project"))
+meta$licenses
 
-# Load multiple data packages
-dp_list <- lapply(
-  list.files("path/to/dps", pattern = "datapackage.json", recursive = TRUE),
-  frictionless::read_package
-)
-
-# Extract across multiple packages
-all_contributors <- extract_metadata(dp_list, "contributors")
-}
+# a single package works too
+extract_metadata(dp_list[[1]], "WildObsMetadata")
 
 }
 \author{

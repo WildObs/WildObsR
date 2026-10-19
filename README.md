@@ -6,501 +6,117 @@
 # WildObsR
 
 <!-- badges: start -->
-[![R Package](https://img.shields.io/badge/R-package-blue.svg)](https://www.r-project.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![R-CMD-check](https://github.com/WildObs/WildObsR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/WildObs/WildObsR/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/WildObs/WildObsR/graph/badge.svg)](https://app.codecov.io/gh/WildObs/WildObsR)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 <!-- badges: end -->
 
-> Professional tools for camera trap data access, management, and analysis in R
+WildObsR finds, downloads and prepares camera trap data from
+[WildObs](https://wildobs.org.au), Australia's national wildlife camera database. Every
+project arrives as a [Camera Trap Data Package](https://camtrap-dp.tdwg.org/) (Camtrap DP)
+with its licence and citation, and data from many projects can be harmonised into inputs
+for occupancy and abundance models.
 
-WildObsR provides a suite of functions for standardizing, accessing, and analyzing wildlife camera trap data. This R package is built to support the [Camera Trap Data Package (Camtrap DP)](https://camtrap-dp.tdwg.org/) data standard, built around the [Frictionless Data Package ](https://specs.frictionlessdata.io/data-package/) specifications to ensure camera trap data remains [Findable, Accessible, Interoperable, & Reusable (FAIR)](https://ardc.edu.au/resource-hub/making-data-fair/).
+- **Discover** what data exist: search projects by place, time, species, sampling design
+  or contributor, including embargoed projects, which are listed before their data are
+  released.
+- **Access** curated data packages, with threatened-species records protected, image
+  records, and a citation for every project (`cite_datapackages()`).
+- **Interoperate** with other Camtrap DP tools: `as_camtrapdp()` converts to canonical
+  Camtrap DP for the camtrapdp and camtrapR packages and for GBIF.
+- **Harmonise** projects with different designs: group cameras into cells of any size,
+  rebuild long-term deployments, and reclassify independent detections.
+- **Add spatial context**: state, IBRA bioregion and CAPAD protected area, with the
+  layers shipped in the package.
 
----
-
-## Key Features
-
-### Data Access & Management
-- **MongoDB Integration**: Query and download camera trap data from WildObs' public database via API
-- **Flexible Filtering**: Query projects by spatial bounds, temporal ranges, species, contributors, and sampling design
-- **Schema Validation**: Enforce data quality with Camtrap DP schema checking and type coercion
-
-### Data Processing
-- **Spatial Resampling**: Spatially resample observations and deployments to custom spatial buffers to aggregate camera data for hierarchical analyses. 
-- **Matrix Generation**: Build detection/non-detection matrices, and site- and observation-level covariates for occupancy & abundance modeling formatted for the [`unmarked` R library](https://rbchan.github.io/unmarked/)
-
-### Spatio-temporal Enhancement
-- **Location Enrichment**: Automatically assign protected area names using the [Collaborative Australian Protected Areas Database (CAPAD)](https://www.dcceew.gov.au/environment/land/nrs/science/capad), bioregions using the [Interim Biogeographic Regionalisation for Australia (IBRA)](https://www.dcceew.gov.au/environment/land/nrs/science/ibra), and Australian states using [ozmaps](https://mdsumner.github.io/ozmaps/)
-- **Spatial & Temporal Buffers**: Create buffers of any size around camera deployments and identify spatially and resolve temporally overlapping deployments.
-
----
+Full documentation and tutorials: **<https://wildobs.github.io/WildObsR/>**
 
 ## Installation
 
-WildObsR is not on CRAN — install it directly from GitHub.
+```r
+# install.packages("pak")
+pak::pak("WildObs/WildObsR")
+```
+
+WildObsR needs R 4.1 or later. On Linux, install the GDAL, PROJ, GEOS and OpenSSL
+development libraries first (for example
+`sudo apt install libgdal-dev libproj-dev libgeos-dev libssl-dev`).
+
+## Quick start
+
+Downloading data needs a free personal API key from the
+[WildObs Dashboard](https://dashboard.wildobs.org.au), stored in your `.Renviron` file as
+`WILDOBSR_API_KEY`. The [Get started](https://wildobs.github.io/WildObsR/articles/WildObsR.html)
+article walks through it.
 
 ```r
-# Install from GitHub
-# install.packages("devtools")
-devtools::install_github("WildObs/WildObsR")
-```
-
-To install a specific release rather than the current state of `main`:
-
-```r
-devtools::install_github("WildObs/WildObsR@v0.2.0")
-```
-
----
-
-## Getting Database Access
-
-Database access requires a personal API key tied to your individual WildObs account. Keys are per-person, not per-project. All keys provide access to the public WildObs database, in which sensitive species records are obscured and data sharing agreements applied.
-
-**Obscured records.** Observations of threatened species are obscured in the states where the species is EPBC-listed: their `deploymentID`, `observationID`, `eventID` and `mediaID` read `obscured_for_<category>_species` (for example `obscured_for_endangered_species`). They keep the species, time and count, but carry no camera identifier, so a join to `deployments` drops them and `resample_covariates_and_observations()` stops until they are removed. Count them, then set them aside before spatial analyses:
-
-```r
-obscured <- grepl("^obscured_for_", obs$deploymentID)
-table(obs$deploymentID[obscured])  # how many, by threat category
-obs <- obs[!obscured, ]
-```
-
-### 1. Log in to the WildObs Dashboard
-
-Create an account or log in at the [WildObs Dashboard](https://dashboard.wildobs.org.au).
-
-### 2. Open the WildObs Database
-
-From the Dashboard home, select **Get Started** under **WildObs Database**. This
-takes you to the [WildObs Database](https://dashboard.wildobs.org.au/camdb).
-
-### 3. Create your API key
-
-In the panel at the top right of the camDB page, select **Create** under **API Key**.
-Copy the key immediately — treat it like a password, and do not share it or paste it into a script.
-
-### 4. Store the key in your `.Renviron`
-
-Your `.Renviron` file holds environment variables that R loads at startup. Storing the key here keeps it secure and out of your code.
-
-```r
-# Open .Renviron for editing (creates the file if it doesn't exist)
-usethis::edit_r_environ()
-```
-
-Add this line, replacing `your_key_here` with the key you copied:
-
-```
-WILDOBSR_API_KEY=your_key_here
-```
-Then **save the file and restart R** — `.Renviron` is only read at startup.
-
-A few things that commonly go wrong:
-
-- No quotes around the key, and no spaces either side of the `=`.
-- The file must end with a blank line, or the last entry is ignored.
-
-### 5. Retrieve the key in R
-
-```r
-# Read the API key from your .Renviron
+library(WildObsR)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
-# Confirm it loaded — should be TRUE if loaded
-nchar(api_key) > 0
+# find every project with cameras in a box around the Wet Tropics of Queensland
+ids <- wildobs_mongo_query(api_key = api_key,
+                           spatial = list(xmin = 144.9, xmax = 146.5,
+                                          ymin = -19.6, ymax = -15.3))
+
+# download them as Camtrap DP data packages; embargoed projects arrive as metadata only
+dp_list <- wildobs_dp_download(api_key = api_key, project_ids = ids)
+
+# read a table, and cite the data
+deployments <- frictionless::read_resource(dp_list[[1]], "deployments")
+writeLines(cite_datapackages(dp_list))
 ```
 
-If this returns `FALSE`, R has not picked up the variable. Check the spelling of
-the variable name and confirm you restarted your R session.
-
----
-
-## Quick Start
-
-### Query WildObs database
+No key yet? Two Wet Tropics projects ship with the package:
 
 ```r
-# Load libraries 
-library(WildObsR)   
-library(frictionless)  ## For working with data packages 
-
-# Load your personal API key from .Renviron (see "Getting Access" above)
-wildobsr_api_key <- Sys.getenv("WILDOBSR_API_KEY")
-
-# Query projects in Queensland from 2020-2024
-spatial_query  <- list(xmin = 145.0, xmax = 154.0, ymin = -29.0, ymax = -10.0)
-temporal_query <- list(minDate = as.Date("2020-01-01"),
-                       maxDate = as.Date("2024-12-31"))
-
-# Run the function that queries the WildObs Database
-project_ids <- wildobs_mongo_query(
-  api_key  = wildobsr_api_key,
-  spatial  = spatial_query,
-  temporal = temporal_query,
-  tabularSharingPreference = c("open", "partial")
-)
-
-# Download data packages
-dp_list <- wildobs_dp_download(
-  api_key     = wildobsr_api_key,
-  project_ids = project_ids,
-  media       = FALSE,        # Set TRUE to include media files for a slower download
-  metadata_only = FALSE       # Set TRUE to access metadata only for a quick download
-)
-
-# Access deployments from one DP
-deployments  <- frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "deployments")
-# Access observations from one DP
-observations <- frictionless::read_resource(dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]], "observations")
-
-# Access metadata from several DPs
-contributors <- extract_metadata(dp_list, "contributors")
-projects     <- extract_metadata(dp_list, "project")
+dp_list <- example_datapackages()
 ```
 
-### Help Claude understand WildObs data
+## Tutorials
 
-If you use [Claude](https://claude.ai) to help with your analysis, WildObsR ships a
-skill that teaches it how WildObs data packages are structured: how the tables join,
-what each field means, why to filter out blank observations, and which analyses the
-data can and cannot support. Install it once:
-
-```r
-WildObsR::install_claude_skill()
-```
-
-This copies the `wildobsr-data` skill into `~/.claude/skills`, where Claude Code finds
-it in every project; start a new Claude Code session to use it. After updating
-WildObsR, run `install_claude_skill(overwrite = TRUE)` to get the matching version.
-The skill is plain documentation, with no code, so you can read it first at
-`system.file("claude-skills", "wildobsr-data", package = "WildObsR")`.
-
-### Export to standard Camtrap DP
-
-WildObs packages are Camtrap DP plus a few WildObs additions. To share data with
-tools that expect the standard exactly, such as the
-[camtrapdp](https://inbo.github.io/camtrapdp/) package or a GBIF export, convert it
-first. This needs the media table, so download with `media = TRUE`.
-
-```r
-dp <- wildobs_dp_download(api_key = wildobsr_api_key, project_ids = "<project ID>",
-                          media = TRUE)[[1]]
-
-# Convert to Camtrap DP 1.0.2; out$report lists every change made
-out <- as_camtrapdp(dp)
-
-# Use it with the camtrapdp package (version 0.5.0 or later), e.g. a GBIF export
-camtrapdp::write_dwc(out$camtrapdp, "gbif_export")
-
-# Or save it as a Camtrap DP package on disk
-frictionless::write_package(out$package, "camtrapdp_export")
-```
-
-### Download images
-
-Most WildObs images are held privately by their contributors or by Wildlife
-Insights, but files with `filePublic = TRUE` are openly hosted and can be
-downloaded. Requires `media = TRUE` in `wildobs_dp_download()`.
-
-```r
-# Grab the media table and keep only the publicly hosted files
-media <- dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]]$data$media
-media_public <- media[media$filePublic, ]
-
-# Download a small test batch into project/deployment folders
-result <- wildobs_media_download(head(media_public, 20), out_dir = "camera_images")
-
-# See what happened to each file
-table(result$downloadStatus)
-```
-
-### Spatially resample data 
-
-```r
-## Select one data package from the downloaded list of data packages
-dp = dp_list[[1]]
-
-# extract resources from your data package
-obs  <- frictionless::read_resource(dp, "observations")
-deps <- frictionless::read_resource(dp, "deployments")
-covs <- frictionless::read_resource(dp, "covariates")
-
-# Merge with deployments based on shared columns 
-covs <- merge(deps, covs, by = names(covs)[names(covs) %in% names(deps)])
-
-# Assign spatial scales
-# 'scales' defines the area (in square meters) covered by a hexagonal cell
-scales <- c(1000000, 3000000) # 1 km and 3 km 
-
-# Generate spatial hexagons based on the provided scales
-covs <- WildObsR::spatial_hexagon_generator(covs, scales)
-
-# Define columns for mode aggregation (example: 'source' and 'habitat')
-mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
-
-# Set the method for aggregating the total number of individuals detected:
-individuals <- "sum"  # Alternative: "max"
-
-# Specify observation-level covariate variables derived from covariates.
-# These variables capture information that varies in space and time.
-obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay",
-              "cameraHeight", "cameraDepth", "cameraTilt", "cameraHeading", 
-              "detectionDistance", "deploymentTags")
-
-# now spatially resample the data, noting that this function may take a few minutes to run
-resamp_data <- WildObsR::resample_covariates_and_observations(covs, obs, 
-                                                              individuals = "sum", 
-                                                              mode_cols_covs, obs_covs)
-
-# Select the resampled observations and covs at the 1 km scale
-resamp_obs  <- resamp_data$spatially_resampled_observations$cellID_1km
-resamp_covs <- resamp_data$spatially_resampled_covariates$cellID_1km
-
-```
-
-### Create abundance and/or occupancy matricies for hierarchical modeling
-
-```r
-# Run the matrix generator function on the spatially resampled observations and deployments
-res <- matrix_generator(
-  obs  = resamp_obs,
-  covs = resamp_covs,      
-  dur  = 110,                  # maximum duration of a survey 
-  w    = 3,                    # sampling occasion window, as the numeber of days to collapse
-  site_covs = c("Avg_human_footprint_10km2", "Avg_FLII_3km2", "locationName"),  # site covariates 
-  obs_covs  = c("numberDeploymentsActiveAtDate", "cameraHeight", "featureType"), # observation covariates
-  all_locationNames = TRUE,   # include all data, even where species was not detected
-  scientificNames   = c("Orthonyx spaldingii", "Uromys caudimaculatus"), # species to create matricies 
-  type        = "abundance",  # abundance or occupancy?
-  individuals = "sum",        # sum or maximum number of individuals per cell
-)
-# Access the detection matrix for one species:
-res[["Orthonyx_spaldingii"]][["detection_matrix"]]
-
-```
-
-### Interoperability 
-
-We have ensured that our data integrates with the [camtrapdp R package](https://inbo.github.io/camtrapdp/), [camtraptor R package](https://inbo.github.io/camtraptor/), and [camtrapR R package](https://jniedballa.github.io/camtrapR/index.html). In particular, we highlight in the code below how to use WildObs data in the [camtrapR::surveyDashboard()](https://jniedballa.github.io/camtrapR/reference/surveyDashboard.html) tool, which to loads an interactive application to explore and analyze camera trap data.  
-
-```r
-## load a few more libraries 
-library(camtrapR)      ## For visualizing and analyzing camtrap data
-library(dplyr)         ## For data wrangling functions 
-
-## Select one data package from the downloaded list of data packages
-dp = dp_list[[1]]
-
-# extract resources from your data package
-obs  <- frictionless::read_resource(dp, "observations")
-deps <- frictionless::read_resource(dp, "deployments")
-covs <- frictionless::read_resource(dp, "covariates")
-
-#
-##
-### Make a few minor data transformations to suit the application
-
-## merge deployment and covariates based on several shared columns to create one table per deployment
-covs <- merge(deps, covs, by = names(covs)[names(covs) %in% names(deps)])
-
-## add locationID to obs
-add <- dplyr::distinct(dplyr::select(covs, deploymentID, locationID))
-obs <- merge(obs, add, by = "deploymentID")
-rm(add)
-
-## Properly format the date-times to a suitable format for the app 
-# for covariates
-covs <- covs %>%
-  mutate(
-    deploymentStart = format(deploymentStart, "%Y-%m-%d %H:%M:%S"),
-    deploymentEnd   = format(deploymentEnd, "%Y-%m-%d %H:%M:%S")
-  )
-# and observations 
-obs <- obs %>%
-  mutate(
-    observationStart = format(observationStart, "%Y-%m-%d %H:%M:%S"),
-    observationEnd   = format(observationEnd, "%Y-%m-%d %H:%M:%S")
-  )
-
-#
-##
-### Specific data thinning applications 
-
-# We don't need to feed all data to the app! less is more and lots of information can be overwhelming. 
-# There are lots of different data thinning options to explore, here is one example:
-
-# subset observations to only include animal detections (i.e., no humans, blanks, etc.)
-obs <- obs[obs$observationType == "animal", ]
-
-#
-##
-### Load the interactive dashboard to visualize and analyze data 
-
-camtrapR::surveyDashboard(CTtable      = covs,                              ## info about camera traps 
-                          recordTable  = obs,                               ## info about observations 
-                          stationCol   = "locationID",                      ## Where are cameras in space?
-                          cameraCol    = "deploymentID",                    ## What denotes individual cameras?
-                          xcol = "longitude", ycol = "latitude", crs = "epsg:4326",      # where are cams in space?
-                          setupCol = "deploymentStart", retrievalCol = "deploymentEnd",  # Start and end date-times
-                          hasProblems  = FALSE,                             ## Any date-time problems?
-                          CTdateFormat = "ymd HMS",                         ## Date-time format
-                          camerasIndependent = TRUE,                        ## Are deployments in the same locationID independent?
-                          speciesCol   = "scientificName",                  ## Which column has species?
-                          recordDateTimeCol = "observationStart")           ## Which column denotes when a species is detected?
-
-```
-
----
-
-## Core Functions
-
-| Category | Functions |
-|----------|-----------|
-| **Data Access** | `wildobs_mongo_query()`, `wildobs_dp_download()`, `wildobs_media_download()`, `extract_metadata()`, `as_camtrapdp()` |
-| **Spatial** | `AUS_state_locator()`, `ibra_classification()`, `locationName_buffer_CAPAD()`
-| **Data Wrangling** | `survey_and_deployment_generator()`, `resample_covariates_and_observations()`, `matrix_generator()` |
-| **Quality Control** | `check_schema()`, `apply_schema_types()` |
-| **Working with Claude** | `install_claude_skill()` |
-
----
+| Article | What it covers |
+|---|---|
+| [Get started](https://wildobs.github.io/WildObsR/articles/WildObsR.html) | Installing, getting an API key, the first download |
+| [Discover what exists](https://wildobs.github.io/WildObsR/articles/discover.html) | Searching the database and reading project metadata |
+| [Inside a WildObs data package](https://wildobs.github.io/WildObsR/articles/data-package.html) | Every table and identifier, and how WildObs extends Camtrap DP |
+| [For data providers](https://wildobs.github.io/WildObsR/articles/data-providers.html) | Your projects as others see them: embargoes, obscuring, citations |
+| [Images for computer vision](https://wildobs.github.io/WildObsR/articles/images.html) | Downloading labelled images |
+| [Camtrap DP interoperability](https://wildobs.github.io/WildObsR/articles/interoperability.html) | camtrapdp, GBIF, camtrapR and its survey dashboard |
+| [Spatial context](https://wildobs.github.io/WildObsR/articles/spatial-context.html) | States, bioregions, protected areas and camera spacing |
+| [Working with Claude](https://wildobs.github.io/WildObsR/articles/claude-skill.html) | A guide to the data for AI coding assistants |
 
 ## Keeping WildObsR up to date
 
-WildObsR checks its own version the first time you query or download data in an R session. If your copy is out of date it prints a warning telling you to reinstall; if you are current it says nothing. The check never blocks your work — if GitHub cannot be reached it is skipped silently.
-
-To update at any time, re-run the install command from [Installation](#installation).
-
-WildObsR uses [semantic versioning](https://semver.org/), written as
-`major.minor.patch` (for example `0.2.0`):
+WildObsR checks its own version the first time you query or download data in a session
+and warns if a newer release is available; it never blocks your work. Update by running
+the install command again. WildObsR uses [semantic versioning](https://semver.org/)
+(`major.minor.patch`):
 
 | Change | Example | What it means for you |
 |---|---|---|
 | **major** | `1.0.0` → `2.0.0` | **Not backwards compatible.** An old installed version will produce broken or wrong downloads. Update before running anything. |
-| **minor** | `0.1.0` → `0.2.0` | Backwards-compatible additions, such as new functions, or database changes that old code still handles correctly. Update when convenient. |
-| **patch** | `0.2.0` → `0.2.1` | Behaviour-preserving fixes, such as a corrected error message or a bug fix. Nothing you rely on changes. |
-
-The practical rule: **if the first number changes, update before you download data again.** Otherwise update at your own pace.
-
----
-
-## Data Standards
-
-WildObsR adheres to community standards for open and reproducible camera trapping research:
-
-- **[Camera Trap Data Package (Camtrap DP)](https://camtrap-dp.tdwg.org/)**: TDWG standard for camera trap data exchange
-- **[Frictionless Data Package](https://specs.frictionlessdata.io/data-package/)**: Specification for self-describing data
-- **[Darwin Core](https://dwc.tdwg.org/)**: Biodiversity data standard for taxonomic and occurrence information
-
-Data packages downloaded from WildObs include:
-- **Project metadata**: Contributors, licenses, sampling methodology, spatial/temporal coverage, & taxonomic scope. Metadata also contains schemas with definitions, types, constraints for all data fields. 
-- **Deployments**: Camera deployments, locations, setup dates, habitat covariates, as indicated by `deploymentID`.
-- **Observations**: Independent detections of species, as indicated by `observationID`.
-- **Media**: All media (*i.e.*, images and or video) with filePaths to accessible images, as indicated by `mediaID`. 
-- **Covariates**: Environmental values derived from shape files for each coordinate (*e.g.*, elevation), as indicated by `deploymentID`.
-
----
-
-## Spatial Data Sources
-
-Location enrichment functions utilize authoritative Australian spatial datasets:
-
-- **[CAPAD (2022)](https://www.environment.gov.au/land/native-vegetation/capad)**: Collaborative Australian Protected Areas Database
-- **[IBRA7](https://www.dcceew.gov.au/environment/land/nrs/science/ibra)**: Interim Biogeographic Regionalisation for Australia
-- **Australian State Boundaries**: Official administrative boundaries
-
-The CAPAD 2022 terrestrial and IBRA7 subregion layers ship with the package as the
-datasets `capad` and `ibra` (`sf` objects, simplified for size), so the functions
-that use them work without downloading any shapefiles. Both are © Commonwealth of
-Australia (DCCEEW), licensed under Creative Commons Attribution.
-
----
-
-## WildObs Platform
-
-WildObsR interfaces with the [WildObs](https://wildobs.org.au) camera trap database, a collaborative platform for Australian wildlife monitoring data. The database supports:
-
-- **Open Science**: Data sharing with flexible privacy controls (open/partial/closed)
-- **Standardization**: Automated validation against Camtrap DP schemas
-- **Discoverability**: Spatial/temporal/taxonomic queries across contributed datasets
-- **Embargo Periods**: Configurable data release schedules for research protection
-
----
-
-## Documentation
-
-Comprehensive documentation for all functions:
-
-```r
-# View function help
-?wildobs_mongo_query
-?survey_and_deployment_generator
-?matrix_generator
-
-# Browse package overview
-help(package = "WildObsR")
-```
-
-Each function includes:
-- Detailed parameter descriptions
-- Return value specifications
-- Working examples with sample data
-- References to relevant standards and methods
-
----
-
-## Contributing
-
-We welcome contributions! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Write tests for new functionality
-4. Ensure `devtools::check()` passes with no errors
-5. Submit a pull request and we will review your new feature! 
-
----
-
-## Testing
-
-WildObsR uses comprehensive unit testing:
-
-```r
-# Run all tests
-devtools::test()
-
-# Run specific test file
-testthat::test_file("tests/testthat/test-matrix_generator.R")
-
-# Check package
-devtools::check()
-```
-
----
+| **minor** | `0.3.0` → `0.4.0` | Backwards-compatible additions, such as new functions, or database changes that old code still handles correctly. Update when convenient. |
+| **patch** | `0.4.0` → `0.4.1` | Behaviour-preserving fixes. Nothing you rely on changes. |
 
 ## Citation
 
-WildObsR is under active development and does not yet have an accompanying manuscript. Until one is published, please cite the specific release you used — version numbers and release dates are listed on the [Releases page](https://github.com/WildObs/WildObsR/releases).
-
-To get a correctly formatted citation for your installed version:
+Please cite the release of WildObsR you used, and every data package you analysed:
 
 ```r
 citation("WildObsR")
+cite_datapackages(dp_list)
 ```
 
----
+## Getting help and contributing
+
+- Bugs and tutorial requests: [GitHub issues](https://github.com/WildObs/WildObsR/issues)
+- Questions about a project's data: support@wildobs.org.au
+- Contributing code: see [CONTRIBUTING](.github/CONTRIBUTING.md)
 
 ## License
 
-MIT License — see [LICENSE.md](LICENSE.md) for the full text.
-
----
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/WildObs/WildObsR/issues)
-- **WildObs Support**: support@wildobs.org.au
-- **Maintainer**: Zachary Amir (z.amir@uq.edu.au)
-
----
+MIT License; see [LICENSE.md](LICENSE.md). The bundled CAPAD 2022 and IBRA 7 layers are
+© Commonwealth of Australia (DCCEEW), licensed under Creative Commons Attribution.
 
 ## Acknowledgments
 

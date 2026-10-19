@@ -39,7 +39,7 @@ make_media <- function(filePath, mediaID = paste0("m", seq_along(filePath))) {
 
 test_that("wildobs_media_download stops on a non data frame", {
   expect_error(wildobs_media_download(list(a = 1), out_dir = fresh_out()),
-               "must be a data frame")
+               "is not a data frame")
 })
 
 test_that("wildobs_media_download names the missing columns", {

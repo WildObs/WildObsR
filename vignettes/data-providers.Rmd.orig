@@ -1,0 +1,135 @@
+---
+title: "For data providers: your projects in WildObs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{For data providers: your projects in WildObs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+<!-- This file is the source. Edit it, then run vignettes/precompute.R with a WildObs API
+key to rebuild data-providers.Rmd, which ships with its results already in place. -->
+
+If you contributed camera trap data to WildObs, you will want to know what others now see:
+which of your projects are listed, what their metadata say, when embargoed data will be
+released, and how people will cite you. This vignette answers those questions with the same
+public API key everyone uses. Here we use the package maintainer's projects as the example;
+put your own name, email or ORCID in their place.
+
+```{r key}
+library(WildObsR)
+
+# your personal API key, read from .Renviron (see the Get started vignette)
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
+```
+
+## Find your projects
+
+The `contributors` filter matches anyone listed on a project, in any role. Give a full name,
+an email address or an ORCID; mixing them catches projects where you were listed
+differently:
+
+```{r find}
+# projects listing this person, by name or ORCID
+mine <- wildobs_mongo_query(api_key = api_key,
+                            contributors = c("Zachary Amir", "0000-0002-8398-2059"))
+mine
+```
+
+## Check how your projects are described
+
+The metadata are what people read first, and what they cite. Download them alone, which
+takes seconds, and check that the contributors, roles, organisations and licences are right:
+
+```{r metadata}
+# the descriptors of your projects, without their tables
+meta <- wildobs_dp_download(api_key = api_key, project_ids = mine, metadata_only = TRUE)
+
+# who is credited on each project, and in what role
+contributors <- extract_metadata(meta, "contributors")
+contributors[, c("title", "role", "DPID")]
+
+# the licence of the data and of the images
+extract_metadata(meta, "licenses")[, c("name", "scope", "DPID")]
+```
+
+If something is wrong, contact WildObs at <support@wildobs.org.au> rather than editing a
+download: the database is the record everyone else reads.
+
+## Know when embargoed data are released
+
+A project shared as `partial` lists its metadata but withholds its tables until its embargo
+ends. The embargo runs for `embargoPeriodMonths` from the project's `created` date, and the
+tables are released at the next database update after that:
+
+```{r embargo}
+# sharing preference and embargo length for each project
+sharing <- extract_metadata(meta, "WildObsMetadata")
+# the date each project was created
+created <- vapply(meta, function(dp) substr(dp$created, 1, 10), character(1))
+
+# the earliest date each embargo can end
+data.frame(
+  project = sharing$DPID,
+  sharing = sharing$tabularSharingPreference,
+  embargo_months = sharing$embargoPeriodMonths,
+  embargo_ends = as.Date(created[sharing$DPID]) + round(sharing$embargoPeriodMonths * 30.44),
+  row.names = NULL
+)
+```
+
+## See your data as others do
+
+A public key returns your open projects exactly as anyone else receives them, which differs
+from what you uploaded in three ways:
+
+- **Threatened species are obscured** in the states where they are listed under the
+  *Environment Protection and Biodiversity Conservation Act 1999*. The species, date and
+  count stay, but the camera identifiers are replaced, so no one can place the record.
+- **Image file names are withheld**, and only images hosted openly by WildObs
+  (`filePublic = TRUE`) can be downloaded.
+- **Embargoed projects** show their metadata only, as above.
+
+```{r obscured, message = FALSE}
+# one of your open projects, as the public receives it
+dp <- wildobs_dp_download(api_key = api_key,
+                          project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")[[1]]
+obs <- frictionless::read_resource(dp, "observations")
+
+# your records that the public cannot place on a camera, by listing category and species
+obscured <- obs[grepl("^obscured_for_", obs$deploymentID), ]
+table(obscured$scientificName, obscured$deploymentID)
+```
+
+## How you will be cited
+
+Every project carries the citation you agreed to, ending with its
+[RAiD](https://raid.org), a persistent identifier for your research activity. Anyone using
+`cite_datapackages()` receives it with the database version they downloaded, so you can
+search for your RAiD to find where your data were used:
+
+```{r cite}
+writeLines(cite_datapackages(meta))
+```
+
+Papers and datasets that already use a project are listed in its `relatedIdentifiers`:
+
+```{r related}
+related <- extract_metadata(meta, "relatedIdentifiers")
+related[related$relatedIdentifierType == "DOI", c("relationType", "relatedIdentifier", "DPID")]
+```
+
+To add a publication that uses your data, send its DOI to <support@wildobs.org.au>.
+
+<details>
+<summary>Session information</summary>
+
+```{r session}
+sessionInfo()
+```
+
+</details>

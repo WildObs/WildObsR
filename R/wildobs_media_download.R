@@ -33,11 +33,12 @@
 #' partial file is deleted.
 #'
 #' Most WildObs media cannot be downloaded by the public. Only files with
-#' `filePublic = TRUE`, currently about 1% of WildObs media, are openly hosted.
+#' `filePublic = TRUE`, currently about 3% of public WildObs media, are openly hosted.
 #' To fetch only those, filter first: `media[media$filePublic, ]`.
 #'
 #' @param media A data frame of media records with at least `mediaID`,
-#'   `deploymentID` and `filePath` columns, e.g. `dp$data$media`.
+#'   `deploymentID` and `filePath` columns, e.g.
+#'   `frictionless::read_resource(dp, "media")`.
 #' @param out_dir Character string. The folder to save files into. Created if it
 #'   does not exist.
 #' @param overwrite Logical. Re-fetch files that already exist in `out_dir`.
@@ -64,7 +65,7 @@
 #'                           media = TRUE)[[1]]
 #'
 #' # Download a small batch of the publicly hosted images first
-#' media <- dp$data$media
+#' media <- frictionless::read_resource(dp, "media")
 #' media_public <- media[media$filePublic, ]
 #' result <- wildobs_media_download(head(media_public, 20), out_dir = "camera_images")
 #'
@@ -81,7 +82,8 @@ wildobs_media_download <- function(media, out_dir, overwrite = FALSE, gcs_token 
 
   ## make sure we were handed a media table we can work with
   if (!is.data.frame(media)) {
-    stop("'media' must be a data frame, such as dp$data$media from ",
+    stop("'media' is not a data frame. Pass a media table, such as ",
+         "frictionless::read_resource(dp, \"media\") from a package downloaded with ",
          "wildobs_dp_download(..., media = TRUE).", call. = FALSE)
   } # end data frame check
   # these three columns are what every row needs

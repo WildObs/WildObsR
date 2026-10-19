@@ -110,13 +110,13 @@
 #'         - Computes a sequential Julian date from \code{eventStart} to serve as the daily resolution for resampling. This column is removed before returning the final datasets.
 #'
 #' 3. **Resampling by Deployment Group and Spatial Scale**:
-#'    - The function loops over each unique deployment group present in the covariates data. This speeds up the process.
-#'    - For each deployment group:
+#'    - The function loops over each unique \code{deploymentGroup} present in the covariates data. This speeds up the process.
+#'    - For each \code{deploymentGroup}:
 #'         - Subsets the covariates and observations to include only the relevant deployments.
 #'         - Merges spatial cell information (i.e., the \code{cellID} columns) from the covariates into the observations based on the \code{deploymentID}.
 #'
 #' 4. **Resampling of Covariates**:
-#'    - Within each deployment group, the function iterates over each spatial scale (columns containing "cellID_").
+#'    - Within each \code{deploymentGroup}, the function iterates over each spatial scale (columns containing "cellID_").
 #'    - For each spatial scale, it loops through each unique sampling unit (i.e., each unique cell value):
 #'         - A new row is created for each sampling unit, starting as an empty data frame with the same structure as the covariates data.
 #'         - Numeric covariate values are aggregated by computing the mean, weighted by camera-days unless `weights = "none"` (or left as \code{NA} if all values are missing). The column names are updated to indicate that these are averaged values (e.g., \code{"Avg_<column>"}).
@@ -138,7 +138,7 @@
 #'         - Numeric observation columns are averaged.
 #'
 #' 6. **Compilation of Resampled Data**:
-#'    - After processing all deployment groups and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
+#'    - After processing all \code{deploymentGroups} and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
 #'    - Finally, the function assembles the resampled data into two nested lists:
 #'         - One list contains the resampled covariates, organized by spatial scale.
 #'         - The other list contains the resampled observations, also organized by spatial scale.
@@ -149,56 +149,31 @@
 #'         - \code{"spatially resampled covariates"}: a nested list of data frames for each spatial scale.
 #'
 #' @examples
-#' \dontrun{
-#' # Example usage with pre-processed camera trap data, accessed from WildObs:
+#' # load the baited Paluma project shipped with WildObsR
+#' dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
 #'
-#' # Load the general use WildObs API key
-#' api_key <- Sys.getenv("WILDOBSR_API_KEY")
-#'
-#' # use WildObsR function to access data
-#' dp <- WildObsR::wildobs_dp_download(api_key = api_key, project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
-#' # extract first DP from the list
-#' dp <- dp[[1]]
-#'
-#' # Extract resources from the data package
-#' covs <- frictionless::read_resource(dp, "covariates")
-#' obs  <- frictionless::read_resource(dp, "observations")
+#' # extract one table of deployments and their covariates
 #' deps <- frictionless::read_resource(dp, "deployments")
+#' covs <- frictionless::read_resource(dp, "covariates")
+#' # merge both tables together based on several shared columns 
+#' covs <- merge(deps, covs, by = intersect(names(deps), names(covs)))
 #'
-#' # Assign spatial scales
-#' # 'scales' defines the area (in square meters) covered by the hexagonal cell
-#' scales <- c(1000000, 3000000)
+#' # assign every camera to a 1 km2 hexagonal cell (scales are cell areas in m2)
+#' covs_cellID <- spatial_hexagon_generator(covs, scales = 1e6)
 #'
+#' # for occupancy and abundance models, resample the covariates only: one row per cell
+#' cell <- resample_covariates_and_observations(covs_cellID, mode_cols_covs = "baitUse")
+#' head(cell$spatially_resampled_covariates$cellID_1km2[, c("cellID_1km2", "cellEffort", "mode_baitUse")])
 #'
-#' # Generate spatial hexagons based on the provided scales
-#' covs <- WildObsR::spatial_hexagon_generator(covs, scales)
-#' # Identify matching columns between deployments and covariates
-#' cols <- names(deps)[names(deps) %in% names(covs)]
-#' # Merge deployment information to the covariates
-#' covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
-#' # Define columns for mode aggregation (example: 'projectName' and 'habitat')
-#' mode_cols_covs <- names(covs)[grepl("projectName|habitat", names(covs))]
-#' # Set the method for aggregating the total number of individuals detected:
-#' individuals <- "sum"  # Alternative: "max"
-#' # Specify observation-level covariate variables derived from deployments.
-#' # These variables capture information that varies in space and time.
-#' obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay","cameraHeight", "cameraDepth", "cameraTilt", "cameraHeading", "detectionDistance", "deploymentTags")
+#' # observations that can be placed on a camera (obscured records cannot)
+#' obs <- frictionless::read_resource(dp, "observations")
+#' obs <- obs[obs$deploymentID %in% covs_cellID$deploymentID, ]
 #'
-#' # now spatially resample the data, noting that this function may take a few minutes to run
-#' resamp_data = WildObsR::resample_covariates_and_observations(covs, obs, individuals = "sum", mode_cols_covs, obs_covs)
-#'
-#' # Select the resampled observations and covs at the 1 km scale
-#' resamp_obs = resamp_data$spatially_resampled_observations$cellID_1km2
-#' resamp_covs = resamp_data$spatially_resampled_covariates$cellID_1km2
-#'
-#' # For occupancy and abundance models, resample the covariates only
-#' cell_covs <- WildObsR::resample_covariates_and_observations(covs, mode_cols_covs = mode_cols_covs)
-#' # effort from the deployments with cellIDs, detections from the observations themselves
-#' eff <- WildObsR::effort_matrix(covs, site_col = "cellID_1km2", w = 7, split_by = "baitUse")
-#' y <- WildObsR::detection_matrix(obs, eff, "Casuarius casuarius")
-#' # and the cell covariates as site covariates
-#' umf <- WildObsR::model_matrix_input(y, eff, site_covs = cell_covs$spatially_resampled_covariates$cellID_1km2)
-#' }
+#' # or resample the observations to cells and days too, for matrix_generator() or summaries
+#' resamp <- resample_covariates_and_observations(covs_cellID, obs, individuals = "sum",
+#'                                                obs_covs = c("baitUse", "featureType"))
+#' head(resamp$spatially_resampled_observations$cellID_1km2[, c("cellID_1km2", "scientificName",
+#'                                                              "totalIndividuals")])
 #'
 #' @importFrom dplyr select bind_rows
 #' @importFrom purrr map
@@ -288,6 +263,27 @@ resample_covariates_and_observations <- function(covs, obs = NULL, individuals, 
     # and store them as character
     obs[text_like_obs] <- lapply(obs[text_like_obs], as.character)
   } # end observation classes condition
+
+  ## a requested column that is absent, or was just dropped for being all NA,
+  ## has nothing to summarise, so leave it out with a warning naming it
+  # mode columns first
+  gone_mode <- setdiff(mode_cols_covs, names(covs))
+  if (length(gone_mode) > 0) {
+    # keep only the mode columns that still exist
+    mode_cols_covs <- intersect(mode_cols_covs, names(covs))
+    warning(sprintf("resample_covariates_and_observations() left out mode_cols_covs with no values in covs: %s.\n",
+                    paste(gone_mode, collapse = ", ")),
+            "They are absent or entirely NA, so there is no mode to compute.", call. = FALSE)
+  } # end missing mode columns
+  # then the observation-level covariates
+  gone_obs <- setdiff(obs_covs, names(covs))
+  if (length(gone_obs) > 0) {
+    # keep only the observation-level covariates that still exist
+    obs_covs <- intersect(obs_covs, names(covs))
+    warning(sprintf("resample_covariates_and_observations() left out obs_covs with no values in covs: %s.\n",
+                    paste(gone_obs, collapse = ", ")),
+            "They are absent or entirely NA, so they cannot vary between days.", call. = FALSE)
+  } # end missing observation covariates
 
   ## Extract relevant char/numeric/modal/etc cols from covaraites
   # select all character cols that wont get averaged

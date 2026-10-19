@@ -8,7 +8,8 @@ wildobs_media_download(media, out_dir, overwrite = FALSE, gcs_token = NULL)
 }
 \arguments{
 \item{media}{A data frame of media records with at least \code{mediaID},
-\code{deploymentID} and \code{filePath} columns, e.g. \code{dp$data$media}.}
+\code{deploymentID} and \code{filePath} columns, e.g.
+\code{frictionless::read_resource(dp, "media")}.}
 
 \item{out_dir}{Character string. The folder to save files into. Created if it
 does not exist.}
@@ -65,7 +66,7 @@ and did not send back a web page. Anything else is recorded as \code{failed}, an
 partial file is deleted.
 
 Most WildObs media cannot be downloaded by the public. Only files with
-\code{filePublic = TRUE}, currently about 1\% of WildObs media, are openly hosted.
+\code{filePublic = TRUE}, currently about 3\% of public WildObs media, are openly hosted.
 To fetch only those, filter first: \code{media[media$filePublic, ]}.
 }
 \examples{
@@ -76,7 +77,7 @@ dp <- wildobs_dp_download(api_key = api_key,
                           media = TRUE)[[1]]
 
 # Download a small batch of the publicly hosted images first
-media <- dp$data$media
+media <- frictionless::read_resource(dp, "media")
 media_public <- media[media$filePublic, ]
 result <- wildobs_media_download(head(media_public, 20), out_dir = "camera_images")
 

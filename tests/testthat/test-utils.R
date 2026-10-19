@@ -578,3 +578,34 @@ test_that("reformat_schema includes all schema elements", {
   expect_equal(result$primaryKey, "id")
   expect_type(result$fields, "list")
 })
+
+
+#
+##
+### Keeping tables as Data Package v1 resources ----
+
+test_that(".as_v1_tabular_resources turns a v2 table into a v1 tabular resource", {
+  ## a table the way frictionless 2.0 adds it, beside one the way 1.x adds it
+  dp <- list(resources = list(
+    list(`$schema` = "https://datapackage.org/profiles/2.0/dataresource.json",
+         name = "deployments", type = "table", schema = list(fields = list())),
+    list(name = "media", profile = "tabular-data-resource", schema = list(fields = list()))
+  ))
+
+  result <- .as_v1_tabular_resources(dp)
+
+  # the v2 markers are gone and the v1 profile is declared
+  expect_null(result$resources[[1]][["$schema"]])
+  expect_null(result$resources[[1]][["type"]])
+  expect_identical(result$resources[[1]]$profile, "tabular-data-resource")
+  # a table already in v1 form comes back as it went in
+  expect_identical(result$resources[[2]], dp$resources[[2]])
+})
+
+test_that(".as_v1_tabular_resources leaves packages without tables alone", {
+  # a metadata-only package, as a partial project downloads
+  expect_identical(.as_v1_tabular_resources(list(resources = list())), list(resources = list()))
+  # and a resource with no table schema is not a table, so it is not touched
+  dp <- list(resources = list(list(name = "readme", path = "README.md")))
+  expect_identical(.as_v1_tabular_resources(dp), dp)
+})
