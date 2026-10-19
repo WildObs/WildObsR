@@ -76,6 +76,19 @@ it.
   has no observations, for example after filtering `obs` to a few species. The cell stays
   in the resampled covariates as sampled with no detections. Observations in a cell with
   no covariates still stop with an error.
+- `resample_covariates_and_observations()` now weights each deployment by its camera-days
+  when averaging covariates (`Avg_*`) and taking modes (`mode_*`) within a cell, so a
+  camera that failed after 2 days no longer counts as much as one that ran 90, and a
+  redeployed station no longer counts once per redeployment. Coordinates stay plain means.
+  On typical projects values move by a few percent of the spread between cameras in a
+  cell; regenerate resampled covariates to pick this up, or pass `weights = "none"` for
+  the previous plain means.
+- `resample_covariates_and_observations(obs = NULL)` resamples the covariates only, which
+  is all `model_matrix_input()` needs for site covariates and takes seconds rather than
+  minutes. Its tables are tagged with their scale, and `effort_matrix()` and
+  `detection_matrix()` now stop with a message naming the right table when given resampled
+  covariates or observations: effort needs the deployments with their cellIDs, and
+  detections the observations themselves.
 
 ## Breaking changes
 

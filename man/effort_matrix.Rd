@@ -16,13 +16,15 @@ effort_matrix(
 )
 }
 \arguments{
-\item{deps}{A data frame of deployments with at least \code{deploymentID},
-\code{deploymentStart} and \code{deploymentEnd} (POSIXct), and the column named in \code{site_col}.}
+\item{deps}{A data frame of deployments, one row per deployment, with at least
+\code{deploymentID}, \code{deploymentStart} and \code{deploymentEnd} (POSIXct), and the column named
+in \code{site_col}. For grid cells, pass the output of \code{\link[=spatial_hexagon_generator]{spatial_hexagon_generator()}}, never
+the resampled covariates, which have one row per cell and stop the function.}
 
 \item{site_col}{Character. The column that defines a site. Defaults to
 \code{"deploymentID"}, one site per deployment. Sites with multiple camera deployments can
-be by spatially resampling the data via \code{\link[=spatial_hexagon_generator]{spatial_hexagon_generator()}} and
-\code{\link[=resample_covariates_and_observations]{resample_covariates_and_observations()}}}
+be a station (\code{"locationID"}) or a grid cell from \code{\link[=spatial_hexagon_generator]{spatial_hexagon_generator()}}, for
+example \code{"cellID_3km2"}; see "How the tables connect".}
 
 \item{w}{Integer. Occasion length in days.}
 
@@ -91,6 +93,22 @@ For long-term deployments rebuilt with \code{\link[=recombine_deployment_groups]
 \code{deployment_crosswalk} as \code{crosswalk}: effort is then taken from the original cameras, so
 the gaps between them (up to \code{max_gap_days}) count as no effort.
 }
+\section{How the tables connect}{
+
+The occupancy and abundance workflow uses three tables, each at the level its function
+needs, joined by two keys: \code{deploymentID} links observations to deployments, and the
+site column (for example \code{cellID_3km2}) links deployments to sites.\tabular{llll}{
+   Table \tab One row per \tab Made by \tab Goes into \cr
+   Deployments with sites (\code{covs_cellID}) \tab deployment \tab \code{\link[frictionless:read_resource]{frictionless::read_resource()}}, plus \code{\link[=spatial_hexagon_generator]{spatial_hexagon_generator()}} for cells \tab \code{effort_matrix()} \cr
+   Observations \tab observation \tab \code{\link[frictionless:read_resource]{frictionless::read_resource()}} \tab \code{\link[=detection_matrix]{detection_matrix()}}, which places each one in its site through the effort matrix \cr
+   Site covariates \tab site \tab \code{\link[=resample_covariates_and_observations]{resample_covariates_and_observations()}} with \code{obs = NULL}, for cells \tab \code{\link[=model_matrix_input]{model_matrix_input()}} as \code{site_covs} \cr
+}
+
+
+Effort needs each camera's own start and end, which only the deployment table keeps.
+The resampled covariates have one row per cell, so they are for site covariates only.
+}
+
 \examples{
 # two stations: one camera running 10 days, one starting at noon and running 4.5 days
 deps <- data.frame(

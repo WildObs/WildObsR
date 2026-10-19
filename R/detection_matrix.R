@@ -83,7 +83,19 @@ detection_matrix <- function(obs, effort, scientificNames,
     stop("detection_matrix() needs effort from effort_matrix(), built from the same deployments.",
          call. = FALSE)
   } # end effort check
-  # the observation columns every approach needs 
+  ## resampled observations are summed per cell and day, and have no deploymentID to place them
+  # recognised by the tag resample_covariates_and_observations() adds, or by its summary columns
+  resampled <- !is.null(attr(obs, "wildobs_resampled")) ||
+    (is.data.frame(obs) && !"deploymentID" %in% names(obs) &&
+       any(c("independentEvents", "totalIndividuals") %in% names(obs)))
+  # if so, point to the raw observations
+  if (resampled) {
+    # hard stop, naming the table to pass instead
+    stop("detection_matrix() was given resampled observations, which have no deploymentID to place them on a camera and day.\n",
+         "Pass the observations themselves, frictionless::read_resource(dp, \"observations\"); ",
+         "detection_matrix() places each one in its cell through the effort matrix.", call. = FALSE)
+  } # end resampled check
+  # the observation columns every approach needs
   needed <- c("deploymentID", "eventStart", "scientificName")
   # if we are measuring abundance, we need counts too 
   if (type == "abundance") needed <- c(needed, "count")

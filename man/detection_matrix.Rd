@@ -46,7 +46,7 @@ the species was not detected, so non-detections are never confused with no sampl
 The steps are:
 \enumerate{
 \item Obscured threatened-species records (\verb{obscured_for_<category>_species}), which
-carry no camera, and observations that are not of animals are set aside, with a
+carry no camera, and observations that are not of animals, are set aside with a
 message saying how many.
 \item Each detection is placed on its deployment's site, and on the local calendar day
 of its \code{eventStart} in the effort matrix's time zone. A detection on a day its camera
@@ -55,8 +55,7 @@ observations disagree.
 \item With \code{type = "occupancy"}, a cell is 1 if the species was detected at all. With
 \code{type = "abundance"}, each event (\code{eventID}) counts the largest \code{count} among its
 observations, and events are then combined over the occasion with \code{individuals}:
-\code{"sum"} adds them (a relative abundance index), \code{"max"} takes the largest (the most
-individuals seen together, as in N-mixture models).
+\code{"sum"} adds them, while \code{"max"} takes the largest observed value per event.
 }
 }
 \examples{

@@ -28,12 +28,14 @@
 #' `deployment_crosswalk` as `crosswalk`: effort is then taken from the original cameras, so
 #' the gaps between them (up to `max_gap_days`) count as no effort.
 #'
-#' @param deps A data frame of deployments with at least `deploymentID`,
-#'   `deploymentStart` and `deploymentEnd` (POSIXct), and the column named in `site_col`.
+#' @param deps A data frame of deployments, one row per deployment, with at least
+#'   `deploymentID`, `deploymentStart` and `deploymentEnd` (POSIXct), and the column named
+#'   in `site_col`. For grid cells, pass the output of [spatial_hexagon_generator()], never
+#'   the resampled covariates, which have one row per cell and stop the function.
 #' @param site_col Character. The column that defines a site. Defaults to
 #'   `"deploymentID"`, one site per deployment. Sites with multiple camera deployments can
-#'   be by spatially resampling the data via [spatial_hexagon_generator()] and 
-#'   [resample_covariates_and_observations()]
+#'   be a station (`"locationID"`) or a grid cell from [spatial_hexagon_generator()], for
+#'   example `"cellID_3km2"`; see "How the tables connect".
 #' @param w Integer. Occasion length in days.
 #' @param dur Integer or `NULL`. Number of days, counted from each site's (or the
 #'   calendar) start, to keep. Defaults to `NULL`, which keeps every day with effort.
@@ -65,6 +67,20 @@
 #'   }
 #'   Stops if a required column is missing, a date-time is not POSIXct, a deployment ends
 #'   before it starts, or `w` is not a positive whole number.
+#'
+#' @section How the tables connect:
+#' The occupancy and abundance workflow uses three tables, each at the level its function
+#' needs, joined by two keys: `deploymentID` links observations to deployments, and the
+#' site column (for example `cellID_3km2`) links deployments to sites.
+#'
+#' | Table | One row per | Made by | Goes into |
+#' |---|---|---|---|
+#' | Deployments with sites (`covs_cellID`) | deployment | [frictionless::read_resource()], plus [spatial_hexagon_generator()] for cells | `effort_matrix()` |
+#' | Observations | observation | [frictionless::read_resource()] | [detection_matrix()], which places each one in its site through the effort matrix |
+#' | Site covariates | site | [resample_covariates_and_observations()] with `obs = NULL`, for cells | [model_matrix_input()] as `site_covs` |
+#'
+#' Effort needs each camera's own start and end, which only the deployment table keeps.
+#' The resampled covariates have one row per cell, so they are for site covariates only.
 #'
 #' @examples
 #' # two stations: one camera running 10 days, one starting at noon and running 4.5 days
@@ -102,6 +118,18 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
          "deploymentStart and deploymentEnd.",
          call. = FALSE)
   } # end table check
+  ## resampled covariates hold one row per cell, so each camera's start and end are gone
+  # recognised by the tag resample_covariates_and_observations() adds, or by its cell-level columns
+  resampled <- !is.null(attr(deps, "wildobs_resampled")) ||
+    any(c("cellEffort", "samplingStart", "deploymentsIncluded") %in% names(deps))
+  # if so, point to the table that still has one row per deployment
+  if (resampled) {
+    # hard stop, naming the table to pass instead
+    stop("effort_matrix() was given resampled covariates (one row per cell), which have lost each camera's start and end.\n",
+         sprintf("Pass the deployments with their cellIDs instead, the table you gave the resample: effort_matrix(covs_cellID, site_col = \"%s\", ...). ",
+                 site_col),
+         "Use the resampled covariates as site_covs in model_matrix_input().", call. = FALSE)
+  } # end resampled check
   # the columns every calculation needs
   needed <- unique(c("deploymentID", "deploymentStart", "deploymentEnd", site_col, split_by))
   missing_cols <- setdiff(needed, names(deps))

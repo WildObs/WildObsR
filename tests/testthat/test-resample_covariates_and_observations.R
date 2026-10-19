@@ -524,3 +524,111 @@ test_that("resample_covariates_and_observations warns, not stops, on sampled cel
   resamp_obs <- result$spatially_resampled_observations$cellID_1km
   expect_false("Cell_B_1km" %in% resamp_obs$cellID_1km)
 })
+
+# Tests for camera-day weighting, covariates-only resampling and the resampled-table guards ----
+
+# One cell, two cameras: CAM001 ran 1 day at 100 m in grassland, CAM002 ran 9.4 days at 110 m in forest
+create_weighting_covariates <- function() {
+  covs <- create_test_covariates()[1:2, ]
+  covs$deploymentStart <- as.POSIXct(c("2023-01-01 08:00:00", "2023-01-02 08:00:00"), tz = "UTC")
+  covs$deploymentEnd <- as.POSIXct(c("2023-01-02 08:00:00", "2023-01-11 18:00:00"), tz = "UTC")
+  covs$elevation <- c(100, 110)
+  covs$habitat <- c("grassland", "forest")
+  covs$latitude <- c(-17.0, -17.2)
+  covs
+}
+
+test_that("resample_covariates_and_observations weights cell means by camera-days", {
+  covs <- create_weighting_covariates()
+  # each camera's days, worked by hand
+  days <- c(1, 9 + 10 / 24)
+
+  result <- resample_covariates_and_observations(covs)
+  cell <- result$spatially_resampled_covariates$cellID_1km
+
+  # elevation leans towards the camera that ran longer
+  expect_equal(cell$Avg_elevation, (100 * days[1] + 110 * days[2]) / sum(days))
+  # coordinates stay the plain centre of the cameras
+  expect_equal(cell$Avg_latitude, -17.1)
+  # cellEffort is the total camera-days either way
+  expect_equal(cell$cellEffort, sum(days))
+})
+
+test_that("resample_covariates_and_observations takes the mode covering the most camera-days", {
+  covs <- create_weighting_covariates()
+
+  result <- resample_covariates_and_observations(covs, mode_cols_covs = "habitat")
+  cell <- result$spatially_resampled_covariates$cellID_1km
+
+  # forest ran 9.4 days against grassland's 1, so forest wins
+  expect_equal(cell$mode_habitat, "forest")
+})
+
+test_that("resample_covariates_and_observations with weights = 'none' gives the plain mean and most frequent value", {
+  covs <- create_weighting_covariates()
+
+  result <- resample_covariates_and_observations(covs, mode_cols_covs = "habitat", weights = "none")
+  cell <- result$spatially_resampled_covariates$cellID_1km
+
+  # each camera counts once
+  expect_equal(cell$Avg_elevation, mean(c(100, 110)))
+  # a tie goes to the first value, as Mode() does
+  expect_equal(cell$mode_habitat, Mode(c("grassland", "forest")))
+})
+
+test_that("resample_covariates_and_observations falls back to plain means when no deployment has a length", {
+  covs <- create_weighting_covariates()
+  # both cameras end the moment they start
+  covs$deploymentEnd <- covs$deploymentStart
+
+  expect_warning(
+    result <- resample_covariates_and_observations(covs),
+    "used plain means in 2 cell-scale"
+  )
+  # the 1 km cell (and the 10 km one) fall back to the plain mean
+  expect_equal(result$spatially_resampled_covariates$cellID_1km$Avg_elevation, 105)
+})
+
+test_that("resample_covariates_and_observations with obs = NULL returns only tagged covariates", {
+  covs <- create_test_covariates()
+
+  result <- resample_covariates_and_observations(covs, mode_cols_covs = "habitat")
+
+  # no observations come back
+  expect_equal(names(result), "spatially_resampled_covariates")
+  # one row per cell at each scale
+  expect_equal(nrow(result$spatially_resampled_covariates$cellID_1km), 2)
+  # each table is tagged with its scale
+  expect_equal(attr(result$spatially_resampled_covariates$cellID_10km, "wildobs_resampled"), "cellID_10km")
+})
+
+test_that("resample_covariates_and_observations ignores obs_covs, with a warning, when obs = NULL", {
+  covs <- create_test_covariates()
+
+  expect_warning(
+    resample_covariates_and_observations(covs, obs_covs = "habitat"),
+    "ignored obs_covs"
+  )
+})
+
+test_that("effort_matrix() and detection_matrix() refuse resampled tables", {
+  covs <- create_test_covariates()
+  obs <- create_test_observations()
+  result <- resample_covariates_and_observations(covs, obs, "sum", NULL, NULL)
+
+  # effort needs one row per deployment, not per cell
+  expect_error(
+    effort_matrix(result$spatially_resampled_covariates$cellID_1km, site_col = "cellID_1km", w = 5),
+    "resampled covariates"
+  )
+  # the cell-level columns give it away even when the tag is lost
+  untagged <- as.data.frame(as.list(result$spatially_resampled_covariates$cellID_1km))
+  expect_error(effort_matrix(untagged, site_col = "cellID_1km", w = 5), "resampled covariates")
+
+  # detections need the observations themselves
+  eff <- suppressMessages(effort_matrix(covs, site_col = "cellID_1km", w = 5, time_zone = "UTC"))
+  expect_error(
+    detection_matrix(result$spatially_resampled_observations$cellID_1km, eff, "Species A"),
+    "resampled observations"
+  )
+})
