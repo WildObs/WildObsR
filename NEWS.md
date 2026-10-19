@@ -69,6 +69,13 @@ it.
 - `matrix_generator()` warns when `numberDeploymentsActiveAtDate` is used as an
   observation covariate. It counts only the deployments with a record that day, so it
   understates effort and depends on detections. Use `effort_matrix()` for effort.
+- `resample_covariates_and_observations()` keeps logical and factor covariates (for
+  example `baitUse` and `featureType` from `frictionless::read_resource()`), pasting their
+  values per cell like text. They used to be dropped silently.
+- `resample_covariates_and_observations()` warns, rather than stops, when a sampled cell
+  has no observations, for example after filtering `obs` to a few species. The cell stays
+  in the resampled covariates as sampled with no detections. Observations in a cell with
+  no covariates still stop with an error.
 
 ## Breaking changes
 

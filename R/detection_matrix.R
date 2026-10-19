@@ -170,7 +170,7 @@ detection_matrix <- function(obs, effort, scientificNames,
   # if there are values beyond the max duration,
   beyond_dur <- if (is.null(effort$settings$dur)){
     # set them to FALSE 
-    rep(FALSE, nrow(obs)) else
+    rep(FALSE, nrow(obs))
   }else{
     # or ensure that we are greater than duration 
     day_number > effort$settings$dur

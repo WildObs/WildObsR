@@ -483,3 +483,44 @@ test_that("resample_covariates_and_observations handles character covariates by 
   cell_a <- resamp_covs[resamp_covs$cellID_1km == "Cell_A_1km", ]
   expect_true(grepl("Site1", cell_a$locationName))
 })
+
+# Tests for logical and factor covariates, and cells without observations ----
+
+test_that("resample_covariates_and_observations pastes logical and factor covariates per cell", {
+  covs <- create_test_covariates()
+  # baitUse as read_resource() returns a boolean, featureType as it returns an enum
+  covs$baitUse <- c(TRUE, FALSE, TRUE)
+  covs$featureType <- factor(c("roadDirt", "trailGame", "roadDirt"))
+  obs <- create_test_observations()
+  # keep the observations free of these columns, so only the covariates carry them
+  obs$baitUse <- NULL
+  obs$featureType <- NULL
+
+  result <- resample_covariates_and_observations(covs, obs, "sum", NULL, NULL)
+  resamp_covs <- result$spatially_resampled_covariates$cellID_1km
+
+  # both columns survive the resample
+  expect_true(all(c("baitUse", "featureType") %in% names(resamp_covs)))
+  # and the cell with two cameras holds both of their values
+  cell_a <- resamp_covs[resamp_covs$cellID_1km == "Cell_A_1km", ]
+  expect_equal(cell_a$baitUse, "FALSE - TRUE")
+  expect_equal(cell_a$featureType, "roadDirt - trailGame")
+})
+
+test_that("resample_covariates_and_observations warns, not stops, on sampled cells without observations", {
+  covs <- create_test_covariates()
+  # CAM003, alone in Cell_B, records nothing
+  obs <- create_test_observations()
+  obs <- obs[obs$deploymentID != "CAM003", ]
+
+  expect_warning(
+    result <- resample_covariates_and_observations(covs, obs, "sum", NULL, NULL),
+    "sampled cells with no observations"
+  )
+  # the empty cell is still in the covariates, so the effort matrix can count it as zeros
+  resamp_covs <- result$spatially_resampled_covariates$cellID_1km
+  expect_true("Cell_B_1km" %in% resamp_covs$cellID_1km)
+  # and it has no observation rows
+  resamp_obs <- result$spatially_resampled_observations$cellID_1km
+  expect_false("Cell_B_1km" %in% resamp_obs$cellID_1km)
+})

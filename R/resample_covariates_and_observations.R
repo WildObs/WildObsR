@@ -203,6 +203,12 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
   covs = Filter(function(x)!all(is.na(x)), covs)
   obs = Filter(function(x)!all(is.na(x)), obs)
 
+  ## Treat logical and factor covariates (e.g. baitUse, featureType) as text, so their values get pasted together per cell
+  # find the logical and factor columns
+  text_like_covs <- names(covs)[vapply(covs, function(x) is.logical(x) || is.factor(x), logical(1))]
+  # and store them as character
+  covs[text_like_covs] <- lapply(covs[text_like_covs], as.character)
+
   ## Extract relevant char/numeric/modal/etc cols from covaraites
   # select all character cols that wont get averaged
   char_cols_covs <- names(covs)[sapply(covs, is.character)]
@@ -524,25 +530,48 @@ resample_covariates_and_observations <- function(covs, obs, individuals, mode_co
 
   } # end per depGroup
 
-  ## Verify we didnt lose any cellID values through resampling
-  for(e in 1:length(resamp_covs_list)){
+  ## Verify the cellID values agree between the resampled observations and covariates
+  # collect one line per deploymentGroup and scale with cells that recorded no observations
+  no_obs_notes <- character(0)
+  for (e in seq_along(resamp_covs_list)) {
     # go further in to the nested list
-    list_covs = resamp_covs_list[[e]]
-    list_obs = resamp_obs_list[[e]]
-    leng = unique(length(list_covs), length(list_obs))
-    for(f in 1:leng){
+    list_covs <- resamp_covs_list[[e]]
+    list_obs <- resamp_obs_list[[e]]
+    for (f in seq_along(list_covs)) {
       # grab each DF
-      dat_covs = list_covs[[f]]
-      dat_obs = list_obs[[f]]
+      dat_covs <- list_covs[[f]]
+      dat_obs <- list_obs[[f]]
       # and the cellID col
-      cell = names(dat_covs)[grepl("cellID", names(dat_covs))]
-      # make sure were safe
-      if(length(setdiff(dat_covs[[cell]], dat_obs[[cell]])) +
-         length(setdiff(dat_obs[[cell]], dat_covs[[cell]])) != 0){
-        stop(paste("The", cell, "values do not perfectly match in the resampled observations and covariates for the deploymentGroup", unique(dat_covs$deploymentGroups), "\nPlease inspect this dataset carefully before running this function!"))
-      } # end condition
-    } # end per leng
-  } # end per list length
+      cell <- names(dat_covs)[grepl("cellID", names(dat_covs))]
+      # observation cells come from the covariates, so a cell missing from them means the join failed
+      unknown_cells <- setdiff(dat_obs[[cell]], dat_covs[[cell]])
+      # if any, the observations can't be placed on a sampled cell
+      if (length(unknown_cells) > 0) {
+        # hard stop, naming the group and an example cell
+        stop(sprintf("resample_covariates_and_observations() found %d %s value(s) in the observations with no covariates in deploymentGroup %s, e.g. %s.\n",
+                     length(unknown_cells), cell, names(resamp_covs_list)[e], unknown_cells[1]),
+             "Check that obs and covs come from the same deployments before resampling.", call. = FALSE)
+      } # end unknown cells check
+      # cells that were sampled but recorded none of the supplied observations
+      empty_cells <- setdiff(dat_covs[[cell]], dat_obs[[cell]])
+      # note how many, out of all sampled cells, for the warning below
+      if (length(empty_cells) > 0) {
+        no_obs_notes <- c(no_obs_notes, sprintf("  %s at %s: %d of %d cells",
+                                                names(resamp_covs_list)[e], cell, length(empty_cells),
+                                                length(unique(dat_covs[[cell]]))))
+      } # end empty cells condition
+    } # end per scale
+  } # end per deploymentGroup
+  ## warn once about every sampled cell without observations
+  if (length(no_obs_notes) > 0) {
+    warning(paste0("resample_covariates_and_observations() found sampled cells with no observations:\n",
+                   paste(no_obs_notes, collapse = "\n"), "\n",
+                   "This is expected when obs is filtered to a few species, or when a cell detected nothing: ",
+                   "the cells stay in the resampled covariates, and effort_matrix() and matrix_generator() count them as sampled with no detections (zeros). ",
+                   "It is a problem if obs was filtered by deployment, date or observationType in a way that removed real records, ",
+                   "since those zeros would then be false absences. Check that obs covers every deployment in covs."),
+            call. = FALSE)
+  } # end no observations warning
 
   ## gather all relevant scales of cellID
   scales = names(resamp_covs_list[[1]]) # doesnt matter which number, all should be the same
