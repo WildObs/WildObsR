@@ -24,7 +24,12 @@ column with the same name as the effort matrix's \code{site_col} (for example
 \code{"locationID"}) or a \code{site} column, else by row names.}
 
 \item{obs_covs}{A named list of observation covariates, each a site x occasion matrix
-with the same site and occasion names as \code{detections}, or \code{NULL}.}
+with the same site and occasion names as \code{detections}, or \code{NULL}. These are for
+covariates you build yourself, such as rainfall per occasion. \code{effort} and the
+\verb{<split_by>_<level>} shares are always added from the effort matrix, so leave
+\code{split_by} columns out; a name that clashes with an automatic covariate stops the
+function. Use one share per split variable in a model formula, since the shares of
+all levels add up to 1.}
 
 \item{coords}{Site coordinates for spatial models, or \code{NULL}: a data frame with the site
 column and two coordinate columns (for example projected \code{X} and \code{Y} in metres), or a

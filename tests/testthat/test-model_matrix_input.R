@@ -80,6 +80,17 @@ test_that("model_matrix_input checks the shape of the user's observation covaria
                "obs_covs\\$rain is 30 x")
 })
 
+test_that("model_matrix_input stops when a user covariate has the name of an automatic one", {
+  x <- survey_inputs()
+  # a correctly shaped matrix, but named like the split share the function adds itself
+  clash <- list(baitUse_TRUE = x$eff$effort_total)
+  expect_error(model_matrix_input(x$y, x$eff, obs_covs = clash, output = "array"),
+               "obs_covs has baitUse_TRUE, which model_matrix_input\\(\\) already adds")
+  # the same matrix under its own name is accepted
+  ok <- model_matrix_input(x$y, x$eff, obs_covs = list(rain = x$eff$effort_total), output = "array")
+  expect_true("rain" %in% names(ok$obs_covs))
+})
+
 
 #
 ##

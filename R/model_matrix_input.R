@@ -39,7 +39,12 @@
 #'   column with the same name as the effort matrix's `site_col` (for example
 #'   `"locationID"`) or a `site` column, else by row names.
 #' @param obs_covs A named list of observation covariates, each a site x occasion matrix
-#'   with the same site and occasion names as `detections`, or `NULL`.
+#'   with the same site and occasion names as `detections`, or `NULL`. These are for
+#'   covariates you build yourself, such as rainfall per occasion. `effort` and the
+#'   `<split_by>_<level>` shares are always added from the effort matrix, so leave
+#'   `split_by` columns out; a name that clashes with an automatic covariate stops the
+#'   function. Use one share per split variable in a model formula, since the shares of
+#'   all levels add up to 1.
 #' @param coords Site coordinates for spatial models, or `NULL`: a data frame with the site
 #'   column and two coordinate columns (for example projected `X` and `Y` in metres), or a
 #'   two-column matrix with sites as row names.
@@ -180,6 +185,16 @@ model_matrix_input <- function(detections, effort, site_covs = NULL, obs_covs = 
       stop("model_matrix_input() needs obs_covs as a named list of site x occasion matrices.",
            call. = FALSE)
     } # end list check
+    ## a user covariate with the name of an automatic one would silently replace it
+    clashes <- intersect(names(obs_covs), names(obs_list))
+    # if any, stop before anything is overwritten
+    if (length(clashes) > 0) {
+      # hard stop, naming the clash and the automatic covariates
+      stop(sprintf("model_matrix_input(): obs_covs has %s, which model_matrix_input() already adds from the effort matrix (%s).\n",
+                   paste(clashes, collapse = ", "), paste(names(obs_list), collapse = ", ")),
+           "Rename your covariate. The effort and split_by shares are added automatically, so they never need to be passed in obs_covs.",
+           call. = FALSE)
+    } # end name clash check
     for (nm in names(obs_covs)) {
       # grab one
       m <- as.matrix(obs_covs[[nm]])
