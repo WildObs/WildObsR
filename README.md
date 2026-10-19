@@ -11,11 +11,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 <!-- badges: end -->
 
-WildObsR finds, downloads and prepares camera trap data from
-[WildObs](https://wildobs.org.au), Australia's national wildlife camera database. Every
-project arrives as a [Camera Trap Data Package](https://camtrap-dp.tdwg.org/) (Camtrap DP)
-with its licence and citation, and data from many projects can be harmonised into inputs
-for occupancy and abundance models.
+The Wildlife Observatory of Australia ([WildObs](https://www.wildobs.org.au)) provides a
+suite of tools, such as the [WildObs Image Platform](https://www.wildobs.org.au/image-platform)
+and [Tagged Image Repository](https://www.wildobs.org.au/tagged-image-repository), to
+enhance and support camera trapping across Australia. WildObsR provides programmatic access
+to query, download and prepare camera trap data from the
+[WildObs Database](https://www.wildobs.org.au/database). Every project arrives as a
+[Camera Trap Data Package](https://camtrap-dp.tdwg.org/) (Camtrap DP), meaning each dataset
+contains tables of camera deployments, wildlife detections and media (*i.e.*, images and/or
+videos), along with Creative Commons licences, formatted citations and field definitions
+that travel with them.
 
 - **Discover** what data exist: search projects by place, time, species, sampling design
   or contributor, including embargoed projects, which are listed before their data are
