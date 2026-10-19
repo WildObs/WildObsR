@@ -744,7 +744,8 @@ resample_covariates_and_observations <- function(covs, obs = NULL, individuals, 
 #'
 #' @param df A resampled table.
 #' @param templates A named list of zero-length vectors with each column's original class.
-#' @return A list with `data`, the table, and `kept_as_text`, the columns left as text.
+#' @return A list with `data`, the table, and `kept_as_text`, the columns left as text,
+#'   each named by the column and holding one of its mixed values.
 #' @author Zachary Amir
 #' @keywords internal
 #' @noRd
@@ -761,7 +762,8 @@ resample_covariates_and_observations <- function(covs, obs = NULL, individuals, 
       allowed <- if (is.factor(templates[[nm]])) levels(templates[[nm]]) else c("TRUE", "FALSE")
       # a pasted combination is not one of them, so the column stays text
       if (!all(is.na(vals) | vals %in% allowed)) {
-        kept_as_text <- c(kept_as_text, col)
+        # named by the column, holding one of its mixed values as an example
+        kept_as_text[col] <- vals[!is.na(vals) & !vals %in% allowed][1]
         next
       } # end mixed values condition
       # otherwise restore the original class
@@ -774,19 +776,20 @@ resample_covariates_and_observations <- function(covs, obs = NULL, individuals, 
 
 #' Say which logical or factor columns had to stay text after resampling
 #'
-#' @param cols The column names, possibly repeated across scales and tables.
+#' @param cols The mixed values, named by their column, possibly repeated across scales
+#'   and tables.
 #' @return Nothing; prints one message when there are any.
 #' @author Zachary Amir
 #' @keywords internal
 #' @noRd
 .message_kept_as_text <- function(cols) {
-  # each column once
-  cols <- unique(cols)
+  # each column once, with its first example
+  cols <- cols[!duplicated(names(cols))]
   # nothing to report
   if (length(cols) == 0) return(invisible(NULL))
-  # one message for all of them
-  message(sprintf("resample_covariates_and_observations(): %s kept as text, because some cells hold more than one value (for example \"FALSE - TRUE\").\n",
-                  paste(cols, collapse = ", ")),
+  # one message for all of them, quoting an example of each
+  message(sprintf("resample_covariates_and_observations(): %s kept as text, because some cells hold more than one value.\n",
+                  paste(sprintf("%s (e.g. \"%s\")", names(cols), cols), collapse = ", ")),
           "For one value per cell, add the column to mode_cols_covs; to model detection by it, use effort_matrix(split_by = ...).")
   invisible(NULL)
 } # end .message_kept_as_text

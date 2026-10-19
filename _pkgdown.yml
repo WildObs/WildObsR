@@ -27,6 +27,10 @@ articles:
   contents:
   - interoperability
   - spatial-context
+- title: Model the data
+  navbar: Model the data
+  contents:
+  - detection-histories
 - title: About
   navbar: About
   contents:
@@ -60,6 +64,12 @@ reference:
   - recombine_deployment_groups
   - reclassify_eventID
   - survey_and_deployment_generator
+- title: Model
+  desc: Build sampling effort and detection histories, and format them for modelling packages.
+  contents:
+  - effort_matrix
+  - detection_matrix
+  - model_matrix_input
 - subtitle: Legacy
   desc: Kept for existing workflows.
   contents:

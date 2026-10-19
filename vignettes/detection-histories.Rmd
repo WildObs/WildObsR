@@ -1,0 +1,289 @@
+---
+title: "Detection histories and sampling effort"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Detection histories and sampling effort}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Occupancy and abundance models need two things from camera trap data: a **detection
+history** (was the species detected at each site on each sampling occasion?) and the
+**sampling effort** behind it (how long were cameras running there?). This vignette builds
+both from a WildObs data package, first with camera stations as sites and then with
+hexagonal grid cells. It uses project 0001, a systematic survey of six Wet Tropics
+landscapes shipped with WildObsR, so everything runs offline.
+
+The next vignette, *Fitting occupancy and abundance models*, takes these matrices into
+unmarked, spOccupancy, spAbundance and NIMBLE.
+
+## Which function should I use?
+
+| You want to | Use |
+|---|---|
+| Camera-days per site and occasion, from the deployments alone | `effort_matrix()` |
+| Detections that line up exactly with that effort | `detection_matrix()` |
+| The format a modelling package expects, with covariates matched by site | `model_matrix_input()` |
+| One row of covariates per grid cell | `resample_covariates_and_observations(obs = NULL)` |
+| To reproduce an analysis built before WildObsR 0.4 | `matrix_generator()` (legacy) |
+
+`effort_matrix()`, `detection_matrix()` and `model_matrix_input()` replace
+`matrix_generator()` for new work. Their effort comes from the deployments, so it never
+depends on where animals were detected, and they work on any Camtrap DP package.
+
+## Three tables, two keys
+
+Each function takes the table at the level it needs:
+
+| Table | One row per | Goes into |
+|---|---|---|
+| Deployments (with their site column) | deployment | `effort_matrix()` |
+| Observations | observation | `detection_matrix()` |
+| Site covariates | site | `model_matrix_input(site_covs = )` |
+
+`deploymentID` links observations to deployments, and the site column (`locationID`
+here, or a cellID later) links deployments to sites. Nothing needs to be summarised
+beforehand except the site covariates, because a model needs exactly one value per site.
+
+```{r data}
+library(WildObsR)
+
+# the Wet Tropics survey shipped with WildObsR
+dp <- example_datapackages("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")[[1]]
+
+# the three tables, read with their schema types
+deps <- frictionless::read_resource(dp, "deployments")
+covs <- frictionless::read_resource(dp, "covariates")
+obs <- frictionless::read_resource(dp, "observations")
+# deployments and their environmental covariates as one table, one row per deployment
+deps <- merge(deps, covs, by = intersect(names(deps), names(covs)))
+
+# deployments, camera stations and observations
+c(deployments = nrow(deps), stations = length(unique(deps$locationID)), observations = nrow(obs))
+```
+
+There are nearly twice as many deployments as stations, because most stations held two
+cameras. A station is the natural site when cameras were placed on purpose at fixed
+points.
+
+## Sampling effort
+
+`effort_matrix()` splits every deployment into the local calendar days it ran, with the
+fraction of each day covered, and sums those camera-days per site and occasion. Here an
+occasion is 7 days (`w = 7`) and only the first 70 days at each station are kept
+(`dur = 70`), so every station has at most 10 occasions.
+
+```{r effort}
+# camera-days per station and 7-day occasion, over each station's first 70 days
+eff <- effort_matrix(deps, site_col = "locationID", w = 7, dur = 70,
+                     time_zone = dp$temporal$timeZone)
+
+# stations x occasions x deployment slots
+dim(eff$effort)
+# the total over a station's cameras, for the first four stations
+round(eff$effort_total[1:4, ], 1)
+```
+
+A full week with both cameras running gives 14 camera-days; a week where one camera
+stopped gives 7, and the first week is a little short because cameras were set up during
+the day. An occasion of 0 means no camera ran, which happens at the end of a station's
+sampling, or in gaps between deployments.
+Effort is calculated from deployment start and end times only, so it is the same whatever
+species you later model.
+
+The `occasions` table gives each occasion's dates, and `deployments` says which deployment
+sits in which slot of the third dimension:
+
+```{r effort-tables}
+# the dates of each station's occasions
+head(eff$occasions, 3)
+# which deployment is in which slot at each station
+head(eff$deployments, 3)
+```
+
+By default each station's occasions start on its own first day (`align = "site"`). With
+`align = "calendar"`, occasion `k` covers the same dates at every station, which
+multi-season and time-series models need; see *Long-term monitoring series*.
+
+## Detection histories
+
+`detection_matrix()` places every detection on its deployment's site and local day, then
+fills the same sites and occasions as the effort. A cell is `NA` where no camera ran and 0
+where cameras ran without detecting the species, so a non-detection is never confused
+with no sampling.
+
+```{r detections}
+# three common species of the Wet Tropics rainforest
+species <- c("Thylogale stigmatica", "Hypsiprymnodon moschatus", "Sus scrofa")
+# detected (1) or not (0) per station and occasion
+y <- detection_matrix(obs, eff, species)
+
+# species x stations x occasions
+dim(y)
+# red-legged pademelon at the first four stations
+y["Thylogale stigmatica", 1:4, ]
+```
+
+The messages say what was set aside before counting:
+
+- **Obscured records.** Threatened-species records in public data carry no camera, so
+  they cannot be placed on a site. Detection histories built from public data under-count
+  those species where they are listed.
+- **Records that are not of animals**, such as blanks, people and vehicles.
+
+A detection on a day its camera was not running stops the function, because it means the
+deployment dates and the observations disagree.
+
+### Counts for abundance models
+
+With `type = "abundance"`, counts are combined in two steps:
+
+1. Within each event (`eventID`, a 30-minute window at one camera), the largest `count` is
+   the number of animals seen. A pig that triggers a camera three times in ten minutes
+   counts once.
+2. Events in an occasion are then combined with `individuals`. `"max"` takes the most
+   animals seen at once, as N-mixture models assume. `"sum"` adds the events, a relative
+   abundance index, and can count one animal twice if it passes two cameras at a station.
+
+```{r abundance}
+# the most feral pigs seen together per station and occasion
+n <- detection_matrix(obs, eff, "Sus scrofa", type = "abundance", individuals = "max")
+n["Sus scrofa", 1:4, ]
+```
+
+## Detection that depends on where the camera points
+
+Cameras on roads and trails often detect animals at different rates from cameras off
+them. `split_by` splits the effort by a deployment column, so the share of each occasion's
+camera-days on trail can be used as an observation covariate. In this survey,
+`featureType` is empty for cameras placed off trail.
+
+```{r split}
+# a two-level trail status: any road or trail, or none
+deps$trailStatus <- ifelse(is.na(deps$featureType), "offTrail", "onTrail")
+table(deps$trailStatus)
+
+# the same effort, split by trail status
+eff_trail <- effort_matrix(deps, site_col = "locationID", w = 7, dur = 70,
+                           split_by = "trailStatus", time_zone = dp$temporal$timeZone)
+# the third dimension now holds the levels, not the cameras
+dimnames(eff_trail$effort)[[3]]
+```
+
+`model_matrix_input()` turns the split into observation covariates: `effort` (camera-days)
+and one share per level, here `trailStatus_offTrail` and `trailStatus_onTrail`. This survey
+paired one camera on a trail with one off it at most stations, so the share on trail is
+0.5 while both run, and changes when one of them stops. The shares
+of a station's levels add up to 1, so a model formula uses one of them, for example
+`~ effort + trailStatus_onTrail`. It also adds `total_effort`, each station's camera-days
+over the modelled occasions, as a site covariate.
+
+```{r split-covs}
+# the detections for this effort, as plain arrays
+inp <- model_matrix_input(detection_matrix(obs, eff_trail, species), eff_trail, output = "array")
+# the observation covariates it adds
+names(inp$obs_covs)
+# the share of camera-days on trail at the first four stations
+round(inp$obs_covs$trailStatus_onTrail[1:4, 1:5], 2)
+```
+
+`split_by` takes one column. To split by two, combine them into one first, for example
+`paste(deps$baitUse, deps$trailStatus, sep = "_")`.
+
+## Grid cells as sites
+
+When cameras were not placed at fixed points, or when projects with different designs are
+pooled, a regular grid makes a common site. `spatial_hexagon_generator()` assigns every
+deployment to a hexagonal cell. **The scale is a cell area in square metres**, so `3e6`
+gives 3 km² cells; `3000` would give cells about 60 m across.
+
+```{r cells}
+# assign every deployment to a 3 km2 hexagonal cell
+deps_cellID <- spatial_hexagon_generator(deps, scales = 3e6)
+# still one row per deployment, now with a cellID
+c(deployments = nrow(deps_cellID), cells = length(unique(deps_cellID$cellID_3km2)))
+```
+
+Effort and detections are built exactly as before, with the cellID as the site. The
+observations need no changes: `detection_matrix()` finds each record's cell through its
+deployment.
+
+```{r cell-effort}
+# camera-days per cell and occasion, split by trail status
+eff_cell <- effort_matrix(deps_cellID, site_col = "cellID_3km2", w = 7, dur = 70,
+                          split_by = "trailStatus", time_zone = dp$temporal$timeZone)
+# detections per cell and occasion
+y_cell <- detection_matrix(obs, eff_cell, species)
+dim(y_cell)
+```
+
+The site covariates need one row per cell. `resample_covariates_and_observations()` with
+`obs = NULL` averages each cell's numeric covariates, weighting every deployment by its
+camera-days, and takes the value covering the most camera-days for the columns in
+`mode_cols_covs`. It takes about a second.
+
+```{r cell-covs}
+# one row of covariates per cell
+cell <- resample_covariates_and_observations(deps_cellID, mode_cols_covs = "trailStatus")
+cell_covs <- cell$spatially_resampled_covariates$cellID_3km2
+# a few of them for the first three cells
+head(cell_covs[, c("cellEffort", "Avg_altitude_point", "mode_trailStatus")], 3)
+```
+
+`cellEffort` is every day each camera in the cell ran, while `total_effort` from
+`model_matrix_input()` counts only the modelled occasions, so the two differ when `dur`
+cuts sampling short.
+
+Do not pass the resampled covariates to `effort_matrix()`: with one row per cell they have
+lost each camera's dates, and the function stops and says which table to use instead.
+
+## The legacy route, for comparison
+
+`matrix_generator()` builds detection histories from resampled observations. On this
+survey both routes give the same detection histories, which is a useful check:
+
+```{r legacy}
+# pademelon records that can be placed on a camera
+pademelon <- obs[obs$deploymentID %in% deps_cellID$deploymentID &
+                   obs$scientificName == "Thylogale stigmatica", ]
+# resampled to cells and days, as matrix_generator() needs
+resamp <- suppressWarnings(
+  resample_covariates_and_observations(deps_cellID, pademelon, individuals = "max"))
+# the legacy detection history, over the same 70 days in 7-day occasions
+legacy <- suppressWarnings(matrix_generator(
+  resamp$spatially_resampled_observations$cellID_3km2,
+  resamp$spatially_resampled_covariates$cellID_3km2,
+  dur = 70, w = 7, site_covs = "Avg_altitude_point", obs_covs = character(0),
+  all_locationNames = TRUE, scientificNames = "Thylogale stigmatica",
+  type = "occupancy", individuals = "max"))
+y_legacy <- legacy$Thylogale_stigmatica$detection_matrix
+
+# the new history, in the same row order
+y_new <- y_cell["Thylogale stigmatica", rownames(y_legacy), ]
+# the same detections, and the same occasions without effort
+identical(unname(y_legacy == 1), unname(y_new == 1))
+```
+
+The difference is in effort. `matrix_generator()` has no camera-days: it treats a cell as
+sampled continuously from its first deployment start to its last end, including gaps
+between deployments, and its `numberDeploymentsActiveAtDate` counts only the cameras that
+recorded something that day. `?matrix_generator` lists these limits. The legacy function
+will be deprecated in a future release.
+
+## Choices to make
+
+- **Occasion length (`w`).** Longer occasions raise detection probability per occasion
+  and give fewer, less autocorrelated occasions. A week is common for medium-sized mammals.
+- **Survey length (`dur`).** Occupancy models assume the population is closed: no site
+  changes state during the survey. Cut each site's sampling to a period where that is
+  plausible.
+- **Site size.** A station suits cameras placed at fixed points; a grid cell suits pooling
+  and species whose home range spans several cameras. The cell area sets what "occupied"
+  means.
+- **Time zone.** Days run in the package's time zone (`dp$temporal$timeZone`). When pooled
+  cameras span time zones with different clocks, both functions use UTC days instead, with
+  a message, so effort and detections still share the same day boundaries.
