@@ -115,7 +115,7 @@ cite_datapackages(dp_list)
 ## Getting help and contributing
 
 - Bugs and tutorial requests: [GitHub issues](https://github.com/WildObs/WildObsR/issues)
-- Questions about a project's data: support@wildobs.org.au
+- Questions about a project's data: data@wildobs.org.au
 - Contributing code: see [CONTRIBUTING](.github/CONTRIBUTING.md)
 
 ## License
