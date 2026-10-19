@@ -710,3 +710,22 @@ test_that("resample keeps cells whose cameras recorded no observations", {
   expect_setequal(res$spatially_resampled_covariates$cellID_1km2$cellID_1km2,
                   unique(x$covs$cellID_1km2))
 })
+
+test_that("resample_covariates_and_observations groups records by their local day, not the UTC day", {
+  covs <- create_test_covariates()
+  covs$deploymentStart <- as.POSIXct(covs$deploymentStart, tz = "Australia/Brisbane")
+  covs$deploymentEnd <- as.POSIXct(covs$deploymentEnd, tz = "Australia/Brisbane")
+  # two records at CAM001: 8 pm on 1 January and 2 am on 2 January, Brisbane time,
+  # which fall on the same UTC day (1 January)
+  tt <- as.POSIXct(c("2023-01-01 20:00:00", "2023-01-02 02:00:00"), tz = "Australia/Brisbane")
+  obs <- data.frame(deploymentID = "CAM001", eventID = c("E1", "E2"), observationID = c("O1", "O2"),
+                    scientificName = "Species A", count = 1, eventStart = tt, eventEnd = tt,
+                    classificationTimestamp = tt)
+
+  result <- suppressWarnings(resample_covariates_and_observations(covs, obs, "sum", NULL, NULL))
+  o <- result$spatially_resampled_observations$cellID_1km
+
+  # one row per local day, so the 2 am record keeps its own day
+  expect_equal(nrow(o), 2)
+  expect_setequal(as.Date(o$eventStart, tz = "Australia/Brisbane"), as.Date(c("2023-01-01", "2023-01-02")))
+})

@@ -318,8 +318,11 @@ resample_covariates_and_observations <- function(covs, obs = NULL, individuals, 
     # remove count, handled distinctly, and dont need deltaTimes anymore
     num_cols_obs = num_cols_obs[! grepl("deltaTime|count", num_cols_obs)]
 
-    ## Add sequential Julian date to the observations
-    obs$seq_date = julian(as.Date(obs$eventStart)) # observations lose within date resolution, day is the smallest temporal scale here.
+    ## Add sequential Julian date to the observations, on the local day of the records' own time zone
+    # the time zone the event times are stored in, else UTC; as.Date() alone would take the UTC day
+    obs_tz <- attr(obs$eventStart, "tzone")
+    if (is.null(obs_tz) || !nzchar(obs_tz[1])) obs_tz <- "UTC"
+    obs$seq_date = julian(as.Date(obs$eventStart, tz = obs_tz[1])) # observations lose within date resolution, day is the smallest temporal scale here.
   } # end observation columns condition
   ## and covs
   covs$deployment_seq_date = julian(covs$deploymentStart)

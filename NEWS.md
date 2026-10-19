@@ -96,6 +96,11 @@ it.
   since unmarked drops the affected units or occasions itself. Text date columns are
   converted to date-times, with a message, and a value that cannot be read stops the
   function.
+- `resample_covariates_and_observations()` groups observations by their local day, in
+  the time zone their `eventStart` is stored in, rather than the UTC day. Records between
+  midnight and 10 am AEST used to be merged into the previous day, which moved some
+  detections into the previous occasion in `matrix_generator()`. On project 0001, the
+  legacy and new detection histories now agree exactly.
 - `matrix_generator()` uses UTC days, with a message, when the sampling units span time
   zones with different clocks; otherwise records fall on their local day, as before.
 - `matrix_generator()` no longer drops site covariates: one with the same value everywhere
