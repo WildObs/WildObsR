@@ -17,8 +17,8 @@ key to rebuild images.Rmd, which ships with its results already in place. -->
 Classifying camera trap images with machine learning needs many images of known species.
 WildObs records the species in every image of an observation, so its openly hosted images
 come labelled. This vignette finds those images, joins them to their labels, and downloads a
-small batch. It uses a baited survey in Paluma Range National Park, Queensland, many of
-whose images are hosted by WildObs.
+small batch. It uses a 2023 University of Queensland teaching survey at Dwyers Scrub,
+Queensland, most of whose images are hosted by WildObs.
 
 ```{r download, message = FALSE}
 library(WildObsR)
@@ -27,7 +27,7 @@ library(WildObsR)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 # the project, with its media table
-id <- "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
+id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[id]]
 media <- frictionless::read_resource(dp, "media")
 ```
@@ -72,9 +72,9 @@ head(sort(table(public$scientificName[public$observationType == "animal"]),
           decreasing = TRUE), 8)
 ```
 
-Projects differ in which images they host openly; this one hosts only images with animals
-in them. Where a project also hosts blank images (`observationType == "blank"`), keep some:
-models must also learn to say that nothing is there.
+Projects differ in which images they host openly. This one also hosts blank images
+(`observationType == "blank"`); keep some in a training set, because models must also learn
+to say that nothing is there.
 
 ## Download a batch
 

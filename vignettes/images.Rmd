@@ -15,8 +15,8 @@ key to rebuild images.Rmd, which ships with its results already in place. -->
 Classifying camera trap images with machine learning needs many images of known species.
 WildObs records the species in every image of an observation, so its openly hosted images
 come labelled. This vignette finds those images, joins them to their labels, and downloads a
-small batch. It uses a baited survey in Paluma Range National Park, Queensland, many of
-whose images are hosted by WildObs.
+small batch. It uses a 2023 University of Queensland teaching survey at Dwyers Scrub,
+Queensland, most of whose images are hosted by WildObs.
 
 
 ``` r
@@ -26,7 +26,7 @@ library(WildObsR)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 # the project, with its media table
-id <- "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
+id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[id]]
 media <- frictionless::read_resource(dp, "media")
 ```
@@ -44,7 +44,7 @@ reads `not_publicly_accessible`, and file names are withheld from public users.
 table(media$filePublic)
 #> 
 #> FALSE  TRUE 
-#> 52836 11020
+#>  3678 17832
 ```
 
 Across the whole public database the share of openly hosted images is small, so check
@@ -72,23 +72,23 @@ public <- merge(media[media$filePublic, c("mediaID", "deploymentID", "observatio
 table(public$observationType)
 #> 
 #>       animal        human      vehicle        blank      unknown unclassified 
-#>        11020            0            0            0            0            0
+#>         8302           93            0         9437            0            0
 
 # the species with the most openly hosted images
 head(sort(table(public$scientificName[public$observationType == "animal"]),
           decreasing = TRUE), 8)
 #> 
-#>               Sus scrofa     Thylogale stigmatica               Bos taurus 
-#>                     3275                     2375                     1032 
-#>         Alectura lathami                 Mammalia              Canis dingo 
-#>                     1014                      720                      588 
-#>        Isoodon macrourus Hypsiprymnodon moschatus 
-#>                      404                      323
+#>         Alectura lathami    Notamacropus dorsalis Notamacropus rufogriseus 
+#>                     3450                      889                      832 
+#>  Leucosarcia melanoleuca         Wallabia bicolor        Isoodon macrourus 
+#>                      538                      361                      169 
+#>             Macropodidae         Perameles nasuta 
+#>                      163                      159
 ```
 
-Projects differ in which images they host openly; this one hosts only images with animals
-in them. Where a project also hosts blank images (`observationType == "blank"`), keep some:
-models must also learn to say that nothing is there.
+Projects differ in which images they host openly. This one also hosts blank images
+(`observationType == "blank"`); keep some in a training set, because models must also learn
+to say that nothing is there.
 
 ## Download a batch
 
@@ -119,12 +119,9 @@ table(result$downloadStatus)
 #> downloaded 
 #>          6
 basename(result$localPath)
-#> [1] "1_Pattersons_1_W_Mclean_mediaID_1189.jpg"
-#> [2] "1_Pattersons_1_W_Mclean_mediaID_1190.jpg"
-#> [3] "1_Pattersons_1_W_Mclean_mediaID_1191.jpg"
-#> [4] "11_Jarouma_W_Mclean_mediaID_3.jpg"       
-#> [5] "14_Birthday_W_Mclean_mediaID_713.jpg"    
-#> [6] "14_Birthday_W_Mclean_mediaID_714.jpg"
+#> [1] "T1_C1_Sclero_Z_Amir_mediaID_1.jpg"   "T1_C1_Sclero_Z_Amir_mediaID_4.jpg"  
+#> [3] "T1_C1_Sclero_Z_Amir_mediaID_5.jpg"   "T1_C1_Sclero_Z_Amir_mediaID_235.jpg"
+#> [5] "T1_C1_Sclero_Z_Amir_mediaID_225.jpg" "T1_C1_Sclero_Z_Amir_mediaID_226.jpg"
 ```
 
 The returned table keeps every column you passed in, so the labels stay with the files:
@@ -147,7 +144,7 @@ extract_metadata(dp, "licenses")[, c("name", "scope", "path")]
 
 # and the reference to cite
 writeLines(cite_datapackages(dp))
-#> Wren Mclean, Skye Anderson & Matthew Luskin (2023). WildObs Camera Trap Data Package: Cassowary baited camera trap observations in Paluma 2023-2024 [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/7be2c341. WildObs database version 1.1.2.
+#> Zachary Amir & Annabel Smith (2023). WildObs Camera Trap Data Package: UQ's undergraduate widlife techonologies camera trapping module comparing human and AI comptuer vision [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/a3efd562. WildObs database version 1.0.1.
 ```
 
 <details>

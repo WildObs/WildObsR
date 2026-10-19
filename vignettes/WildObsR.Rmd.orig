@@ -159,8 +159,9 @@ writeLines(cite_datapackages(dp_list))
 
 ## Work offline with the example data
 
-Two open Wet Tropics projects ship with WildObsR, so you can try every function without
-a key or an internet connection. `example_datapackages()` returns them in the same shape
+Two open projects ship with WildObsR, one from the Queensland Wet Tropics and one from
+Woomargama National Park in New South Wales, so you can try every function without a key
+or an internet connection. `example_datapackages()` returns them in the same shape
 as `wildobs_dp_download()`, with animal detections only and no media table:
 
 ```{r example}

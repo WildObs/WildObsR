@@ -18,8 +18,9 @@ standard meaning, so anyone who knows Camtrap DP can already read most of it. Th
 downloads one complete project, images included, and walks through what each part holds,
 which identifiers link the tables, and exactly where WildObs extends the standard.
 
-The project is a baited survey for southern cassowaries in Paluma Range National Park,
-Queensland, small enough to download in full in about a minute.
+The project is a 2023 University of Queensland teaching survey at Dwyers Scrub,
+Queensland: 32 cameras, small enough to download in full, images included, in about a
+minute.
 
 
 ``` r
@@ -29,7 +30,7 @@ library(WildObsR)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 # one project, with its media table
-id <- "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
+id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[1]]
 ```
 
@@ -57,7 +58,7 @@ dp$version
 #> [1] "1.0.2"
 # and, separately, the WildObs database release it was built from
 dp$versionControlWildObs
-#> [1] "1.1.2"
+#> [1] "1.0.1"
 ```
 
 `WildObsMetadata` records what the data provider agreed to and how the survey was run:
@@ -67,15 +68,15 @@ dp$versionControlWildObs
 str(dp$WildObsMetadata)
 #> List of 10
 #>  $ thinnedMedia            : logi TRUE
-#>  $ deploymentClusters      : logi TRUE
-#>  $ fundingAgency           : chr "unknown"
+#>  $ deploymentClusters      : logi FALSE
+#>  $ fundingAgency           : chr "university coursework"
 #>  $ tabularSharingPreference: chr "open"
-#>  $ desiredOutputs          : chr "unknown"
+#>  $ desiredOutputs          : chr "A document describing how your data was mobilized into the WildObs camera trap database, Co-Authorship on resea"| __truncated__
 #>  $ groupSizes              : logi TRUE
-#>  $ DPID                    : chr "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
-#>  $ embargoPeriodMonths     : int 6
+#>  $ DPID                    : chr "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
+#>  $ embargoPeriodMonths     : int 0
 #>  $ WildObsContribution     : chr "dingo-cat-fox project"
-#>  $ deploymentTags          : chr "bait"
+#>  $ deploymentTags          : chr "bait;predatorManagement"
 ```
 
 `temporal` holds the package-wide `start` and `end` the standard requires and the survey's
@@ -87,21 +88,17 @@ time zone. WildObs adds one `{start, end}` block for each survey, named by its
 # the package-wide extent and time zone
 dp$temporal[c("start", "end", "timeZone")]
 #> $start
-#> [1] "2023-06-16"
+#> [1] "2023-08-22"
 #> 
 #> $end
-#> [1] "2024-07-27"
+#> [1] "2023-09-16"
 #> 
 #> $timeZone
 #> [1] "Australia/Brisbane"
 # and the survey blocks
 extract_metadata(dp, "temporal")[, c("deploymentGroup", "start", "end")]
-#>                                deploymentGroup      start        end
-#> 1 Paluma_Range_NP_2023_b_Mclean_WildObsID_0006 2023-09-23 2024-01-01
-#> 2 Paluma_Range_NP_2024_a_Mclean_WildObsID_0006 2024-01-01 2024-04-10
-#> 3 Paluma_Range_NP_2024_b_Mclean_WildObsID_0006 2024-04-11 2024-07-18
-#> 4 Paluma_Range_NP_2023_a_Mclean_WildObsID_0006 2023-06-16 2023-09-23
-#> 5 Paluma_Range_NP_2024_c_Mclean_WildObsID_0006 2024-07-21 2024-07-27
+#>                            deploymentGroup      start        end
+#> 1 Dwyers_Scrub_CP_2023_Amir_WildObsID_0005 2023-08-22 2023-09-16
 ```
 
 ## The tables
@@ -112,7 +109,7 @@ extract_metadata(dp, "temporal")[, c("deploymentGroup", "start", "end")]
 tables <- frictionless::resource_names(dp)
 vapply(tables, function(r) nrow(frictionless::read_resource(dp, r)), integer(1))
 #>  deployments observations        media   covariates 
-#>           75         4137        63856           75
+#>           32         2885        21510           32
 ```
 
 Each table carries its schema, with a description, type and allowed values for every field,
@@ -137,7 +134,7 @@ data.frame(
 #>                                                              description
 #> 1                                   Unique identifier of the deployment.
 #> 2                                 Identifier of the deployment location.
-#> 3 Name given to the deployment location. Some location names from the CA
+#> 3                                 Name given to the deployment location.
 #> 4 Latitude of the deployment location in decimal degrees, using the WGS8
 #> 5 Longitude of the deployment location in decimal degrees, using the WGS
 #> 6 Horizontal distance from the given `latitude` and `longitude` describi
@@ -156,10 +153,10 @@ deps <- frictionless::read_resource(dp, "deployments")
 
 | Field | Groups deployments into | Example in this project |
 |---|---|---|
-| `locationID` | a camera station, which can host several deployments over time | Bambaroo Track_WildObsID_0006 |
-| `locationName` | a named landscape, usually a protected area | Paluma_Range_NP |
-| `deploymentGroups` | a survey: one landscape, at most 100 days | Paluma_Range_NP_2023_b_Mclean_WildObsID_0006 |
-| `multiSeason_deploymentGroup` | **WildObs:** repeat surveys of a landscape, split where sampling stops for more than 30 days | Paluma_Range_NP_long-term_sampling_2023-24_WildObsID_0006 |
+| `locationID` | a camera station, which can host several deployments over time | T1_C1_SEVT_WildObsID_0005 |
+| `locationName` | a named landscape, usually a protected area | Dwyers_Scrub_CP |
+| `deploymentGroups` | a survey: one landscape, at most 100 days | Dwyers_Scrub_CP_2023_Amir_WildObsID_0005 |
+| `multiSeason_deploymentGroup` | **WildObs:** repeat surveys of a landscape, split where sampling stops for more than 30 days | Dwyers_Scrub_CP_2023_Amir_WildObsID_0005 |
 
 
 ``` r
@@ -170,7 +167,7 @@ c(deployments = nrow(deps),
   surveys = length(unique(deps$deploymentGroups)),
   multi_season_groups = length(unique(deps$multiSeason_deploymentGroup)))
 #>         deployments            stations          landscapes             surveys 
-#>                  75                  30                   1                   5 
+#>                  32                  32                   1                   1 
 #> multi_season_groups 
 #>                   1
 ```
@@ -185,7 +182,7 @@ long-term and multi-season analyses:
 # one deployment per camera per multi-season group
 long <- recombine_deployment_groups(dp)
 nrow(frictionless::read_resource(long, "deployments"))
-#> [1] 43
+#> [1] 32
 ```
 
 `deploymentTags` holds `key: value` pairs, such as the lure used. `extract_tags()` turns
@@ -196,11 +193,11 @@ each key into a column:
 # each tag key as its own column
 head(extract_tags(deps)[, c("deploymentID", "lure", "predatorManagement")], 3)
 #> # A tibble: 3 × 3
-#>   deploymentID                         lure         predatorManagement
-#>   <chr>                                <chr>        <chr>             
-#> 1 Bambaroo Track_WildObsID_0006_2023_b paintedballs noMention         
-#> 2 Bambaroo Track_WildObsID_0006_2024_a paintedballs noMention         
-#> 3 Bambaroo Track_WildObsID_0006_2024_b paintedballs noMention
+#>   deploymentID                     lure  predatorManagement
+#>   <chr>                            <chr> <chr>             
+#> 1 T1_C1_SEVT_WildObsID_0005_2023   none  no management     
+#> 2 T1_C1_Sclero_WildObsID_0005_2023 none  no management     
+#> 3 T1_C2_SEVT_WildObsID_0005_2023   none  no management
 ```
 
 ## Observations, events and media: three linked identifiers
@@ -227,12 +224,12 @@ animal <- obs[obs$observationType == "animal" & !grepl("^obscured_for_", obs$dep
 # how many observations each event groups
 summary(as.vector(table(animal$eventID)))
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#>   1.000   1.000   1.000   1.124   1.000   6.000
+#>   1.000   1.000   1.000   1.122   1.000   6.000
 
 # how many images each observation has, through the WildObs link in media
 summary(as.vector(table(med$observationID[med$observationID %in% animal$observationID])))
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#>    1.00    5.00   10.00   14.09   18.00  372.00
+#>   1.000   3.000   5.000   8.291   8.000 121.000
 ```
 
 WildObs adds `deltaTime_event` to observations, the seconds since the previous event at the
@@ -244,7 +241,7 @@ same deployment, which helps choose an independence threshold for your own analy
 # minutes since the previous event, for animal observations
 summary(animal$deltaTime_event / 60)
 #>      Min.   1st Qu.    Median      Mean   3rd Qu.      Max.      NA's 
-#>      0.00     74.08    876.20   5675.42   2912.98 445195.45        17
+#>     0.000     8.746   222.708  1269.968  1401.162 18270.733        79
 ```
 
 ### Observation types and obscured records
@@ -258,12 +255,13 @@ vehicles are kept, because they record that a camera was working. Filter by
 table(obs$observationType)
 #> 
 #>       animal        human      vehicle        blank      unknown unclassified 
-#>         1956           55            0         2054           72            0
+#>         1312           61            0         1512            0            0
 ```
 
 Records of species listed as threatened under the *Environment Protection and Biodiversity
 Conservation Act 1999* are obscured in the states where they are listed. In this project
-that includes the southern cassowary. The species, date and count are kept, but the four
+that includes the koala and the black-breasted button-quail. The species, date and count
+are kept, but the four
 identifiers read `obscured_for_<category>_species`, so the record cannot be joined to a
 camera:
 
@@ -273,8 +271,9 @@ camera:
 obscured <- obs[grepl("^obscured_for_", obs$deploymentID), ]
 table(obscured$deploymentID, obscured$scientificName)
 #>                                  
-#>                                   Casuarius casuarius
-#>   obscured_for_endangered_species                  11
+#>                                   Phascolarctos cinereus Turnix melanogaster
+#>   obscured_for_endangered_species                      7                   0
+#>   obscured_for_vulnerable_species                      0                   8
 ```
 
 Detection histories built from public data therefore under-count listed species where
@@ -294,12 +293,12 @@ are withheld from public users. `TIR` marks images in the WildObs Tagged Image R
 table(med$filePublic)
 #> 
 #> FALSE  TRUE 
-#> 52836 11020
+#>  3678 17832
 # images in the Tagged Image Repository
 table(med$TIR)
 #> 
 #> FALSE  TRUE 
-#> 52766 11090
+#>  3581 17929
 ```
 
 ## Covariates: the environment around each camera
@@ -318,7 +317,7 @@ grep("^FLII_", names(covs), value = TRUE)
 # its values around this project's cameras
 summary(covs$FLII_3km2)
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#>   8.185   8.720   9.191   9.083   9.449   9.956
+#>   7.729   7.852   7.911   7.913   7.952   8.167
 ```
 
 The source of every covariate, with its resolution, buffer and citation, is in the
@@ -399,20 +398,21 @@ sessionInfo()
 #> [13] proxy_0.4-29       cluster_2.1.8.1    chron_2.3-63       pkgconfig_2.0.3   
 #> [17] Matrix_1.7-3       KernSmooth_2.23-26 desc_1.4.3         lifecycle_1.0.5   
 #> [21] compiler_4.5.1     stringr_1.6.0      terra_1.9-50       codetools_0.2-20  
-#> [25] permute_0.9-10     usethis_3.2.1      class_7.3-23       pillar_1.11.1     
-#> [29] tidyr_1.3.2        MASS_7.3-65        ellipsis_0.3.2     classInt_0.4-11   
-#> [33] mongolite_4.1.0    cachem_1.1.0       vegan_2.7-6        sessioninfo_1.2.3 
-#> [37] nlme_3.1-168       tidyselect_1.2.1   stringi_1.8.9      sf_1.1-3          
-#> [41] dplyr_1.2.1        purrr_1.2.2        splines_4.5.1      rprojroot_2.1.1   
-#> [45] fastmap_1.2.0      grid_4.5.1         cli_3.6.6          magrittr_2.0.5    
-#> [49] utf8_1.2.6         pkgbuild_1.4.8     e1071_1.7-17       withr_3.0.3       
-#> [53] readr_2.2.0        lubridate_1.9.5    timechange_0.4.0   httr_1.4.9        
-#> [57] ozmaps_0.4.5       otel_0.2.0         lutz_0.3.2         hms_1.1.4         
-#> [61] memoise_2.0.1      evaluate_1.0.5     knitr_1.52         mgcv_1.9-3        
-#> [65] frictionless_1.3.0 rlang_1.3.0        Rcpp_1.1.2         glue_1.8.1        
-#> [69] DBI_1.3.0          geojsonsf_2.0.5    pkgload_1.4.1      rstudioapi_0.17.1 
-#> [73] jsonlite_2.0.0     R6_2.6.1           plyr_1.8.9         oz_1.0-22         
-#> [77] fs_1.6.6           units_1.0-1
+#> [25] permute_0.9-10     usethis_3.2.1      class_7.3-23       crayon_1.5.3      
+#> [29] pillar_1.11.1      tidyr_1.3.2        MASS_7.3-65        ellipsis_0.3.2    
+#> [33] classInt_0.4-11    mongolite_4.1.0    cachem_1.1.0       vegan_2.7-6       
+#> [37] sessioninfo_1.2.3  nlme_3.1-168       tidyselect_1.2.1   stringi_1.8.9     
+#> [41] sf_1.1-3           dplyr_1.2.1        purrr_1.2.2        splines_4.5.1     
+#> [45] rprojroot_2.1.1    fastmap_1.2.0      grid_4.5.1         cli_3.6.6         
+#> [49] magrittr_2.0.5     utf8_1.2.6         pkgbuild_1.4.8     e1071_1.7-17      
+#> [53] withr_3.0.3        readr_2.2.0        bit64_4.8.6        lubridate_1.9.5   
+#> [57] timechange_0.4.0   httr_1.4.9         ozmaps_0.4.5       bit_4.6.0         
+#> [61] otel_0.2.0         lutz_0.3.2         hms_1.1.4          memoise_2.0.1     
+#> [65] evaluate_1.0.5     knitr_1.52         mgcv_1.9-3         frictionless_1.3.0
+#> [69] rlang_1.3.0        Rcpp_1.1.2         glue_1.8.1         DBI_1.3.0         
+#> [73] geojsonsf_2.0.5    pkgload_1.4.1      vroom_1.7.1        rstudioapi_0.17.1 
+#> [77] jsonlite_2.0.0     R6_2.6.1           plyr_1.8.9         oz_1.0-22         
+#> [81] fs_1.6.6           units_1.0-1
 ```
 
 </details>

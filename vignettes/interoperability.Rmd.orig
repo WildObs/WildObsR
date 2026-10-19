@@ -33,8 +33,8 @@ library(WildObsR)
 # your personal API key, read from .Renviron (see the Get started vignette)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
-# a baited survey in Paluma Range National Park, with its media table, which Camtrap DP requires
-id <- "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
+# a small teaching survey at Dwyers Scrub, Queensland, with its media table, which Camtrap DP requires
+id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[1]]
 ```
 
@@ -79,7 +79,7 @@ record table (one row per detection):
 
 ```{r camtrapr-read}
 # save the converted package as CSV files and a datapackage.json
-pkg_dir <- file.path(tempdir(), "paluma_camtrapdp")
+pkg_dir <- file.path(tempdir(), "dwyers_scrub_camtrapdp")
 frictionless::write_package(out$package, pkg_dir)
 
 # read it the way camtrapR does
@@ -97,13 +97,18 @@ dim(ct$recordTable)
 
 camtrapR joins every deployment at a station into one row and records the gaps between them
 as `Problem` periods, so its camera operation matrix counts only the days a camera was
-running. From there, camtrapR builds detection histories with effort:
+running. A station with a single deployment has no gaps, so camtrapR adds no `Problem`
+columns; tell it whether there are any. From there, camtrapR builds detection histories
+with effort:
 
 ```{r camtrapr-dh}
+# whether any station has gaps between its deployments
+has_gaps <- any(grepl("^Problem", names(ct$CTtable)))
+
 # days each station was operating
 camop <- camtrapR::cameraOperation(CTtable = ct$CTtable, stationCol = "Station",
                                    setupCol = "Setup_date", retrievalCol = "Retrieval_date",
-                                   hasProblems = TRUE, dateFormat = "ymd HMS",
+                                   hasProblems = has_gaps, dateFormat = "ymd HMS",
                                    writecsv = FALSE)
 
 # animal detections that can be placed on a station
@@ -111,14 +116,15 @@ rec <- ct$recordTable[ct$recordTable$observationType == "animal" &
                         !grepl("^obscured_for_", ct$recordTable$deploymentID), ]
 rec$Station <- rec$locationID
 
-# weekly detection history of feral pigs, with the camera-days behind each cell
+# weekly detection history of Australian brush-turkeys, with the camera-days behind each cell
 dh <- camtrapR::detectionHistory(recordTable = rec, camOp = camop, stationCol = "Station",
                                  speciesCol = "scientificName",
                                  recordDateTimeCol = "DateTimeOriginal",
-                                 recordDateTimeFormat = "ymd HMS", species = "Sus scrofa",
+                                 recordDateTimeFormat = "ymd HMS", species = "Alectura lathami",
                                  occasionLength = 7, day1 = "station", includeEffort = TRUE,
                                  scaleEffort = FALSE, timeZone = "UTC")
-dh$detection_history[1:5, 1:8]
+# the first five stations, every week
+head(dh$detection_history, 5)
 ```
 
 camtrapR reads the date-times as UTC, the time zone they are written in. Pass the project's
@@ -135,14 +141,14 @@ two tables read above:
 camtrapR::surveyDashboard(
   CTtable = ct$CTtable, recordTable = rec,
   stationCol = "Station", setupCol = "Setup_date", retrievalCol = "Retrieval_date",
-  hasProblems = TRUE, CTdateFormat = "ymd HMS",
+  hasProblems = has_gaps, CTdateFormat = "ymd HMS",
   xcol = "longitude", ycol = "latitude", crs = "epsg:4326",
   speciesCol = "scientificName", recordDateTimeCol = "DateTimeOriginal",
   recordDateTimeFormat = "ymd HMS", timeZone = "Australia/Brisbane"
 )
 ```
 
-![The camtrapR survey dashboard on the Paluma project: stations, records, species, survey
+![The camtrapR survey dashboard on the Dwyers Scrub project: stations, records, species, survey
 dates and trap nights, with the number of records of each species.](figures/interoperability-dashboard-summary.png){width=100%}
 
 <details>

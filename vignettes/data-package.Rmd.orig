@@ -20,8 +20,9 @@ standard meaning, so anyone who knows Camtrap DP can already read most of it. Th
 downloads one complete project, images included, and walks through what each part holds,
 which identifiers link the tables, and exactly where WildObs extends the standard.
 
-The project is a baited survey for southern cassowaries in Paluma Range National Park,
-Queensland, small enough to download in full in about a minute.
+The project is a 2023 University of Queensland teaching survey at Dwyers Scrub,
+Queensland: 32 cameras, small enough to download in full, images included, in about a
+minute.
 
 ```{r download, message = FALSE}
 library(WildObsR)
@@ -30,7 +31,7 @@ library(WildObsR)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
 # one project, with its media table
-id <- "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
+id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[1]]
 ```
 
@@ -180,7 +181,8 @@ table(obs$observationType)
 
 Records of species listed as threatened under the *Environment Protection and Biodiversity
 Conservation Act 1999* are obscured in the states where they are listed. In this project
-that includes the southern cassowary. The species, date and count are kept, but the four
+that includes the koala and the black-breasted button-quail. The species, date and count
+are kept, but the four
 identifiers read `obscured_for_<category>_species`, so the record cannot be joined to a
 camera:
 

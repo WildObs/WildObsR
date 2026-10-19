@@ -175,15 +175,15 @@ returns it, with the version of the database the data came from, as text, as Bib
 reference manager, or as a table:
 
 ```{r cite}
-# the open Wet Tropics projects, as an example
-wet_tropics <- c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
-                 "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")
+# the two open projects bundled with WildObsR, as an example
+examples <- c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
+              "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")
 
 # formatted references, with the date the data were accessed
-writeLines(cite_datapackages(meta[wet_tropics], accessed = Sys.Date()))
+writeLines(cite_datapackages(meta[examples], accessed = Sys.Date()))
 
 # or BibTeX
-utils::toBibtex(cite_datapackages(meta[wet_tropics], format = "bibtex"))
+utils::toBibtex(cite_datapackages(meta[examples], format = "bibtex"))
 ```
 
 Packages downloaded with their tables can also cite the products behind the WildObs
