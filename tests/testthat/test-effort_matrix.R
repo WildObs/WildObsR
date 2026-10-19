@@ -167,3 +167,29 @@ test_that("effort_matrix runs on the camtrapdp example dataset", {
   running <- sum(as.numeric(difftime(deps$deploymentEnd, deps$deploymentStart, units = "days")))
   expect_equal(sum(eff$effort_total), running, tolerance = 1e-6)
 })
+
+test_that("effort_matrix() uses UTC days when the cameras span several time zones", {
+  # two cameras ten days each, one near Brisbane and one near Perth
+  deps <- data.frame(deploymentID = c("A", "B"), locationID = c("a", "b"),
+                     latitude = c(-27.5, -31.9), longitude = c(153.0, 115.9),
+                     deploymentStart = as.POSIXct("2024-01-01 00:00", tz = "Australia/Brisbane"),
+                     deploymentEnd = as.POSIXct("2024-01-11 00:00", tz = "Australia/Brisbane"))
+
+  # found from the coordinates, with a message naming both zones
+  expect_message(eff <- effort_matrix(deps, site_col = "locationID", w = 5),
+                 "span 2 time zones \\(Australia/Brisbane, Australia/Perth\\)")
+  expect_equal(eff$settings$time_zone, "UTC")
+  # the same when several zones are given
+  expect_message(eff <- effort_matrix(deps, site_col = "locationID", w = 5,
+                                      time_zone = c("Australia/Brisbane", "Australia/Perth")),
+                 "span 2 time zones")
+  expect_equal(eff$settings$time_zone, "UTC")
+  # one zone given keeps local days
+  eff <- effort_matrix(deps, site_col = "locationID", w = 5, time_zone = "Australia/Brisbane")
+  expect_equal(eff$settings$time_zone, "Australia/Brisbane")
+  # zones with the same clock count as one: Brisbane and the Whitsundays
+  deps$latitude <- c(-27.5, -20.3)
+  deps$longitude <- c(153.0, 148.9)
+  eff <- effort_matrix(deps, site_col = "locationID", w = 5)
+  expect_equal(eff$settings$time_zone, "Australia/Brisbane")
+})

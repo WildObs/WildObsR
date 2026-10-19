@@ -63,6 +63,32 @@ level (for example the share of effort at trail cameras).
 }
 Where no camera ran, observation covariates are \code{NA}, matching the detections.
 
+One site covariate is always added too:
+\itemize{
+\item \code{total_effort}, each site's camera-days summed over the modelled occasions (the
+row sums of \code{effort}). It is in the site covariates for every output, and also in
+\code{det.covs} for single-season spOccupancy and spAbundance output, since those packages
+read detection covariates only from there.
+}
+}
+\section{effort or total_effort?}{
+
+Both describe sampling effort, at different resolutions:
+\itemize{
+\item \code{effort} varies by occasion, so an occasion when one of a cell's three cameras ran
+is not treated like one when all three ran. It is the better choice for detection
+probability whenever the model accepts observation covariates.
+\item \code{total_effort} is one value per site. Use it in models or formulas that take
+site covariates only, or to compare with \code{effort}: if detection depends on
+\code{total_effort} but not on \code{effort}, sites differ in how much they were sampled more
+than occasions do.
+}
+\code{total_effort} counts only the occasions in the detections, so it leaves out the days
+after \code{dur} that \code{\link[=effort_matrix]{effort_matrix()}} dropped. It therefore differs from \code{cellEffort} in the
+resampled covariates of \code{\link[=resample_covariates_and_observations]{resample_covariates_and_observations()}}, which counts every day
+each camera ran. The two give the same total only when \code{dur} keeps every day. A
+\code{site_covs} column named \code{total_effort} stops the function.
+
 The outputs are:
 \describe{
 \item{\code{"unmarked"}}{An \code{unmarkedFrameOccu} (occupancy) or \code{unmarkedFramePCount}
@@ -81,6 +107,7 @@ occasions when \code{seasons} is given (\code{tPGOcc()}, \code{tMsPGOcc()}).}
 dimensions, and \code{observed}, which is \code{TRUE} where a camera ran.}
 }
 }
+
 \examples{
 # one camera at each of three stations for 10 days
 deps <- data.frame(

@@ -190,3 +190,20 @@ test_that("spOccupancy and spAbundance fit multi-species models to the output", 
                         n.batch = 4, batch.length = 25, n.burn = 50, n.thin = 1,
                         n.chains = 1, verbose = FALSE)))
 })
+
+test_that("model_matrix_input adds total_effort, the camera-days over the modelled occasions", {
+  x <- survey_inputs()
+  inp <- model_matrix_input(x$y, x$eff, site_covs = x$covs, output = "array")
+
+  # the row sums of the effort matrix, beside the user's covariates
+  expect_equal(inp$site_covs$total_effort, unname(rowSums(x$eff$effort_total)))
+  expect_true("elevation" %in% names(inp$site_covs))
+  # spOccupancy reads detection covariates from det.covs only, so it is there too
+  sp <- model_matrix_input(x$y, x$eff, output = "spOccupancy")
+  expect_equal(unname(sp$det.covs$total_effort), unname(rowSums(x$eff$effort_total)))
+  # a user column of the same name stops rather than being replaced
+  covs <- x$covs
+  covs$total_effort <- 1
+  expect_error(model_matrix_input(x$y, x$eff, site_covs = covs, output = "array"),
+               "site_covs has a total_effort column")
+})

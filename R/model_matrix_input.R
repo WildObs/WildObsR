@@ -15,6 +15,31 @@
 #' }
 #' Where no camera ran, observation covariates are `NA`, matching the detections.
 #'
+#' One site covariate is always added too:
+#' \itemize{
+#'   \item `total_effort`, each site's camera-days summed over the modelled occasions (the
+#'     row sums of `effort`). It is in the site covariates for every output, and also in
+#'     `det.covs` for single-season spOccupancy and spAbundance output, since those packages
+#'     read detection covariates only from there.
+#' }
+#'
+#' @section effort or total_effort?:
+#' Both describe sampling effort, at different resolutions:
+#' \itemize{
+#'   \item `effort` varies by occasion, so an occasion when one of a cell's three cameras ran
+#'     is not treated like one when all three ran. It is the better choice for detection
+#'     probability whenever the model accepts observation covariates.
+#'   \item `total_effort` is one value per site. Use it in models or formulas that take
+#'     site covariates only, or to compare with `effort`: if detection depends on
+#'     `total_effort` but not on `effort`, sites differ in how much they were sampled more
+#'     than occasions do.
+#' }
+#' `total_effort` counts only the occasions in the detections, so it leaves out the days
+#' after `dur` that [effort_matrix()] dropped. It therefore differs from `cellEffort` in the
+#' resampled covariates of [resample_covariates_and_observations()], which counts every day
+#' each camera ran. The two give the same total only when `dur` keeps every day. A
+#' `site_covs` column named `total_effort` stops the function.
+#'
 #' The outputs are:
 #' \describe{
 #'   \item{`"unmarked"`}{An `unmarkedFrameOccu` (occupancy) or `unmarkedFramePCount`
@@ -138,6 +163,20 @@ model_matrix_input <- function(detections, effort, site_covs = NULL, obs_covs = 
   ### Site covariates and coordinates, matched by site name ----
 
   site_df <- .match_sites(site_covs, sites, effort$settings$site_col, "site_covs")
+  ## each site's camera-days over the modelled occasions, a site-level version of effort
+  # a user column of the same name would be silently replaced, so stop instead
+  if (!is.null(site_df) && "total_effort" %in% names(site_df)) {
+    stop("model_matrix_input(): site_covs has a total_effort column, which model_matrix_input() adds from the effort matrix.\n",
+         "Rename your column.", call. = FALSE)
+  } # end total_effort clash check
+  # the row sums of the effort matrix, so days beyond dur are never counted
+  total_effort <- rowSums(effort$effort_total)
+  # added beside the user's site covariates, or as the only one
+  if (is.null(site_df)) {
+    site_df <- data.frame(total_effort = total_effort, row.names = sites)
+  } else {
+    site_df$total_effort <- total_effort
+  } # end total_effort condition
   # missing covariate values break most model fitting functions, so say where they are
   if (!is.null(site_df) && anyNA(site_df)) {
     # warn but dont stop the process. 
@@ -264,6 +303,8 @@ model_matrix_input <- function(detections, effort, site_covs = NULL, obs_covs = 
       y <- matrix(y, nrow = length(sites), dimnames = list(sites, occs))
     } # end single species condition
     det_covs <- obs_list
+    # spOccupancy and spAbundance read detection covariates from det.covs only, so total_effort goes there too
+    if (is.null(seasons)) det_covs$total_effort <- total_effort
     if (!is.null(seasons)) {
       # a season dimension before the occasions: [species, ]site x season x occasion
       y4 <- .by_season(detections, seasons)

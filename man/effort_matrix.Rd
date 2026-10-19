@@ -36,13 +36,24 @@ calendar) start, to keep. Defaults to \code{NULL}, which keeps every day with ef
 \item{split_by}{Character or \code{NULL}. A deployments column, such as \code{"featureType"} or
 \code{"baitUse"}, to split effort by. When given, the third dimension of \code{effort} holds its
 levels instead of individual deployments, so the share of effort under each level can
-be used as an observation covariate.}
+be used as an observation covariate. One column only: to split by two, combine them
+into one column first, for example
+\code{deps$bait_trail <- paste(deps$baitUse, deps$trailStatus, sep = "_")}, then
+\code{split_by = "bait_trail"}. Missing values become their own level, \code{"NA"}, so decide
+what they mean before splitting.}
 
 \item{crosswalk}{A data frame or \code{NULL}. The \code{deployment_crosswalk} from
 \code{\link[=recombine_deployment_groups]{recombine_deployment_groups()}}, with \code{deploymentID}, \code{pieceStart} and \code{pieceEnd}.}
 
 \item{time_zone}{Character or \code{NULL}. The time zone that defines a calendar day, such as
-\code{dp$temporal$timeZone}. Defaults to the time zone of \code{deploymentStart}, then UTC.}
+\code{dp$temporal$timeZone}. Defaults to the time zone of \code{deploymentStart}, then UTC.
+When the deployments span several time zones (several values given, or, with \code{NULL},
+cameras whose coordinates fall in zones with different clocks, such as Queensland and
+New South Wales in summer), every camera uses UTC days, with a message. Effort and
+detections share the same day boundaries, so the matrices stay consistent; the day
+simply starts at 10 am in AEST, so an early-morning detection falls on the previous
+UTC day. That is harmless for occasions of several days. Zone names with the same
+clock, such as \code{Australia/Brisbane} and \code{Australia/Lindeman}, count as one.}
 }
 \value{
 A list of class \code{wildobs_effort}:

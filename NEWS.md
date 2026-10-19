@@ -13,6 +13,14 @@
   histories are `NA` only where no camera ran, and a detection on a day its camera was not
   running stops with an error. On single-camera stations both agree with
   `camtrapR::detectionHistory()`. They work on any Camtrap DP package.
+- `effort_matrix()` uses UTC days, with a message, when the deployments span several
+  time zones, given as several `time_zone` values or found from the cameras' coordinates.
+  Zone names that keep the same clock over the survey count as one. To split effort by two
+  columns, combine them into one first (see `?effort_matrix`).
+- `model_matrix_input()` adds `total_effort`, each site's camera-days over the modelled
+  occasions, as a site covariate (and to `det.covs` for single-season spOccupancy and
+  spAbundance output). `?model_matrix_input` explains when to use it rather than the
+  per-occasion `effort`, and how it differs from the resample's `cellEffort`.
 - `model_matrix_input()` formats those detection histories, with site and observation
   covariates matched to sites by name, for unmarked (`occu()`, `pcount()`, `occuComm()`,
   and `colext()` with `seasons`), spOccupancy (`PGOcc()`, `msPGOcc()`, `tMsPGOcc()` and

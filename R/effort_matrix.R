@@ -43,11 +43,22 @@
 #' @param split_by Character or `NULL`. A deployments column, such as `"featureType"` or
 #'   `"baitUse"`, to split effort by. When given, the third dimension of `effort` holds its
 #'   levels instead of individual deployments, so the share of effort under each level can
-#'   be used as an observation covariate.
+#'   be used as an observation covariate. One column only: to split by two, combine them
+#'   into one column first, for example
+#'   `deps$bait_trail <- paste(deps$baitUse, deps$trailStatus, sep = "_")`, then
+#'   `split_by = "bait_trail"`. Missing values become their own level, `"NA"`, so decide
+#'   what they mean before splitting.
 #' @param crosswalk A data frame or `NULL`. The `deployment_crosswalk` from
 #'   [recombine_deployment_groups()], with `deploymentID`, `pieceStart` and `pieceEnd`.
 #' @param time_zone Character or `NULL`. The time zone that defines a calendar day, such as
 #'   `dp$temporal$timeZone`. Defaults to the time zone of `deploymentStart`, then UTC.
+#'   When the deployments span several time zones (several values given, or, with `NULL`,
+#'   cameras whose coordinates fall in zones with different clocks, such as Queensland and
+#'   New South Wales in summer), every camera uses UTC days, with a message. Effort and
+#'   detections share the same day boundaries, so the matrices stay consistent; the day
+#'   simply starts at 10 am in AEST, so an early-morning detection falls on the previous
+#'   UTC day. That is harmless for occasions of several days. Zone names with the same
+#'   clock, such as `Australia/Brisbane` and `Australia/Lindeman`, count as one.
 #'
 #' @return A list of class `wildobs_effort`:
 #'   \describe{
@@ -168,14 +179,29 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
   } # end dur check
 
   ## the time zone that defines a day: the argument, else the data's own, else UTC
+  # without an argument, look up the cameras' own zones, since combined projects can span several
+  if (is.null(time_zone) && all(c("latitude", "longitude") %in% names(deps))) {
+    # the distinct zones the cameras sit in
+    camera_zones <- .camera_time_zones(deps)
+    # more than one is handled by the rule below; one keeps the data's own zone
+    if (length(camera_zones) > 1) time_zone <- camera_zones
+  } # end camera zone lookup
   if (is.null(time_zone)) time_zone <- attr(deps$deploymentStart, "tzone")
   if (is.null(time_zone) || length(time_zone) == 0 || !nzchar(time_zone[1])) {
     time_zone <- "UTC"
     message("effort_matrix(): no time zone given or found on deploymentStart, so days run midnight to midnight UTC.\n",
             "Pass time_zone = dp$temporal$timeZone to use local days.")
   } # end time zone fallback
+  ## several zones share no single local day, so every camera uses UTC days
+  if (length(unique(time_zone)) > 1) {
+    # say which zones, and why this is still consistent
+    message(sprintf("effort_matrix(): the deployments span %d time zones (%s), so days run midnight to midnight UTC for all of them.\n",
+                    length(unique(time_zone)), paste(unique(time_zone), collapse = ", ")),
+            "Effort and detections share these day boundaries, so the matrices stay consistent; ",
+            "a day starts at 10 am in AEST, for example. Pass one time_zone to use local days instead.")
+    time_zone <- "UTC"
+  } # end several zones condition
   time_zone <- time_zone[1]
-  ## TODO: ideally, we should be able to handle multiple timezones... maybe this can be extrapolated to a column?
 
 
   #
@@ -211,8 +237,7 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
     # provide a warning if found
     warning(sprintf("effort_matrix() left out %d deployment period(s) with a missing start or end, e.g. %s.",
                     sum(incomplete), periods$deploymentID[which(incomplete)[1]]), call. = FALSE)
-    ## TODO: update the warning to note that they are removed from the effort data 
-    # and drop the deployments w/ no effort 
+    # and drop the periods w/ no knowable effort; their deployments stay in the matrix as sites with no effort
     periods <- periods[!incomplete, , drop = FALSE]
   } # end incomplete condition
 
@@ -364,3 +389,42 @@ effort_matrix <- function(deps, site_col = "deploymentID", w, dur = NULL,
                     stringsAsFactors = FALSE)
   return(out[out$camera_days > 0, , drop = FALSE])
 } # end .running_days
+
+
+#' Find the distinct time zones the cameras sit in
+#'
+#' Zones are looked up from each camera's coordinates. Zones with different names but the
+#' same clock over the whole survey (for example `Australia/Brisbane` and
+#' `Australia/Lindeman`) count as one, so only zones whose local days really differ are
+#' returned.
+#'
+#' @param deps Data frame with `latitude`, `longitude`, `deploymentStart` and
+#'   `deploymentEnd`.
+#' @return A character vector of time zones with distinct clocks, possibly empty.
+#' @author Zachary Amir
+#' @noRd
+.camera_time_zones <- function(deps) {
+  # cameras with both coordinates
+  has_xy <- !is.na(deps$latitude) & !is.na(deps$longitude)
+  # nothing to look up
+  if (!any(has_xy)) return(character(0))
+  # each distinct camera position once, which keeps the lookup quick
+  xy <- unique(data.frame(lat = deps$latitude[has_xy], lon = deps$longitude[has_xy]))
+  # the zone of each position
+  zones <- suppressWarnings(lutz::tz_lookup_coords(xy$lat, xy$lon, method = "fast", warn = FALSE))
+  # the distinct zones that were found
+  zones <- sort(unique(zones[!is.na(zones)]))
+  # one zone or none needs no comparison
+  if (length(zones) < 2) return(zones)
+  ## compare the zones' clocks on every day of the survey
+  # the survey's days, from the first start to the last end
+  days <- seq(as.Date(min(deps$deploymentStart, na.rm = TRUE)),
+              as.Date(max(deps$deploymentEnd, na.rm = TRUE)), by = "day")
+  # midday UTC on each day, a moment that falls on that date everywhere in Australia
+  noon <- as.POSIXct(paste(days, "12:00:00"), tz = "UTC")
+  # each zone's offset from UTC on each of those days, joined into one fingerprint
+  clocks <- vapply(zones, function(z) paste(as.POSIXlt(noon, tz = z)$gmtoff, collapse = ","),
+                   character(1))
+  # keep the first zone of each distinct clock
+  zones[!duplicated(clocks)]
+} # end .camera_time_zones
