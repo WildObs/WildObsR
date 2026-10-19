@@ -44,32 +44,34 @@ run_mg <- function(obs = reg_obs(), covs = reg_covs(), ...) {
 ##
 ### Input checks that used to pass anything ----
 
-test_that("matrix_generator stops on NA values in a site covariate", {
+test_that("matrix_generator warns about, and keeps, NA values in a site covariate", {
   covs <- reg_covs()
   covs$Avg_FLII_3km2[2] <- NA
-  expect_error(run_mg(covs = covs), "NA values in the site covariate\\(s\\) Avg_FLII_3km2")
+  expect_warning(res <- run_mg(covs = covs), "NA values in the site covariate\\(s\\) Avg_FLII_3km2")
+  # the NA stays, for the modelling package to handle
+  expect_true(anyNA(res$Species_A$site_level_covariates$Avg_FLII_3km2))
 })
 
-test_that("matrix_generator stops on NA values in an observation covariate", {
+test_that("matrix_generator warns about NA values in an observation covariate", {
   obs <- reg_obs()
   obs$baitUse[1] <- NA
-  expect_error(run_mg(obs = obs, obs_covs = "baitUse"),
-               "NA values in the observation covariate\\(s\\) baitUse")
+  expect_warning(run_mg(obs = obs, obs_covs = "baitUse"),
+                 "NA values in the observation covariate\\(s\\) baitUse")
 })
 
 test_that("matrix_generator stops on an observation covariate that is not a column", {
   expect_error(run_mg(obs_covs = "cameraHeight"), "could not find the observation covariate")
 })
 
-test_that("matrix_generator stops when only one of the two date columns is a date-time", {
-  # eventEnd as text, eventStart still a date-time
+test_that("matrix_generator converts text date columns, and stops on values it cannot read", {
+  # eventEnd as readable text, eventStart still a date-time
   obs <- reg_obs()
-  obs$eventEnd <- as.character(obs$eventEnd)
-  expect_error(run_mg(obs = obs), "eventStart and eventEnd in obs as POSIXct")
-  # and the same for the sampling end
+  obs$eventEnd <- format(obs$eventEnd, "%Y-%m-%d %H:%M:%S", tz = "UTC")
+  expect_message(run_mg(obs = obs), "converted eventEnd in obs from text to date-times")
+  # a value that is not a date stops, naming it
   covs <- reg_covs()
-  covs$samplingEnd <- as.character(covs$samplingEnd)
-  expect_error(run_mg(covs = covs), "samplingStart and samplingEnd in covs as POSIXct")
+  covs$samplingEnd <- c("2023-02-23 18:00:00", "not a date")
+  expect_error(run_mg(covs = covs), "could not read 1 value\\(s\\) of samplingEnd in covs.*not a date")
 })
 
 
@@ -175,13 +177,31 @@ test_that("matrix_generator keeps a sampling unit with no observations, as zeros
   expect_equal(as.numeric(res$Species_A$detection_matrix["Cell_C", ]), c(0, 0))
 })
 
-test_that("matrix_generator drops character site covariates that do not vary", {
-  # a habitat recorded as the same everywhere
+test_that("matrix_generator keeps site covariates that do not vary", {
+  # a habitat and a forest integrity recorded as the same everywhere
   covs <- reg_covs()
   covs$mode_habitat <- "forest"
-  expect_warning(res <- run_mg(covs = covs), "no variation in the site-level covariate: mode_habitat")
-  # is warned about and left out
-  expect_false("mode_habitat" %in% names(res$Species_A$site_level_covariates))
+  covs$Avg_FLII_3km2 <- 80
+  sc <- run_mg(covs = covs)$Species_A$site_level_covariates
+  # both are kept, the numeric one standardised to 0
+  expect_equal(sc$mode_habitat, c("forest", "forest"))
+  expect_equal(sc$Avg_FLII_3km2, c(0, 0))
+})
+
+test_that("matrix_generator keeps logical site covariates", {
+  # a modal bait use, as the resample now returns it
+  covs <- reg_covs()
+  covs$mode_baitUse <- c(TRUE, FALSE)
+  sc <- run_mg(covs = covs, site_covs = c("mode_habitat", "mode_baitUse"))$Species_A$site_level_covariates
+  expect_equal(sc$mode_baitUse, c(TRUE, FALSE))
+})
+
+test_that("matrix_generator uses UTC days when sampling units span time zones", {
+  # one cell near Cairns and one near Perth
+  covs <- reg_covs()
+  covs$Avg_latitude <- c(-17.5, -31.9)
+  covs$Avg_longitude <- c(145.5, 115.9)
+  expect_message(run_mg(covs = covs), "span 2 time zones \\(Australia/Brisbane, Australia/Perth\\)")
 })
 
 test_that("matrix_generator works with Camtrap DP deployments, using their own coordinates", {

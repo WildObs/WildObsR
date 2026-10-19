@@ -42,14 +42,22 @@
 #'     \itemize{
 #'       \item The identifier column (e.g., \code{cellID} or \code{deploymentID}) is consistent across
 #'         \code{obs} and \code{covs}.
-#'       \item Specified site-level and observation-level covariate columns are present and contain no NA values.
-#'       \item Date-time columns in both \code{obs} and \code{covs} are properly formatted as \code{POSIXct}.
+#'       \item Every sampling unit in \code{obs} has a row in \code{covs}, and every observation
+#'         covariate is a column of \code{obs}; otherwise the function stops.
+#'       \item NA values in site-level or observation-level covariates are kept, with a warning:
+#'         unmarked drops the affected sampling units or occasions with its own warning.
+#'       \item Date-time columns in both \code{obs} and \code{covs} are \code{POSIXct}. Text columns
+#'         are converted, with a message; a value that cannot be read stops the function.
+#'       \item No site-level covariate is dropped. One with the same value everywhere is kept,
+#'         standardised to 0 if numeric.
 #'       \item The provided species names (\code{scientificNames}) exist in the \code{obs} table.
 #'     }
 #'     Sampling units with covariates but no observations are kept, and enter every species'
 #'     matrices as sampled zeros, with a message naming them.
-#'   \item \strong{Timezone Adjustment:} Date-time values are updated to the appropriate timezone based on
-#'     the mean latitude and longitude of the sites using \code{lutz::tz_lookup_coords} and \code{lubridate::with_tz}.
+#'   \item \strong{Timezone Adjustment:} Date-time values are put in the local time zone of the
+#'     sampling units, looked up from their coordinates with \code{lutz::tz_lookup_coords}, so records fall
+#'     on their local day. When the sampling units span time zones with different clocks, every
+#'     unit uses UTC days instead, with a message.
 #'   \item \strong{Date Sequence and Sampling Occasions:} A complete sequence of dates is generated for each
 #'     sampling unit and an index is assigned to each sampling occasion.
 #'   \item \strong{Matrix Generation:} For each species, a detection history matrix is created by aligning
@@ -139,8 +147,6 @@
 #'   \item \strong{Character observation covariates are pasted together} (for example
 #'     \code{"none - trail"}) where several values meet, and summarised by their most common
 #'     value per occasion, so they enter models as many-level factors.
-#'   \item \strong{One time zone} is used for every sampling unit, found from the mean
-#'     coordinates; data spanning time zones are placed on that zone's days.
 #'   \item \strong{A sampling unit is assumed to run continuously} from its first start to its
 #'     last end, so gaps between deployments in a cell count as sampled days.
 #' }
@@ -209,25 +215,27 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
          "Choose obs_covs from the columns of the observations table.", call. = FALSE)
   } # end missing observation covariate check
 
-  ## site covariates cannot hold missing values
+  ## missing site covariate values are kept, since models can handle them, but worth saying
   # the site covariates with at least one NA
   na_site_covs <- site_covs[vapply(site_covs, function(v) anyNA(covs[[v]]), logical(1))]
   if (length(na_site_covs) > 0) {
-    # stop and name them
-    stop(sprintf("matrix_generator() found NA values in the site covariate(s) %s.\n",
-                 paste(na_site_covs, collapse = ", ")),
-         "Choose different site covariates, or fill or drop the sampling units with NA values.",
-         call. = FALSE)
+    # warn and name them
+    warning(sprintf("matrix_generator() found NA values in the site covariate(s) %s; they are kept as NA.\n",
+                    paste(na_site_covs, collapse = ", ")),
+            "unmarked drops the sampling units with missing site covariates, with its own warning, ",
+            "while spOccupancy and spAbundance stop on them, so fill or drop them for those packages.",
+            call. = FALSE)
   } # end site covariate NA check
 
-  ## nor can observation covariates
+  ## the same for observation covariates
   # the observation covariates with at least one NA
   na_obs_covs <- obs_covs[vapply(obs_covs, function(v) anyNA(obs[[v]]), logical(1))]
   if (length(na_obs_covs) > 0) {
-    # stop and name them
-    stop(sprintf("matrix_generator() found NA values in the observation covariate(s) %s.\n",
-                 paste(na_obs_covs, collapse = ", ")),
-         "Choose different observation covariates, or fill the NA values first.", call. = FALSE)
+    # warn and name them
+    warning(sprintf("matrix_generator() found NA values in the observation covariate(s) %s; they are kept as NA.\n",
+                    paste(na_obs_covs, collapse = ", ")),
+            "unmarked treats the detections at those occasions as missing, with its own warning.",
+            call. = FALSE)
   } # end observation covariate NA check
 
   ## cameras running is not effort, since it only counts deployments with a record that day
@@ -246,24 +254,11 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
                "\nPlease choose species names that are present in the observations table."))
   } # end species check
 
-  ## observation times must both be date-times
-  if (!all(vapply(c("eventStart", "eventEnd"),
-                  function(x) inherits(obs[[x]], "POSIXct"), logical(1)))) {
-    # stop and say how to convert them
-    stop("matrix_generator() needs eventStart and eventEnd in obs as POSIXct date-times.\n",
-         "Read the observations with frictionless::read_resource(), or convert them with as.POSIXct().",
-         call. = FALSE)
-  } # end observation date-time check
-
-  ## and so must both sampling dates
-  if (!all(vapply(covs_date_cols,
-                  function(x) inherits(covs[[x]], "POSIXct"), logical(1)))) {
-    # stop and say how to convert them
-    stop(sprintf("matrix_generator() needs %s and %s in covs as POSIXct date-times.\n",
-                 covs_date_cols[1], covs_date_cols[2]),
-         "Read the deployments with frictionless::read_resource(), or convert them with as.POSIXct().",
-         call. = FALSE)
-  } # end covariate date-time check
+  ## observation times and sampling dates must be date-times; text is converted, or stops
+  # observation start and end
+  for (x in c("eventStart", "eventEnd")) obs[[x]] <- .as_datetime_or_stop(obs[[x]], x, "obs")
+  # sampling start and end
+  for (x in covs_date_cols) covs[[x]] <- .as_datetime_or_stop(covs[[x]], x, "covs")
   ## TODO: add more checks as they come up
 
 
@@ -281,9 +276,17 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
          "Keep latitude and longitude (or Avg_latitude and Avg_longitude) in the covariates.",
          call. = FALSE)
   } # end coordinate check
-  # the time zone at the middle of the sites
-  tz <- suppressWarnings(lutz::tz_lookup_coords(mean(covs[[lat_col]]), mean(covs[[lon_col]]),
-                                                method = "fast"))
+  # the distinct time zones the sampling units sit in, as effort_matrix() finds them
+  zones <- .camera_time_zones(data.frame(latitude = covs[[lat_col]], longitude = covs[[lon_col]],
+                                         deploymentStart = covs[[covs_date_cols[1]]],
+                                         deploymentEnd = covs[[covs_date_cols[2]]]))
+  # one zone gives local days; several, or none found, give consistent UTC days
+  tz <- if (length(zones) == 1) zones else "UTC"
+  # say so when several zones force UTC
+  if (length(zones) > 1) {
+    message(sprintf("matrix_generator(): the sampling units span %d time zones (%s), so days run midnight to midnight UTC for all of them.",
+                    length(zones), paste(zones, collapse = ", ")))
+  } # end several zones message
   # observation start and end
   obs$eventEnd <- lubridate::with_tz(obs$eventEnd, tzone = tz)
   obs$eventStart <- lubridate::with_tz(obs$eventStart, tzone = tz)
@@ -312,30 +315,14 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
   # the date-times
   m_date <- covs_dat[, vapply(covs_dat, function(x) inherits(x, "POSIXct"), logical(1))]
   # standardise the numeric covariates so they are comparable across models
-  m_std <- suppressWarnings(vegan::decostand(m_num, method = "standardize", na.rm = TRUE))
-  # and drop any that hold no data at all
-  m_std2 <- data.frame(m_std[, colSums(is.na(m_std)) < nrow(m_std), drop = FALSE])
-  # warn about the ones dropped
-  if (length(names(m_std2)) < length(names(m_std))) {
-    warning(paste("There was no data in the site-level covariate:",
-                  paste(setdiff(names(m_std), names(m_std2)), collapse = " & "),
-                  "so it has been removed from the matrix generation function."))
-  } # end empty covariate warning
+  m_std2 <- data.frame(suppressWarnings(vegan::decostand(m_num, method = "standardize", na.rm = TRUE)))
+  # a covariate with one value everywhere has no spread to scale by, so it sits at its mean, 0
+  constant <- vapply(m_num, function(v) length(unique(v[!is.na(v)])) == 1, logical(1))
+  for (v in names(m_num)[constant]) m_std2[[v]] <- ifelse(is.na(m_num[[v]]), NA, 0)
 
-  ## the character covariates
-  m_char <- data.frame(covs_dat[, vapply(covs_dat, is.character, logical(1)), drop = FALSE])
-  # the ones to check for variation; the sampling unit itself always stays
-  char_covs <- setdiff(names(m_char), row_col)
-  # the ones with more than one value
-  m_char_cols <- char_covs[vapply(char_covs, function(v) length(unique(m_char[[v]])) > 1, logical(1))]
-  # warn about the ones that do not vary, and drop them
-  if (length(m_char_cols) < length(char_covs)) {
-    warning(paste("There was no variation in the site-level covariate:",
-                  paste(setdiff(char_covs, m_char_cols), collapse = " & "),
-                  "so it has been removed from the matrix generation function."))
-  } # end invariant covariate warning
-  # keep the sampling unit and the covariates that vary
-  m_char <- m_char[, intersect(names(m_char), c(row_col, m_char_cols)), drop = FALSE]
+  ## the character, logical and factor covariates, all kept whether or not they vary
+  m_char <- data.frame(covs_dat[, vapply(covs_dat, function(x) is.character(x) || is.logical(x) || is.factor(x),
+                                         logical(1)), drop = FALSE])
   ## put the character, date and standardised numeric covariates back together
   covs_dat <- data.frame(m_char, m_date, m_std2)
 
@@ -748,3 +735,34 @@ matrix_generator <- function(obs, covs, dur, w, site_covs, obs_covs, all_locatio
   ## every species' matrices
   return(sp_list)
 } # end function
+
+
+#' Make a date-time column POSIXct, converting text, or stop
+#'
+#' @param x The column.
+#' @param name Its name, for messages.
+#' @param table `"obs"` or `"covs"`, for messages.
+#' @return `x` as POSIXct. Text is read as ISO 8601 date-times; text without a UTC offset is
+#'   read as UTC. Stops, naming an example, if any value cannot be read.
+#' @author Zachary Amir
+#' @keywords internal
+#' @noRd
+.as_datetime_or_stop <- function(x, name, table) {
+  # already a date-time
+  if (inherits(x, "POSIXct")) return(x)
+  # read text such as 2023-02-01 10:00:00 or 2023-02-01T10:00:00+10:00, dates included
+  out <- suppressWarnings(lubridate::ymd_hms(as.character(x), truncated = 3, quiet = TRUE, tz = "UTC"))
+  # the values that were there but could not be read
+  failed <- is.na(out) & !is.na(x)
+  # if any, stop loudly rather than turn them into missing dates
+  if (any(failed)) {
+    stop(sprintf("matrix_generator() could not read %d value(s) of %s in %s as date-times, e.g. \"%s\".\n",
+                 sum(failed), name, table, as.character(x)[which(failed)[1]]),
+         "Read the tables with frictionless::read_resource(), or convert the column with as.POSIXct().",
+         call. = FALSE)
+  } # end failed conversion check
+  # say that it was converted, and how
+  message(sprintf("matrix_generator(): converted %s in %s from text to date-times; text without a UTC offset is read as UTC.",
+                  name, table))
+  out
+} # end .as_datetime_or_stop

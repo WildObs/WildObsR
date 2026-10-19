@@ -72,7 +72,7 @@ test_that("matrix_generator warns about missing site_covs", {
   )
 })
 
-test_that("matrix_generator requires POSIXct datetime columns in obs", {
+test_that("matrix_generator converts text datetime columns in obs", {
   obs <- create_test_obs_matrix()
   obs$eventStart <- as.character(obs$eventStart)
   obs$eventEnd <- as.character(obs$eventEnd)
@@ -80,7 +80,7 @@ test_that("matrix_generator requires POSIXct datetime columns in obs", {
   obs$observationEnd <- as.character(obs$observationEnd)
   covs <- create_test_covs_matrix()
 
-  expect_error(
+  expect_message(
     matrix_generator(obs, covs, dur = 10, w = 2,
                      site_covs = c("mode_habitat"),
                      obs_covs = character(0),
@@ -88,17 +88,17 @@ test_that("matrix_generator requires POSIXct datetime columns in obs", {
                      scientificNames = "Species A",
                      type = "occupancy",
                      individuals = "sum"),
-    "as POSIXct date-times"
+    "converted eventStart in obs from text to date-times"
   )
 })
 
-test_that("matrix_generator requires POSIXct datetime columns in covs", {
+test_that("matrix_generator converts text datetime columns in covs", {
   obs <- create_test_obs_matrix()
   covs <- create_test_covs_matrix()
   covs$samplingStart <- as.character(covs$samplingStart)
   covs$samplingEnd <- as.character(covs$samplingEnd)
 
-  expect_error(
+  expect_message(
     matrix_generator(obs, covs, dur = 10, w = 2,
                      site_covs = c("mode_habitat"),
                      obs_covs = character(0),
@@ -106,7 +106,7 @@ test_that("matrix_generator requires POSIXct datetime columns in covs", {
                      scientificNames = "Species A",
                      type = "occupancy",
                      individuals = "sum"),
-    "as POSIXct date-times"
+    "converted samplingStart in covs from text to date-times"
   )
 })
 

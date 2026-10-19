@@ -72,8 +72,17 @@ it.
   sampling units with no observations as zeros (with a message), no longer carries a
   shortened `dur` from one species to the next, and no longer drops a species whose
   observation covariates do not vary.
-- `matrix_generator()`'s checks for `NA` covariates and non-date-time columns now run;
-  they used to pass any input.
+- `matrix_generator()`'s input checks now run; they used to pass any input. Observation
+  covariates that are not columns, and sampling units in `obs` without covariates, stop
+  the function. `NA` values in site or observation covariates are kept, with a warning,
+  since unmarked drops the affected units or occasions itself. Text date columns are
+  converted to date-times, with a message, and a value that cannot be read stops the
+  function.
+- `matrix_generator()` uses UTC days, with a message, when the sampling units span time
+  zones with different clocks; otherwise records fall on their local day, as before.
+- `matrix_generator()` no longer drops site covariates: one with the same value everywhere
+  is kept (standardised to 0 if numeric), and logical and factor covariates, such as the
+  resample's `mode_baitUse`, are kept too.
 - `matrix_generator()` warns when `numberDeploymentsActiveAtDate` is used as an
   observation covariate. It counts only the deployments with a record that day, so it
   understates effort and depends on detections. Use `effort_matrix()` for effort.

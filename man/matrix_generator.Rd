@@ -73,14 +73,22 @@ The function performs several key steps:
 \itemize{
 \item The identifier column (e.g., \code{cellID} or \code{deploymentID}) is consistent across
 \code{obs} and \code{covs}.
-\item Specified site-level and observation-level covariate columns are present and contain no NA values.
-\item Date-time columns in both \code{obs} and \code{covs} are properly formatted as \code{POSIXct}.
+\item Every sampling unit in \code{obs} has a row in \code{covs}, and every observation
+covariate is a column of \code{obs}; otherwise the function stops.
+\item NA values in site-level or observation-level covariates are kept, with a warning:
+unmarked drops the affected sampling units or occasions with its own warning.
+\item Date-time columns in both \code{obs} and \code{covs} are \code{POSIXct}. Text columns
+are converted, with a message; a value that cannot be read stops the function.
+\item No site-level covariate is dropped. One with the same value everywhere is kept,
+standardised to 0 if numeric.
 \item The provided species names (\code{scientificNames}) exist in the \code{obs} table.
 }
 Sampling units with covariates but no observations are kept, and enter every species'
 matrices as sampled zeros, with a message naming them.
-\item \strong{Timezone Adjustment:} Date-time values are updated to the appropriate timezone based on
-the mean latitude and longitude of the sites using \code{lutz::tz_lookup_coords} and \code{lubridate::with_tz}.
+\item \strong{Timezone Adjustment:} Date-time values are put in the local time zone of the
+sampling units, looked up from their coordinates with \code{lutz::tz_lookup_coords}, so records fall
+on their local day. When the sampling units span time zones with different clocks, every
+unit uses UTC days instead, with a message.
 \item \strong{Date Sequence and Sampling Occasions:} A complete sequence of dates is generated for each
 sampling unit and an index is assigned to each sampling occasion.
 \item \strong{Matrix Generation:} For each species, a detection history matrix is created by aligning
@@ -111,8 +119,6 @@ weighted by camera-days.
 \item \strong{Character observation covariates are pasted together} (for example
 \code{"none - trail"}) where several values meet, and summarised by their most common
 value per occasion, so they enter models as many-level factors.
-\item \strong{One time zone} is used for every sampling unit, found from the mean
-coordinates; data spanning time zones are placed on that zone's days.
 \item \strong{A sampling unit is assumed to run continuously} from its first start to its
 last end, so gaps between deployments in a cell count as sampled days.
 }
