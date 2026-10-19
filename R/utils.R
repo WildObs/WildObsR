@@ -804,9 +804,9 @@ resolve_db_access <- function(api_key = NULL, db_url = NULL, timeout_ms = 10000)
   if (is.null(api_key) && is.null(db_url)) {
     # stop the function and tell them how to get access
     stop("You have not provided an API key or a database URL to access MongoDB.",
-         "\nPlease provide an appropriate API key or URL if you want to access ",
-         "the database. \nIf you require a user-specific API key, please contact ",
-         "the WildObs team at support@wildobs.org.au",
+         "\nPass api_key = Sys.getenv(\"WILDOBSR_API_KEY\"). To get a key, create one ",
+         "on the WildObs Dashboard (https://dashboard.wildobs.org.au/camdb), as set out in ",
+         "vignette(\"WildObsR\").",
          call. = FALSE)
   } # end double null condition
 
@@ -891,7 +891,7 @@ resolve_db_access <- function(api_key = NULL, db_url = NULL, timeout_ms = 10000)
            "provided.\nPlease check the host, username and password in your ",
            "connection string are correct, and that you have an active ",
            "internet connection. \nIf you continue to have trouble, please ",
-           "contact us at support@wildobs.org.au\n",
+           "contact us at data@wildobs.org.au\n",
            "Server message: ", attempt$msg,
            call. = FALSE)
     } # end else network condition

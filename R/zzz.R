@@ -106,7 +106,7 @@
       "WildObsR could not reach the WildObs database at ", .wildobs_api_url(), ".\n",
       "Downloading data will not work until that connection returns. This is ",
       "usually a local network or VPN problem.\nIf it persists, contact the ",
-      "WildObs team at support@wildobs.org.au"
+      "WildObs team at data@wildobs.org.au"
     )
   },
   # Attaching the package must succeed even if everything above goes wrong.
