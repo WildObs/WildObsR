@@ -632,3 +632,31 @@ test_that("effort_matrix() and detection_matrix() refuse resampled tables", {
     "resampled observations"
   )
 })
+
+test_that("resample_covariates_and_observations keeps logical and factor classes where cells agree", {
+  covs <- create_test_covariates()
+  # both cameras in Cell_A share their bait and feature, so every cell holds one value
+  covs$baitUse <- c(TRUE, TRUE, FALSE)
+  covs$featureType <- factor(c("roadDirt", "roadDirt", "trailGame"),
+                             levels = c("roadDirt", "trailGame", "roadPaved"))
+  # a mixed column too, to be modal
+  covs$cameraModel <- factor(c("A", "B", "A"))
+  obs <- create_test_observations()
+  obs$baitUse <- NULL
+  obs$featureType <- NULL
+  # a logical observation column, which used to be dropped
+  obs$verified <- c(TRUE, FALSE, TRUE, TRUE)
+
+  result <- resample_covariates_and_observations(covs, obs, "sum", mode_cols_covs = "cameraModel",
+                                                 obs_covs = "baitUse")
+  cell <- result$spatially_resampled_covariates$cellID_1km
+  # one value per cell, so the original classes come back, factor levels included
+  expect_type(cell$baitUse, "logical")
+  expect_equal(levels(cell$featureType), c("roadDirt", "trailGame", "roadPaved"))
+  # a modal column always holds one value, so it keeps its class too
+  expect_s3_class(cell$mode_cameraModel, "factor")
+  # observation columns keep theirs: the obs covariate from covs, and the logical obs column
+  o <- result$spatially_resampled_observations$cellID_1km
+  expect_type(o$baitUse, "logical")
+  expect_type(o$verified, "logical")
+})

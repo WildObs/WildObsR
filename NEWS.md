@@ -77,9 +77,15 @@ it.
 - `matrix_generator()` warns when `numberDeploymentsActiveAtDate` is used as an
   observation covariate. It counts only the deployments with a record that day, so it
   understates effort and depends on detections. Use `effort_matrix()` for effort.
-- `resample_covariates_and_observations()` keeps logical and factor covariates (for
-  example `baitUse` and `featureType` from `frictionless::read_resource()`), pasting their
-  values per cell like text. They used to be dropped silently.
+- `resample_covariates_and_observations()` keeps logical and factor columns in both tables
+  (for example `baitUse` and `featureType` from `frictionless::read_resource()`). They used
+  to be dropped silently. A column keeps its class and factor levels when every cell holds
+  one value, and modal columns always do; a column where some cell holds several values is
+  pasted as text (for example `"FALSE - TRUE"`), with a message naming it.
+- `spatial_hexagon_generator()` now warns when several projects sample one cell at
+  overlapping times, listing the cells at each scale by their `polygon_<scale>` value and
+  the projects involved. The check used to group by project as well, so it could never
+  fire. Each project keeps its own `cellID`, as before.
 - `resample_covariates_and_observations()` warns, rather than stops, when a sampled cell
   has no observations, for example after filtering `obs` to a few species. The cell stays
   in the resampled covariates as sampled with no detections. Observations in a cell with

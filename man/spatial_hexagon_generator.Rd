@@ -52,8 +52,12 @@ Each deployment is assigned two identifiers per scale:
 \item{\verb{cellID_<scale>}}{Spatially and temporally distinct hexagon cell ID, incorporating survey year and data source}
 }
 
-If multiple data projects sample the same hexagon in overlapping time windows, their
-deployments are grouped and flagged with a combined contributor code.
+If several projects sample the same hexagon in overlapping time windows, each project
+keeps its own \code{cellID}, so their detections and effort stay separate, and one warning
+lists the overlapping cells at each scale by their \verb{polygon_<scale>} value, with the
+projects involved. Filter the result on those polygons to inspect them. To model the
+projects as one site, give their deployments a shared cellID before building the
+effort matrix.
 }
 \examples{
 # Create example camera-trap metadata

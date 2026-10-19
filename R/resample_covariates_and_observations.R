@@ -2,7 +2,7 @@
 #' Spatially Resample Covariates and Observations Across Spatial Scales
 #'
 #' @description
-#' This function resamples covariate and observation data across spatial scales generated from the \code{WildObsR::spatial_hexagon_generator()} function. It validates the input data by ensuring that all necessary spatial, temporal, and deployment identifiers are present and correctly formatted. Numeric covariates are aggregated using means weighted by each deployment's camera-days (see `weights`), while categorical covariates are combined by concatenating unique values. Logical and factor covariates, such as `baitUse` and `featureType` from [frictionless::read_resource()], are treated as text.
+#' This function resamples covariate and observation data across spatial scales generated from the \code{WildObsR::spatial_hexagon_generator()} function. It validates the input data by ensuring that all necessary spatial, temporal, and deployment identifiers are present and correctly formatted. Numeric covariates are aggregated using means weighted by each deployment's camera-days (see `weights`), while categorical covariates are combined by concatenating unique values. Logical and factor columns in either table, such as `baitUse` and `featureType` from [frictionless::read_resource()], keep their class (and factor levels) when every cell holds one value; where some cell holds several, the column is pasted as text, for example `"FALSE - TRUE"`, with a message naming it. Modal columns always keep their class.
 #'
 #' With `obs = NULL`, only the covariates are resampled, which is all the occupancy and
 #' abundance workflow needs, and is much faster (see "How the tables connect").
@@ -274,8 +274,20 @@ resample_covariates_and_observations <- function(covs, obs = NULL, individuals, 
   ## Treat logical and factor covariates (e.g. baitUse, featureType) as text, so their values get pasted together per cell
   # find the logical and factor columns
   text_like_covs <- names(covs)[vapply(covs, function(x) is.logical(x) || is.factor(x), logical(1))]
+  # remember each one's class (and factor levels), so it can be given back after resampling
+  class_templates <- lapply(covs[text_like_covs], function(x) x[0])
   # and store them as character
   covs[text_like_covs] <- lapply(covs[text_like_covs], as.character)
+  ## the same for logical and factor observation columns, which are pasted per cell and day
+  if (!covs_only) {
+    # find them, keeping the covariates' templates for obs_covs taken from covs
+    text_like_obs <- names(obs)[vapply(obs, function(x) is.logical(x) || is.factor(x), logical(1))]
+    # remember their classes beside the covariates' ones
+    class_templates <- c(class_templates, lapply(obs[setdiff(text_like_obs, names(class_templates))],
+                                                 function(x) x[0]))
+    # and store them as character
+    obs[text_like_obs] <- lapply(obs[text_like_obs], as.character)
+  } # end observation classes condition
 
   ## Extract relevant char/numeric/modal/etc cols from covaraites
   # select all character cols that wont get averaged
@@ -681,11 +693,21 @@ resample_covariates_and_observations <- function(covs, obs = NULL, individuals, 
   })
   # save the scale names for this list
   names(resampled_covs) = scales
+  ## give logical and factor columns their class back, unless a cell holds several values
+  # collect the columns that had to stay text, across scales
+  kept_as_text <- character(0)
+  for (x in scales) {
+    restored <- .restore_classes(resampled_covs[[x]], class_templates)
+    resampled_covs[[x]] <- restored$data
+    kept_as_text <- c(kept_as_text, restored$kept_as_text)
+  } # end per scale
   # tag each table with its scale, so effort_matrix() can tell it is one row per cell
   for (x in scales) attr(resampled_covs[[x]], "wildobs_resampled") <- x
 
   ## without observations, return the covariates alone
   if (covs_only) {
+    # say which columns could not keep their class
+    .message_kept_as_text(kept_as_text)
     return(list("spatially_resampled_covariates" = resampled_covs))
   } # end covariates only condition
 
@@ -695,6 +717,14 @@ resample_covariates_and_observations <- function(covs, obs = NULL, individuals, 
   })
   # save the scale names for this list
   names(resampled_obs) = scales
+  # give their logical and factor columns their class back too
+  for (x in scales) {
+    restored <- .restore_classes(resampled_obs[[x]], class_templates)
+    resampled_obs[[x]] <- restored$data
+    kept_as_text <- c(kept_as_text, restored$kept_as_text)
+  } # end per scale
+  # say which columns could not keep their class
+  .message_kept_as_text(kept_as_text)
   # and tag them too, so detection_matrix() can tell they are summed per cell and day
   for (x in scales) attr(resampled_obs[[x]], "wildobs_resampled") <- x
 
@@ -704,6 +734,63 @@ resample_covariates_and_observations <- function(covs, obs = NULL, individuals, 
                  "spatially_resampled_covariates" = resampled_covs)
 
 }# end function
+
+
+#' Give resampled columns back their logical or factor class
+#'
+#' Logical and factor columns are pasted as text while resampling. A column whose values
+#' are each a single original value (or empty) gets its class back; a column where some
+#' cell or day holds several values, such as `"FALSE - TRUE"`, can only be text and stays
+#' character. Modal columns (`mode_<name>`) always hold one value.
+#'
+#' @param df A resampled table.
+#' @param templates A named list of zero-length vectors with each column's original class.
+#' @return A list with `data`, the table, and `kept_as_text`, the columns left as text.
+#' @author Zachary Amir
+#' @keywords internal
+#' @noRd
+.restore_classes <- function(df, templates) {
+  # the columns that had to stay text
+  kept_as_text <- character(0)
+  for (nm in names(templates)) {
+    # the column under its own name, or as a modal column
+    for (col in intersect(c(nm, paste0("mode_", nm)), names(df))) {
+      # the values as text, with empty pastes treated as missing
+      vals <- as.character(df[[col]])
+      vals[!is.na(vals) & vals == ""] <- NA
+      # the values a column of the original class can hold
+      allowed <- if (is.factor(templates[[nm]])) levels(templates[[nm]]) else c("TRUE", "FALSE")
+      # a pasted combination is not one of them, so the column stays text
+      if (!all(is.na(vals) | vals %in% allowed)) {
+        kept_as_text <- c(kept_as_text, col)
+        next
+      } # end mixed values condition
+      # otherwise restore the original class
+      df[[col]] <- if (is.factor(templates[[nm]])) factor(vals, levels = allowed) else as.logical(vals)
+    } # end per column name
+  } # end per template
+  list(data = df, kept_as_text = kept_as_text)
+} # end .restore_classes
+
+
+#' Say which logical or factor columns had to stay text after resampling
+#'
+#' @param cols The column names, possibly repeated across scales and tables.
+#' @return Nothing; prints one message when there are any.
+#' @author Zachary Amir
+#' @keywords internal
+#' @noRd
+.message_kept_as_text <- function(cols) {
+  # each column once
+  cols <- unique(cols)
+  # nothing to report
+  if (length(cols) == 0) return(invisible(NULL))
+  # one message for all of them
+  message(sprintf("resample_covariates_and_observations(): %s kept as text, because some cells hold more than one value (for example \"FALSE - TRUE\").\n",
+                  paste(cols, collapse = ", ")),
+          "For one value per cell, add the column to mode_cols_covs; to model detection by it, use effort_matrix(split_by = ...).")
+  invisible(NULL)
+} # end .message_kept_as_text
 
 
 #' Camera-day weighted mean of one covariate within a cell

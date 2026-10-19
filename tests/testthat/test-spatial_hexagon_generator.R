@@ -198,10 +198,7 @@ test_that("spatial_hexagon_generator adds no source column to the data it return
   expect_false("source" %in% names(result))
 })
 
-test_that("spatial_hexagon_generator groups two projects sampling one cell at the same time", {
-  ## the overlap check groups by cell and code, but code already ends in the project, so
-  ## each group holds one project and the check never fires (on main too); Zach to decide
-  skip("Undecided: the spatial-temporal overlap check cannot fire while code includes the project")
+test_that("spatial_hexagon_generator warns when two projects sample one cell at the same time", {
   ## two WildObs projects, same place and survey period
   data <- create_test_data()
   data$projectName <- c("QLD_A_2023_WildObsID_0001", "QLD_B_2023_WildObsID_0002",
@@ -210,11 +207,28 @@ test_that("spatial_hexagon_generator groups two projects sampling one cell at th
   data$latitude <- c(-33.8700, -33.8701, -33.8702)
   data$longitude <- c(151.2000, 151.2001, 151.2002)
 
-  # the overlap is flagged, naming both projects
+  # the overlap is flagged, naming the polygon column and both projects
   expect_warning(result <- spatial_hexagon_generator(data, scales = 1e6),
-                 "WildObsID 0001.*WildObsID 0002|WildObsID 0002.*WildObsID 0001")
-  # and the shared cell's ID carries both WildObsIDs
-  expect_true(all(grepl("WildObsID_0001", result$cellID_1km2) & grepl("WildObsID_0002", result$cellID_1km2)))
+                 "polygon_1km2: 1 cell\\(s\\).*WildObsID_0001, WildObsID_0002")
+  # the cameras share one polygon
+  expect_equal(length(unique(result$polygon_1km2)), 1)
+  # but no cellID is shared between the two projects
+  in_0001 <- result$cellID_1km2[grepl("0001$", result$projectName)]
+  in_0002 <- result$cellID_1km2[grepl("0002$", result$projectName)]
+  expect_length(intersect(in_0001, in_0002), 0)
+})
+
+test_that("spatial_hexagon_generator does not warn when two projects share a cell at different times", {
+  data <- create_test_data()
+  data$projectName <- c("QLD_A_2023_WildObsID_0001", "QLD_B_2023_WildObsID_0002",
+                        "QLD_A_2023_WildObsID_0001")
+  data$latitude <- c(-33.8700, -33.8701, -33.8702)
+  data$longitude <- c(151.2000, 151.2001, 151.2002)
+  # project 0002 samples a year after project 0001 finished
+  data$deploymentStart <- as.POSIXct(c("2023-01-01", "2024-06-01", "2023-01-01"))
+  data$deploymentEnd <- as.POSIXct(c("2023-03-01", "2024-08-01", "2023-03-01"))
+
+  expect_no_warning(spatial_hexagon_generator(data, scales = 1e6))
 })
 
 test_that("spatial_hexagon_generator handles single deployment", {
