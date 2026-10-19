@@ -98,7 +98,7 @@ extract_metadata(meta, "licenses")[, c("name", "scope", "DPID")]
 #> 8 CC-BY-4.0 media     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 ```
 
-If something is wrong, contact WildObs at <support@wildobs.org.au> rather than editing a
+If something is wrong, contact WildObs at <data@wildobs.org.au> rather than editing a
 download: the database is the record everyone else reads.
 
 ## Know when embargoed data are released
@@ -196,7 +196,7 @@ related[related$relatedIdentifierType == "DOI", c("relationType", "relatedIdenti
 #> 10 ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 ```
 
-To add a publication that uses your data, send its DOI to <support@wildobs.org.au>.
+To add a publication that uses your data, send its DOI to <data@wildobs.org.au>.
 
 <details>
 <summary>Session information</summary>

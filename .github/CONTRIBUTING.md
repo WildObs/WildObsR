@@ -14,7 +14,7 @@ Open an [issue](https://github.com/WildObs/WildObsR/issues/new/choose) and pick 
   yet.
 
 Questions about a project's data or metadata, or corrections to them, go to the WildObs team
-at <support@wildobs.org.au>, since the database is maintained separately from this package.
+at <data@wildobs.org.au>, since the database is maintained separately from this package.
 
 ## Propose a change
 

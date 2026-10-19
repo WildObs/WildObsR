@@ -57,7 +57,7 @@ contributors[, c("title", "role", "DPID")]
 extract_metadata(meta, "licenses")[, c("name", "scope", "DPID")]
 ```
 
-If something is wrong, contact WildObs at <support@wildobs.org.au> rather than editing a
+If something is wrong, contact WildObs at <data@wildobs.org.au> rather than editing a
 download: the database is the record everyone else reads.
 
 ## Know when embargoed data are released
@@ -123,7 +123,7 @@ related <- extract_metadata(meta, "relatedIdentifiers")
 related[related$relatedIdentifierType == "DOI", c("relationType", "relatedIdentifier", "DPID")]
 ```
 
-To add a publication that uses your data, send its DOI to <support@wildobs.org.au>.
+To add a publication that uses your data, send its DOI to <data@wildobs.org.au>.
 
 <details>
 <summary>Session information</summary>
