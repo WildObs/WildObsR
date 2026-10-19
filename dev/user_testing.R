@@ -90,9 +90,9 @@ class(dp_list[[1]])
 length(dp_list) == length(project_ids) # MUST BE T
 
 
-#
-##
-### Extract metadata across all projects per project, safely
+##### Extract data across all projects per project, safely -----
+
+### Start by extracting metadata from d
 # working example for contributors:
 cont_table = extract_metadata(dp_list, "contributors")
 glimpse(cont_table)
@@ -115,7 +115,7 @@ check = extract_metadata(dp_list, "relatedIdentifiers") # working
 check = extract_metadata(dp_list, "references") # working, but nothing present. 
 ## check all at once to ensure no failure
 check = extract_metadata(dp_list) # all g
-rm(check)
+rm(check,cont_table, cont_table_1)
 
 #
 ##
@@ -401,137 +401,205 @@ rm(dp, dp_long, deps_short, deps_long, covs_short, covs_long, obs_short, obs_lon
 ##### Occupancy/Abundance modelling functions #####
 
 ## load relevant libraries
-library(unmarked)
-library(spOccupancy)
+library(unmarked)      # regular occu/abund models 
+library(spOccupancy)   # spatial occu mods
+library(nimble)        # bayesian occu mods 
 
-### First, spatially resample the data 
+## Determine which species are shared across projects w/ sufficent detections 
+# first gather the number of projects
+n_projects <- dplyr::n_distinct(obs$projectName)
+# now create a table of key species 
+shared_species <- obs |>
+  # keep animal records only, so Blank, Fire and Homo sapiens drop out
+  dplyr::filter(observationType == "animal") |>
+  # keep records identified to species, so Aves, Mammalia etc. drop out
+  dplyr::filter(taxonRank == "species") |>
+  # collapse to one row per species per event, so each event is one detection
+  dplyr::distinct(projectName, scientificName, eventID) |>
+  # count 30-min detections (eventID) of each species within each project
+  dplyr::count(projectName, scientificName, name = "n_detections") |>
+  # keep only species-project pairs with enough detections
+  dplyr::filter(n_detections >= 30) |>
+  # then within each species,
+  dplyr::group_by(scientificName) |>
+  # keep it only if it cleared the threshold in every project
+  dplyr::filter(dplyr::n_distinct(projectName) == n_projects) |>
+  dplyr::ungroup() |>
+  # and spread to one row per species, one column per project
+  tidyr::pivot_wider(names_from = projectName, values_from = n_detections)
+## what did we get?
+shared_species # work w/ "Tachyglossus aculeatus" & "Felis catus", some classic wide spread species. 
+# clean up 
+rm(shared_species, n_projects)
+
+########## Spatiall resample covariates (and maybe obs) -----
+
+### First, generate spatially defined sampling units in covariates 
 ## set the spatial scale to 3 km 
 start <- Sys.time()
-covs_cellID <- spatial_hexagon_generator(covs, 3000)
+covs_cellID <- spatial_hexagon_generator(covs, 3000000)
 
-# Remove obscured records from obs head of resampling
-obs <- obs[!grepl("obscured", obs$deploymentID),]
+# Remove obscured records from obs ahead of resampling
+obs_thin <- obs[!grepl("obscured", obs$deploymentID),]
+# and thin observations to the relevant species so its much quicker in resampling 
+obs_thin <- obs_thin[obs_thin$scientificName %in% c("Tachyglossus aculeatus", "Felis catus"), ]
+
 # and run the resampling function
-resamp <- resample_covariates_and_observations(covs_cellID, obs, individuals = "sum")
+resamp_with_obs <- resample_covariates_and_observations(covs = covs_cellID, obs = obs_thin, individuals = "sum", 
+                                                        # specify values we can split matricies by later
+                                                        mode_cols_covs = c("featureType", "baitUse"))
+# and run resampling just w/ covariates 
+resamp <- resample_covariates_and_observations(covs = covs_cellID, mode_cols_covs = c("featureType", "baitUse"))
+# end time for both 
 end <- Sys.time()
 # how long were both processes?
-end-start # 37 min !! 
+end-start # 37 min for full obs but only 4-seconds when thinned to relevant detections in obs 
 
+## Extract resampled observations and covarites
+resamp_obs <- resamp_with_obs$spatially_resampled_observations$cellID_3km2
+resamp_cov2 <- resamp_with_obs$spatially_resampled_covariates$cellID_3km2
+# and grab the version that was just covs 
+resamp_cov <- resamp$spatially_resampled_covariates$cellID_3km2
 
-### Working with new effort matrix function 
-## start with non-resampled data 
-effort <- effort_matrix(deps = covs_cellID, site_col = "cellID_3000m2", w = 5, dur = 60, align = "site", split_by = "baitUse")
-class(effort);names(effort)
-# view the effort matrix 
-effort$effort
+## check if they are identical 
+identical(resamp_cov2, resamp_cov) ## MUST BE T 
+# delete duplicated table 
+rm(resamp_cov2)
 
-## After we have our effort matrix, we need our detection matrix
-det_mat <- detection_matrix(obs = resamp$spatially_resampled_observations$cellID_3000m2, effort = effort, 
-                             scientificNames = c("Hydromys chrysogaster", "Orthonyx spaldingii"),
-                             type = "occupancy", individuals = "max", by_camera = FALSE)
-class(det_mat) # an array 
-dimnames(det_mat) # overview, species x site x occasion x split 
-# view snippet from same species across splits ar random sites. 
-det_mat[1, c(11,15,17,33), , 1]
-det_mat[1, c(11,15,17,33), , 2]
-# samve value in 2D
-det_mat[1, c(11,15,17,33), ]
+## Define a quick helper to determine if a column holds no information
+is_empty_col <- function(col) {
+  # text columns count as empty when every value is NA or ""
+  if (is.character(col)) {
+    return(all(is.na(col) | col == ""))
+  } # end character condition
+  # every other type (numbers, dates, date-times) is empty only when all NA
+  return(all(is.na(col)))
+} # end function
 
-### Feed both values into the model_matrix_input function
-mats <- model_matrix_input(detections = det_mat, effort = effort, site_covs = covs, output = "unmarked")
-class(mats); names(mats)
-class(mats[[1]]); mats[[2]]
-mats[[1]]
+## drop columns that carry no information at all (i.e., only NA or empty string)
+resamp_obs <- resamp_obs |>
+  # keep only columns where at least one value is filled in
+  dplyr::select(!dplyr::where(is_empty_col))
+## repeat for covs
+resamp_cov <- resamp_cov |>
+  dplyr::select(!dplyr::where(is_empty_col))
 
-## test out pcount()
-abund1 <- unmarked::pcount(~baitUse + effort ~ HIF_1km2 + HCAS_static_1km2, data = mats[[2]])
-abund1 
+## inspect both resampled dataframes
+glimpse(resamp_obs) # useful for describing what goes into the matrix and deteciton count 
+glimpse(resamp_cov) # useful for averaging vs mode vs concocate key variables 
 
-## same for occu
-occ1 <- unmarked::occu(~effort ~HCAS_static_1km2, data = mats[[2]])
-occ1
+## verify matching foregin key 
+## tho missing values in covs is ok and expected b/c of thinning above 
+verify_col_match(resamp_obs, resamp_cov, "cellID_3km2") 
 
-# # Dont forget to thin obs to the relevant deploymentIDs now that we have excluded some
-# # obs = obs[obs$deploymentID %in% covs$deploymentID, ]
+########## Creating matricies --------
 
-# ## format datetimes
-# covs$deploymentEnd = as.POSIXct(covs$deploymentEnd, format = "%Y-%m-%dT%H:%M:%S%z")
-# covs$deploymentStart = as.POSIXct(covs$deploymentStart, format = "%Y-%m-%dT%H:%M:%S%z")
-
-
-
-# # inspect deploymentTags
-# unique(covs$deploymentTags) # fix one typo
-# covs$deploymentTags[covs$deploymentTags %in% c("bait:none | predatorManagement: No management",
-#                                                " | predatorManagement: No management")] = "bait:none | predatorManagement: No management"
-
-# ## Extract all tags into separate columns in covaraites
-# covs_with_tags <- covs %>%
-#   # create new cols to track original rows and split tags
-#   mutate(
-#     row_id = dplyr::row_number(),  # To track original rows
-#     tag_list = stringr::str_split(deploymentTags, "\\s*\\|\\s*")
-#   ) %>%
-#   tidyr::unnest(tag_list) %>%
-#   # Remove blanks
-#   filter(!is.na(tag_list), tag_list != "") %>%
-#   # split  keys and values
-#   separate(tag_list, into = c("tag_key", "tag_value"), sep = ":", fill = "right") %>%
-#   mutate(
-#     tag_key = str_trim(tag_key),
-#     tag_value = str_trim(tag_value)
-#   ) %>%
-#   pivot_wider(
-#     id_cols = row_id,
-#     names_from = tag_key,
-#     values_from = tag_value
-#   ) %>%
-#   right_join(
-#     covs %>% mutate(row_id = dplyr::row_number()),
-#     by = "row_id"
-#   ) %>%
-#   select(-row_id)
-
-# # inspect
-# table(covs_with_tags$bait)
-# table(covs_with_tags$predatorManagement) # can clean one value here
-# covs_with_tags$predatorManagement[covs_with_tags$predatorManagement %in% c("Control deployments no management", "No management")] = "No management"
-# table(covs_with_tags$experiment)
-
-# ## now save these extra column names that we will use later
-# tag_cols = setdiff(names(covs_with_tags), names(covs))
-
-
-# ## format their datetimes
-# dt_cols = c("eventStart", "eventEnd", "observationStart", "observationEnd")
-# for(i in 1:length(dt_cols)){
-#   obs[[dt_cols[i]]] = as.POSIXct(obs[[dt_cols[i]]], format = "%Y-%m-%dT%H:%M:%S%z")
-# }
-# rm(dt_cols, i, obs1,obs2)
-# dplyr::glimpse(obs)
-
-# ## inspect species
-# sort(table(obs$scientificName))
-# # Canis dingo, Felis catus, Trichosurus caninus, Pitta versicolor, Geopelia humeralis
-# sp = c("Felis catus", # common in both sources
-#        "Ocyphaps lophotes", "Pitta versicolor", # somewhat common but detected in different sources
-#        "Tachyglossus aculeatus") # rare but in both sources
 #
 ##
-### Import species traits information to contextualize these critters
+### Effort matrix --> the back bone of sampling effort 
 
-# # set wd to where external data file lives.
-# wd = file.path(Sys.getenv("WILDOBS_DROPBOX"), "WildObs master folder/WildObs GitHub Data Storage/data_tools/")
-# # list availible files
-# ver_files = list.files(wd)
-# ver_files = ver_files[grepl("taxonomy", ver_files)] # only want species data
-# # Extract the date parts of the filenames and convert to integers
-# dates <- as.numeric(gsub("verified_taxonomy_(\\d{8})", "\\1", ver_files))
-# # Order the filenames based on the extracted dates (from most recent to least recent)
-# ver_file <- ver_files[order(dates, decreasing = TRUE)]
-# # Import the most recent file
-# taxa_dp = frictionless::read_package(paste(wd, ver_file[1], "/datapackage.json", sep = ""))
-# rm(ver_file, ver_files, dates)
+### The new effort matrix requires non-resampled data. 
+## BUT, if we want to include resampled data, we must include the covaraites 
+## with the resampling cellID present as the site_col 
+head(sort(unique(covs$deploymentID)))
+head(sort(unique(resamp_cov$cellID_3km2))) 
+head(sort(unique(covs_cellID$cellID_3km2))) # this is the effort matrix data 
+
+## inspect which covariates could be used to split effort matrix 
+table(covs_cellID$baitUse); table(covs_cellID$featureType)
+## convert featureTypes to on vs off trail
+covs_cellID$trailStatus <- ifelse(covs_cellID$featureType %in% c("roadDirt", "roadPaved", "trailHiking", "roadUnderpass"),
+                                  # the outcome determines trail status 
+                                  yes = 'onTrail', no = "offTrail")
+table(covs_cellID$trailStatus)
+
+## generate the effort matrix, providing the matrix outline 
+effort <- effort_matrix(deps = covs_cellID, site_col = "cellID_3km2", w = 5, dur = 60, 
+                        align = "site")#, split_by = "trailStatus")
+class(effort);names(effort)
+# view the effort matricies, potentially split across split_by 
+head(effort$effort)
+dimnames(effort$effort)
+# full effort matrix, combined across splits 
+head(effort$effort_total)
+# view the sampling occassions that were combined to make the matrix 
+effort$occasions |>
+  # sort rows by site
+  dplyr::arrange(site) |>
+  # and show the first 10
+  head(10)
+# view individual deployments, and how they relate to site_col and split_by 
+effort$deployments |>
+  # sort rows by site
+  dplyr::arrange(site) |>
+  # and show the first 10
+  head(10)
+
+# each deployment per site_col and which occasion + effort 
+head(effort$daily);tail(effort$daily)
+# which values were supplied to the effort function? 
+names(effort$settings)
+
+#
+##
+### Detection matrix --> when, where, and how many were detected? 
+
+## are we going to attribute effort per deployment in a bayes approach?
+by_cam <- FALSE
+
+## After we have our effort matrix, we need our detection matrix
+det_mat <- detection_matrix(obs = obs_thin, effort = effort, 
+                             scientificNames = c("Tachyglossus aculeatus", "Felis catus"),
+                             type = "abundance", individuals = "sum", by_camera = by_cam)
+## inspect the output 
+class(det_mat) # an array 
+dimnames(det_mat) # overview, species x site x occasion (and x unit, if by_camera = TRUE)
+
+## if we didnt split by units, 
+if (!by_cam){
+  # view snippet from same species across splits at 10 random sites. 
+  det_mat[1, sample(nrow(det_mat[1, , ]), 10), ]
+  # inspect 2nd species the same way: 
+  det_mat[2, sample(nrow(det_mat[1, , ]), 10), ]
+}
+
+## but if we did split by units,
+if (by_cam){
+  ## specify the extra dimension for units, choosing a random one 
+  det_mat[1, sample(nrow(det_mat[1, , ,]), 10), , sample(length(dimnames(det_mat)[[4]]), 1) ]
+  # and check another from the same species 
+  det_mat[1, sample(nrow(det_mat[1, , ,]), 10), , sample(length(dimnames(det_mat)[[4]]), 1) ]
+}
+# clean up
+rm(by_cam)
+
+#
+##
+### Combine it all together for particular modelling approaches
+
+## Start w/ basic unmarked abundance and occupancy models 
+unmarked <- model_matrix_input(detections = det_mat, effort = effort, site_covs = resamp_cov, 
+                              # leave null params not needed in the frequentist single-season approach 
+                              obs_covs = NULL, coords = NULL, seasons = NULL,
+                              # specify the key package 
+                              output = "unmarked")
+## inspect the output 
+class(unmarked)
+# inspect 1 umf and plot it 
+summary(unmarked[[2]]); plot(unmarked[[2]])
+# what covariates can we test?
+sort(names(unmarked[[2]]@siteCovs))
+
+## test out pcount()
+abund1 <- unmarked::pcount(~ effort ~ Avg_HIF_3km2 + Avg_FLII_3km2, data = unmarked[[2]])
+summary(abund1)
+
+
+
+
+### OLD CODE 2025 ---------
+
+### Import species traits information to contextualize these critters
 
 ## load the data internally
 taxa_dp = data(taxonomy_dp)
@@ -566,37 +634,6 @@ length(unique(covs_cellIDs$cellID_6km2)) # 602, checks out!
 
 # Clean up enviro
 rm(covs, taxa_dp, sp)
-
-#
-##
-### Decide which covariates a relevant to include in re-sampled data
-
-# ## Inspect the schema of covariates
-# covs_schema = frictionless::get_schema(dp_list[[1]], "covariates")
-#
-# # Convert schema fields to data frame for easier manipulation
-# library(rlang) # to use  %||%
-# covs_schema_df <- purrr::map_df(covs_schema$fields, ~{
-#   # Extract known fields safely
-#   tibble::tibble(
-#     name = .x$name %||% NA,
-#     description = .x$description %||% NA,
-#     type = .x$type %||% NA,
-#     example = as.character(.x$example %||% NA),
-#     required = .x$constraints$required %||% NA,
-#     unique = .x$constraints$unique %||% NA,
-#     enum = paste(.x$constraints$enum %||% NA, collapse = "|")
-#   )
-# })
-#
-# ## inspect
-# dplyr::glimpse(covs_schema_df)
-# ## which variables are just characters
-# unique(covs_schema_df$name[covs_schema_df$type == "string"])
-# # inspect non-deployment values
-# table(covs_cellIDs$IBRAsubRegionName)
-# table(covs_cellIDs$Olson_global_ecoregion) # only 1 level
-# table(covs_cellIDs$source) # 2 levels here!
 
 ## Define columns for mode aggregation (example: 'source' and 'habitat')
 mode_cols_covs <- names(covs_cellIDs)[grepl("source|IBRAsubRegionName", names(covs_cellIDs))] # leaving sub region for shits n gigs
