@@ -15,8 +15,9 @@ Where a camera sits shapes what it can detect and how its data can be pooled wit
 WildObsR places camera coordinates in their Australian context: the state or territory,
 the IBRA bioregion, the nearest protected area, a metric map projection, and the spacing
 between neighbouring cameras. The state, bioregion and protected-area layers ship with the
-package, so everything here runs offline. This vignette uses the two Wet Tropics projects
-bundled with WildObsR.
+package, so everything here runs offline. This vignette uses the two projects bundled with
+WildObsR, one from the Queensland Wet Tropics and one from Woomargama National Park in New
+South Wales.
 
 ```{r data}
 library(WildObsR)
@@ -71,7 +72,8 @@ the protected area that covers most of it, which groups nearby cameras into the 
 
 ```{r capad}
 # a few stations from each project, to keep the example quick
-few <- stations[c(1, 2, nrow(stations) - 1, nrow(stations)), ]
+few <- stations[stations$locationID %in% c("CFRAG_01_WildObsID_0001", "CFRAG_08_WildObsID_0001",
+                                           "8_WildObsID_0010", "33_WildObsID_0010"), ]
 
 # the protected area each camera is in, or nearest to, beside the recorded locationName
 verified <- locationName_verification_CAPAD(few)
@@ -82,12 +84,14 @@ buffered <- locationName_buffer_CAPAD(few, buffer_size = 1000)
 buffered[, c("locationID", "CAPADlocationNameBuffer")]
 ```
 
-A recorded `locationName` can differ from the CAPAD name for good reasons. Where protected
-areas overlap, curation gives each landscape one name. For example, the first Paluma camera
-above is nearest the Girringun Indigenous Protected Area, which overlaps Paluma Range
-National Park, and its landscape is recorded as the national park. A camera can also sit just outside a reserve
-boundary, or a reserve can be recorded under a local name. Treat a difference as a prompt to
-look, not as an error.
+A recorded `locationName` can differ from the CAPAD name for good reasons. Curation gives
+each landscape one name, even when it spans several reserves: the two Wet Tropics cameras
+above sit in Crater Lakes and Curtain Fig National Parks, and their landscape is recorded as
+`Eacham_Curtain_Fig_NPs`. A camera can also sit outside every reserve: Woomargama station 33
+is about 2.6 km from the nearest, Woomargama State Conservation Area, while its landscape is
+recorded as the national park. Its 1 km buffer touches no reserve, so
+`locationName_buffer_CAPAD()` names that landscape after the nearest one it finds instead.
+Treat a difference as a prompt to look, not as an error.
 
 ## Metric coordinates
 

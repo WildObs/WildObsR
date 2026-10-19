@@ -71,7 +71,8 @@ deployments <- frictionless::read_resource(dp_list[[1]], "deployments")
 writeLines(cite_datapackages(dp_list))
 ```
 
-No key yet? Two Wet Tropics projects ship with the package:
+No key yet? Two open projects, from the Queensland Wet Tropics and New South Wales, ship
+with the package:
 
 ```r
 dp_list <- example_datapackages()

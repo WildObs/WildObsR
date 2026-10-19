@@ -17,14 +17,15 @@
 #' - `CAPADminDistance`: The distance (in meters) to the nearest protected area, for coordinates outside every protected area; zero for coordinates inside one. Only added when at least one coordinate falls outside every protected area.
 #'
 #' @examples
-#' # two cameras of the Paluma project shipped with WildObsR
-#' dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
+#' # two cameras of the Woomargama project shipped with WildObsR
+#' dp <- example_datapackages("NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")[[1]]
 #' dep <- frictionless::read_resource(dp, "deployments")
 #' dep <- dep[c(1, 40), c("deploymentID", "latitude", "longitude", "locationName")]
 #'
-#' # the protected area each camera is in, or nearest to, beside the recorded locationName
+#' # the protected area each camera is in, beside the recorded locationName; both are
+#' # inside Woomargama National Park, so no CAPADminDistance column is added
 #' updated_dep <- locationName_verification_CAPAD(dep)
-#' updated_dep[, c("deploymentID", "locationName", "CAPADlocationName", "CAPADminDistance")]
+#' updated_dep[, c("deploymentID", "locationName", "CAPADlocationName")]
 #'
 #' @importFrom terra distance extract crop ext intersect project crs as.data.frame vect
 #'

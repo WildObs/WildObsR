@@ -665,9 +665,9 @@ test_that("resample_covariates_and_observations keeps logical and factor classes
 ##
 ### Real data: empty columns and cells without detections ----
 
-## the bundled Paluma project, prepared the way the README workflow does
-paluma_inputs <- function() {
-  dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
+## the bundled Woomargama project, prepared the way the README workflow does
+woomargama_inputs <- function() {
+  dp <- example_datapackages("NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")[[1]]
   dep <- frictionless::read_resource(dp, "deployments")
   covs <- frictionless::read_resource(dp, "covariates")
   # deployments and covariates as one table
@@ -678,25 +678,25 @@ paluma_inputs <- function() {
   obs <- frictionless::read_resource(dp, "observations")
   obs <- obs[obs$deploymentID %in% covs$deploymentID, ]
   list(covs = covs, obs = obs)
-} # end paluma inputs
+} # end woomargama inputs
 
 test_that("resample leaves out a requested column that is entirely NA, with a warning", {
-  x <- paluma_inputs()
-  # habitat is empty for every Paluma deployment
-  expect_true(all(is.na(x$covs$habitat)))
+  x <- woomargama_inputs()
+  # detectionDistance is empty for every Woomargama deployment
+  expect_true(all(is.na(x$covs$detectionDistance)))
 
   expect_warning(
     res <- suppressMessages(resample_covariates_and_observations(
       x$covs, x$obs, individuals = "sum",
-      mode_cols_covs = c("projectName", "habitat"), obs_covs = c("baitUse", "featureType"))),
-    "left out mode_cols_covs with no values in covs: habitat"
+      mode_cols_covs = c("projectName", "detectionDistance"), obs_covs = c("baitUse", "featureType"))),
+    "left out mode_cols_covs with no values in covs: detectionDistance"
   )
   # the rest of the resampling still happens, with the mode of the column that has values
   expect_true("mode_projectName" %in% names(res$spatially_resampled_covariates$cellID_1km2))
 })
 
 test_that("resample keeps cells whose cameras recorded no observations", {
-  x <- paluma_inputs()
+  x <- woomargama_inputs()
   # cameras with no animal observations, which is common with animal-only data
   expect_true(any(!x$covs$deploymentID %in% x$obs$deploymentID))
 

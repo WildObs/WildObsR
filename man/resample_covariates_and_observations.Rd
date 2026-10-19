@@ -196,8 +196,8 @@ with a warning. \code{cellEffort} is unaffected: it is always the total camera-d
 }
 
 \examples{
-# load the baited Paluma project shipped with WildObsR
-dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
+# load the Woomargama wombat project shipped with WildObsR
+dp <- example_datapackages("NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")[[1]]
 
 # extract one table of deployments and their covariates
 deps <- frictionless::read_resource(dp, "deployments")
@@ -210,7 +210,8 @@ covs_cellID <- spatial_hexagon_generator(covs, scales = 1e6)
 
 # for occupancy and abundance models, resample the covariates only: one row per cell
 cell <- resample_covariates_and_observations(covs_cellID, mode_cols_covs = "baitUse")
-head(cell$spatially_resampled_covariates$cellID_1km2[, c("cellID_1km2", "cellEffort", "mode_baitUse")])
+cell_covs <- cell$spatially_resampled_covariates$cellID_1km2
+head(cell_covs[, c("cellID_1km2", "cellEffort", "mode_baitUse")])
 
 # observations that can be placed on a camera (obscured records cannot)
 obs <- frictionless::read_resource(dp, "observations")

@@ -1,41 +1,40 @@
 {
   "profile": "https://raw.githubusercontent.com/tdwg/camtrap-dp/1.0.2/camtrap-dp-profile.json",
-  "created": "2025-02-18T17:18:45+10:00",
-  "title": "Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates",
+  "created": "2025-05-28T16:52:36+10:00",
+  "title": "Wombat burrows are hotspots for small vertebrates in a landscape subject to gigafire",
   "contributors": [
     {
-      "title": "Zachary Amir",
-      "path": "0000-0002-8398-2059",
+      "title": "Grant Linley",
+      "path": "0000-0003-3512-2748",
       "role": "principalInvestigator",
-      "organization": "University of Queensland",
-      "ROR": "https://ror.org/00rqy9422"
+      "organization": "Charles Sturt University",
+      "ROR": "https://ror.org/00wfvh315"
     },
     {
-      "title": "Tom Bruce",
-      "path": "0000-0001-6958-1657",
-      "role": "contact",
-      "organization": "University of Queensland",
-      "ROR": "https://ror.org/00rqy9422"
+      "title": "Chris Jolly",
+      "path": "0000-0002-5234-0897",
+      "role": "contributor",
+      "organization": "Macquarie University",
+      "ROR": null
     },
     {
-      "title": "Matthew Luskin",
-      "path": "0000-0002-5236-7096",
-      "role": "rightsHolder",
-      "organization": "University of Queensland",
-      "ROR": "https://ror.org/00rqy9422"
+      "title": "Emma E Spencer",
+      "path": "0000-0001-9415-0824",
+      "role": "contributor",
+      "organization": "WWF Australia",
+      "ROR": null
     }
   ],
-  "description": "This data was collected by Zachary Amir and the Ecolocical Cascades Lab at the University of Queensland to study interactions between native and invasive vertebrates in North Queenslands Wet Tropics Rainforests. The camera trap surveys conducted here compliment and extend prior surveys conducted by Dr. Tom Bruce as part of his PhD research studying feral cats in North Queensland forests. Important to note that these surveys implemented paired camera deployments, where each sampling locaiton received a camera palced on the road and another camera placed 50 m into the bush. Sampling locations were typically spaced 1km apart form each other, though this varies between small and large landscapes.",
+  "description": "Ecosystem engineers modify their environment and influence the availability of resources for other organisms. Burrowing species, a subset of allogenic engineers, are gaining recognition as ecological facilitators. Burrows created by these species provide habitat for a diverse array of other organisms. Following disturbances, burrows could also serve as ecological refuges, thereby enhancing ecological resistance to disturbance events. We explored the ecological role of Common Wombat (Vombatus ursinus) burrows using camera traps in forests of southeastern Australia. We compared animal activity at paired sites with and without burrows, from the same fire severity class and habitat. We examined how animal activity at Common Wombat burrows was affected by the 2019–20 Black Summer bushfires in Australia. We predicted that burrows would serve as hotspots for animal activity and as refuges in burned areas. The activity of several species including Bush Rat (Rattus fuscipes), Agile Antechinus (Antechinus agilis), Lace Monitor (Varanus varius), Painted Button-quail (Turnix varius), and Grey Shrike-thrush (Colluricincla harmonica) increased at sites where Common Wombat burrows were present, while other species avoided burrows. Species that were more active at burrows tended to be smaller mammal and bird species that are vulnerable to predation, whereas species that avoided burrows tended to be larger mammals that might compete with Common Wombat for resources. Species composition differed between sites with and without burrows, and burrow sites had higher native mammal species richness. The association of several species with burrows persisted or strengthened in areas that burned during the 2019–20 Black Summer bushfires, suggesting that Common Wombat burrows may act as ecological refuges for animals following severe wildfire. Our findings have relevance for understanding how animals survive, persist, and recover following extreme wildfire events.",
   "version": "1.0.2",
-  "versionControlWildObs": "1.1.1",
-  "keywords": ["camtrapDP", "camera traps", "native wildlife", "invasive wildlife", "rainforest", "australia", "Queensland", "paired deployments", "feral cats", "feral pigs"],
+  "versionControlWildObs": "1.0.3",
+  "keywords": ["allogenic engineer", "Black Summer bushfires", "ecological facilitation", "eucalypt forests", "fire refuge", "fire severity"],
   "image": "",
-  "homepage": "https://www.ecologicalcascades.com/",
+  "homepage": "https://wwf.org.au/what-we-do/species/eye-on-recovery/",
   "sources": [
     {
       "title": "Wildlife Insights",
-      "path": "https://app.wildlifeinsights.org/explore/2004322/145625598251_2004322_621_wet_tropics_cam_trap",
-      "email": "info@wildlifeinsights.org"
+      "path": "https://app.wildlifeinsights.org/manage/organizations/2002159/projects/2003801"
     }
   ],
   "licenses": [
@@ -50,64 +49,52 @@
       "scope": "media"
     }
   ],
-  "bibliographicCitation": "Zachary Amir, Tom Bruce & Matthew Luskin (2022). WildObs Camera Trap Data Package: Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/cb5829ab",
+  "bibliographicCitation": "Grant Linley, Chris Jolly & Emma E Spencer (2021). WildObs Camera Trap Data Package: Wombat burrows are hotspots for small vertebrates in a landscape subject to gigafire [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/9eec588a",
   "relatedIdentifiers": [
     {
-      "relationType": "IsSupplementTo",
-      "relatedIdentifier": "https://doi.org/10.1002/ece3.71464",
-      "resourceTypeGeneral": "JournalArticle",
-      "relatedIdentifierType": "DOI"
-    },
-    {
-      "relationType": "IsPartOf",
-      "relatedIdentifier": "https://raid.org/10.83062/cb5829ab",
-      "resourceTypeGeneral": "Dataset",
-      "relatedIdentifierType": "RAiD"
-    },
-    {
-      "relationType": "IsSupplementTo",
-      "relatedIdentifier": "https://doi.org/10.1016/j.scitotenv.2026.181926",
+      "relationType": "IsPublishedIn",
+      "relatedIdentifier": "https://doi.org/10.1093/jmammal/gyae034",
       "resourceTypeGeneral": "JournalArticle",
       "relatedIdentifierType": "DOI"
     },
     {
       "relationType": "IsSourceOf",
-      "relatedIdentifier": "https://doi.org/10.15468/kjqw3f",
+      "relatedIdentifier": "https://doi.org/10.15468/4ca4ed",
       "resourceTypeGeneral": "Dataset",
       "relatedIdentifierType": "DOI"
     },
     {
-      "relationType": "IsCitedBy",
-      "relatedIdentifier": "https://doi.org/10.5281/zenodo.19552244",
-      "resourceTypeGeneral": "Workflow",
-      "relatedIdentifierType": "DOI"
+      "relationType": "IsPartOf",
+      "relatedIdentifier": "https://raid.org/10.83062/9eec588a",
+      "resourceTypeGeneral": "Dataset",
+      "relatedIdentifierType": "RAiD"
     }
   ],
   "references": [],
-  "name": "zamir_qld_wet_tropics_2022",
-  "id": "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
+  "name": "nsw_woomargama_wombats_linley_2021-22",
+  "id": "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010",
   "project": {
-    "id": "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
-    "title": "Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates",
-    "acronym": "ZAQWT",
-    "description": "This data was collected by Zachary Amir and the Ecolocical Cascades Lab at the University of Queensland to study interactions between native and invasive vertebrates in North Queenslands Wet Tropics Rainforests. The camera trap surveys conducted here compliment and extend prior surveys conducted by Dr. Tom Bruce as part of his PhD research studying feral cats in North Queensland forests. Important to note that these surveys implemented paired camera deployments, where each sampling locaiton received a camera palced on the road and another camera placed 50 m into the bush. Sampling locations were typically spaced 1km apart form each other, though this varies between small and large landscapes.",
-    "samplingDesign": "systematicRandom",
-    "path": "https://www.ecologicalcascades.com/",
+    "id": "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010",
+    "title": "Wombat burrows are hotspots for small vertebrates in a landscape subject to gigafire",
+    "acronym": "NSWWWGL",
+    "description": "Ecosystem engineers modify their environment and influence the availability of resources for other organisms. Burrowing species, a subset of allogenic engineers, are gaining recognition as ecological facilitators. Burrows created by these species provide habitat for a diverse array of other organisms. Following disturbances, burrows could also serve as ecological refuges, thereby enhancing ecological resistance to disturbance events. We explored the ecological role of Common Wombat (Vombatus ursinus) burrows using camera traps in forests of southeastern Australia. We compared animal activity at paired sites with and without burrows, from the same fire severity class and habitat. We examined how animal activity at Common Wombat burrows was affected by the 2019–20 Black Summer bushfires in Australia. We predicted that burrows would serve as hotspots for animal activity and as refuges in burned areas. The activity of several species including Bush Rat (Rattus fuscipes), Agile Antechinus (Antechinus agilis), Lace Monitor (Varanus varius), Painted Button-quail (Turnix varius), and Grey Shrike-thrush (Colluricincla harmonica) increased at sites where Common Wombat burrows were present, while other species avoided burrows. Species that were more active at burrows tended to be smaller mammal and bird species that are vulnerable to predation, whereas species that avoided burrows tended to be larger mammals that might compete with Common Wombat for resources. Species composition differed between sites with and without burrows, and burrow sites had higher native mammal species richness. The association of several species with burrows persisted or strengthened in areas that burned during the 2019–20 Black Summer bushfires, suggesting that Common Wombat burrows may act as ecological refuges for animals following severe wildfire. Our findings have relevance for understanding how animals survive, persist, and recover following extreme wildfire events.",
+    "samplingDesign": "experimental",
+    "path": "https://wwf.org.au/what-we-do/species/eye-on-recovery/",
     "captureMethod": "activityDetection",
     "individualAnimals": false,
     "observationLevel": "event",
-    "DPID": "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"
+    "DPID": "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010"
   },
   "WildObsMetadata": {
-    "thinnedMedia": false,
+    "thinnedMedia": true,
     "deploymentClusters": true,
-    "fundingAgency": "federalGovernment; ngoGrant",
+    "fundingAgency": "grantUniversity;grantNGO",
     "tabularSharingPreference": "open",
-    "desiredOutputs": "everything",
+    "desiredOutputs": null,
     "groupSizes": true,
-    "DPID": "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
+    "DPID": "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010",
     "embargoPeriodMonths": 0,
-    "WildObsContribution": "dingo-cat-fox project",
+    "WildObsContribution": "WWF's Eyes on Recovery",
     "deploymentTags": "bait;predatorManagement"
   },
   "coordinatePrecision": 1e-05,
@@ -117,107 +104,17 @@
       {
         "type": "Feature",
         "properties": {
-          "locationName": "Mount_Lewis_NP"
+          "locationName": "Woomargama_NP"
         },
         "geometry": {
           "type": "Polygon",
           "coordinates": [
             [
-              [145.2638, -16.5993],
-              [145.3392, -16.5993],
-              [145.3392, -16.5094],
-              [145.2638, -16.5094],
-              [145.2638, -16.5993]
-            ]
-          ]
-        }
-      },
-      {
-        "type": "Feature",
-        "properties": {
-          "locationName": "Wooroonooran_NP"
-        },
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [
-            [
-              [145.6712, -17.5968],
-              [145.7635, -17.5968],
-              [145.7635, -17.3264],
-              [145.6712, -17.3264],
-              [145.6712, -17.5968]
-            ]
-          ]
-        }
-      },
-      {
-        "type": "Feature",
-        "properties": {
-          "locationName": "Wooroonooran_Goldfield_Track"
-        },
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [
-            [
-              [145.7491, -17.3354],
-              [145.8669, -17.3354],
-              [145.8669, -17.208],
-              [145.7491, -17.208],
-              [145.7491, -17.3354]
-            ]
-          ]
-        }
-      },
-      {
-        "type": "Feature",
-        "properties": {
-          "locationName": "Daintree_NP"
-        },
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [
-            [
-              [145.3807, -16.2647],
-              [145.4693, -16.2647],
-              [145.4693, -15.97],
-              [145.3807, -15.97],
-              [145.3807, -16.2647]
-            ]
-          ]
-        }
-      },
-      {
-        "type": "Feature",
-        "properties": {
-          "locationName": "Danbulla_NP"
-        },
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [
-            [
-              [145.5661, -17.1276],
-              [145.6295, -17.1276],
-              [145.6295, -17.0745],
-              [145.5661, -17.0745],
-              [145.5661, -17.1276]
-            ]
-          ]
-        }
-      },
-      {
-        "type": "Feature",
-        "properties": {
-          "locationName": "Eacham_Curtain_Fig_NPs"
-        },
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [
-            [
-              [145.5707, -17.2911],
-              [145.6399, -17.2911],
-              [145.6399, -17.2694],
-              [145.5707, -17.2694],
-              [145.5707, -17.2911]
+              [147.4089, -35.9287],
+              [147.6375, -35.9287],
+              [147.6375, -35.8435],
+              [147.4089, -35.8435],
+              [147.4089, -35.9287]
             ]
           ]
         }
@@ -225,46 +122,44 @@
     ]
   },
   "temporal": {
-    "start": "2022-09-20",
-    "end": "2023-03-19",
-    "timeZone": "Australia/Brisbane",
-    "Eacham_Curtain_Fig_NPs_2022_Amir_WildObsID_0001": {
-      "start": "2022-12-15",
-      "end": "2023-03-07"
+    "start": "2021-06-27",
+    "end": "2022-04-28",
+    "timeZone": "Australia/Sydney",
+    "Woomargama_NP_2021_a_Linley_WildObsID_0010": {
+      "start": "2021-06-27",
+      "end": "2021-10-05"
     },
-    "Danbulla_NP_2022_Amir_WildObsID_0001": {
-      "start": "2022-10-04",
-      "end": "2023-01-05"
+    "Woomargama_NP_2021_b_Linley_WildObsID_0010": {
+      "start": "2021-10-05",
+      "end": "2022-01-13"
     },
-    "Daintree_NP_2022_Amir_WildObsID_0001": {
-      "start": "2022-09-20",
-      "end": "2022-12-07"
+    "Woomargama_NP_2022_a_Linley_WildObsID_0010": {
+      "start": "2022-01-13",
+      "end": "2022-04-23"
     },
-    "Wooroonooran_Goldfield_Track_2022_Amir_WildObsID_0001": {
-      "start": "2022-12-12",
-      "end": "2023-03-17"
-    },
-    "Wooroonooran_NP_2022_Amir_WildObsID_0001": {
-      "start": "2022-12-20",
-      "end": "2023-03-19"
-    },
-    "Mount_Lewis_NP_2022_Amir_WildObsID_0001": {
-      "start": "2022-09-27",
-      "end": "2022-12-15"
+    "Woomargama_NP_2022_b_Linley_WildObsID_0010": {
+      "start": "2022-04-23",
+      "end": "2022-04-28"
     }
   },
   "taxonomic": [
     {
-      "scientificName": "Animal",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9606",
-      "taxonRank": "phylum",
-      "vernacularNamesEnglish": "Animal"
+      "scientificName": "Felis catus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9685",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "domestic cat"
     },
     {
-      "scientificName": "Mammalia",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/40674",
-      "taxonRank": "class",
-      "vernacularNamesEnglish": "mammals"
+      "scientificName": "Cormobates leucophaea",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/254453",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "white-throated treecreeper"
+    },
+    {
+      "scientificName": "Turnix varius",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/56307",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "painted buttonquail"
     },
     {
       "scientificName": "Sus scrofa",
@@ -273,46 +168,28 @@
       "vernacularNamesEnglish": "pig"
     },
     {
-      "scientificName": "Burhinus grallarius",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/585466",
+      "scientificName": "Wallabia bicolor",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9330",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Bush thick-knee"
+      "vernacularNamesEnglish": "Swamp wallaby"
     },
     {
-      "scientificName": "Rodentia",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9989",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "rodent"
-    },
-    {
-      "scientificName": "Homo sapiens-camera trapper",
-      "taxonID": "https://www.gbif.org/species/2436436",
+      "scientificName": "Vulpes vulpes",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9627",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "human-camera trapper"
+      "vernacularNamesEnglish": "red fox"
     },
     {
-      "scientificName": "Felis catus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9685",
+      "scientificName": "Corvus coronoides",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/108826",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "domestic cat"
+      "vernacularNamesEnglish": "Australian raven"
     },
     {
-      "scientificName": "Aves",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8782",
-      "taxonRank": "class",
-      "vernacularNamesEnglish": "birds"
-    },
-    {
-      "scientificName": "Rhipidura leucophrys",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/512576",
+      "scientificName": "Gymnorhina tibicen",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9132",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Willie-wagtail"
-    },
-    {
-      "scientificName": "Lepidosauria",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8504",
-      "taxonRank": "class",
-      "vernacularNamesEnglish": "lepidosaurs"
+      "vernacularNamesEnglish": "Australian magpie"
     },
     {
       "scientificName": "unidentified",
@@ -321,16 +198,22 @@
       "vernacularNamesEnglish": "Unidentifiable"
     },
     {
-      "scientificName": "Varanus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8556",
-      "taxonRank": "genus",
-      "vernacularNamesEnglish": "Varanus species"
+      "scientificName": "Mus musculus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/10090",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "house mouse"
     },
     {
-      "scientificName": "Squamata",
-      "taxonID": "https://www.gbif.org/species/11592253",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "lizard sp."
+      "scientificName": "Phaps chalcoptera",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/115695",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "common bronzewing"
+    },
+    {
+      "scientificName": "Rattus rattus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/10117",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "black rat"
     },
     {
       "scientificName": "Podargus strigoides",
@@ -339,10 +222,10 @@
       "vernacularNamesEnglish": "tawny frogmouth"
     },
     {
-      "scientificName": "Equus caballus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9796",
+      "scientificName": "Oryctolagus cuniculus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9986",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "horse"
+      "vernacularNamesEnglish": "rabbit"
     },
     {
       "scientificName": "Tachyglossus aculeatus",
@@ -357,100 +240,34 @@
       "vernacularNamesEnglish": "Laughing kookaburra"
     },
     {
-      "scientificName": "Artiodactyla",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/91561",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "even-toed ungulates & whales"
-    },
-    {
-      "scientificName": "Peramelemorphia",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38611",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "Not known in online database"
-    },
-    {
-      "scientificName": "Passeriformes",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9126",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "song birds"
-    },
-    {
-      "scientificName": "Lepidoptera",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/7088",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "butterflies and moths"
-    },
-    {
-      "scientificName": "Araneae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/6893",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "spiders"
-    },
-    {
-      "scientificName": "Galliformes",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8976",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "landfowls"
-    },
-    {
-      "scientificName": "Carnivora",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/33554",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "carnivores"
-    },
-    {
-      "scientificName": "Struthioniformes",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8798",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "ostriches"
-    },
-    {
-      "scientificName": "Strigiformes",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/30458",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "owls"
-    },
-    {
-      "scientificName": "Bicaudavirus pozzuoliense",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/315953",
+      "scientificName": "Nesoptilotis leucotis",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1641795",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Not known in online database"
+      "vernacularNamesEnglish": "White-eared honeyeater"
     },
     {
-      "scientificName": "Columbiformes",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8929",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "pigeons and others"
-    },
-    {
-      "scientificName": "Amphibia",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8292",
-      "taxonRank": "class",
-      "vernacularNamesEnglish": "amphibians"
-    },
-    {
-      "scientificName": "Dasyurus maculatus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9281",
+      "scientificName": "Lepus europaeus",
+      "taxonID": "https://www.gbif.org/species/7952072",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "spotted-tailed quoll"
+      "vernacularNamesEnglish": "European hare"
     },
     {
-      "scientificName": "Antechinus",
-      "taxonID": "https://www.gbif.org/species/2435365",
-      "taxonRank": "genus",
-      "vernacularNamesEnglish": "broad-footed marsupial mice"
-    },
-    {
-      "scientificName": "Chiroptera",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/30560",
-      "taxonRank": "order",
-      "vernacularNamesEnglish": "bats"
-    },
-    {
-      "scientificName": "Intellagama lesueurii",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/2878566",
+      "scientificName": "Vombatus ursinus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/29139",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Eastern water dragon"
+      "vernacularNamesEnglish": "common wombat"
+    },
+    {
+      "scientificName": "Falcunculus frontatus",
+      "taxonID": "https://www.gbif.org/species/7342021",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Eastern shriketit"
+    },
+    {
+      "scientificName": "Rusa unicolor",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/662561",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Sambar"
     },
     {
       "scientificName": "Sericornis frontalis",
@@ -459,148 +276,10 @@
       "vernacularNamesEnglish": "white-browed scrubwren"
     },
     {
-      "scientificName": "Insecta",
-      "taxonID": "https://www.gbif.org/species/216",
-      "taxonRank": "class",
-      "vernacularNamesEnglish": "true insects"
-    },
-    {
-      "scientificName": "Microeca flavigaster",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/665145",
+      "scientificName": "Corcorax melanorhamphos",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9145",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Lemon-bellied flyrobin"
-    },
-    {
-      "scientificName": "Pseudochirops archeri",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38621",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "green ringtail possum"
-    },
-    {
-      "scientificName": "Scenopoeetes dentirostris",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/34929",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "tooth-billed bowerbird"
-    },
-    {
-      "scientificName": "Myotis",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9434",
-      "taxonRank": "genus",
-      "vernacularNamesEnglish": "Mouse-eared bats"
-    },
-    {
-      "scientificName": "Rallina tricolor",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1294535",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "red-necked crake"
-    },
-    {
-      "scientificName": "Acrobates pygmaeus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/190720",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Feathertail glider"
-    },
-    {
-      "scientificName": "Tanysiptera sylvia",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1961835",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Buff-breasted paradise-kingfisher"
-    },
-    {
-      "scientificName": "Colluricincla megarhyncha",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/156160",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Arafura shrikethrush"
-    },
-    {
-      "scientificName": "Hypsiprymnodon moschatus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/65631",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "musky rat kangaroo"
-    },
-    {
-      "scientificName": "Orthonyx spaldingii",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38397",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "northern chowchilla"
-    },
-    {
-      "scientificName": "Megapodius reinwardt",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/125074",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Orange-footed scrubfowl"
-    },
-    {
-      "scientificName": "Ailuroedus melanotis",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/28722",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Black-eared catbird"
-    },
-    {
-      "scientificName": "Uromys caudimaculatus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/36800",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "giant uromys"
-    },
-    {
-      "scientificName": "Muridae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/10066",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "Rodent species"
-    },
-    {
-      "scientificName": "Didelphidae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9265",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "opossums"
-    },
-    {
-      "scientificName": "Columbidae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8930",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "pigeons"
-    },
-    {
-      "scientificName": "Pachycephala pectoralis",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/46904",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "golden whistler"
-    },
-    {
-      "scientificName": "Colubridae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8578",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "colubrid snakes"
-    },
-    {
-      "scientificName": "Peramelidae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9342",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "bandicoots"
-    },
-    {
-      "scientificName": "Notamacropus agilis",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9313",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Agile wallaby"
-    },
-    {
-      "scientificName": "Xanthotis macleayanus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1199189",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Macleay honeyeater"
-    },
-    {
-      "scientificName": "Phasianidae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9005",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "turkeys"
-    },
-    {
-      "scientificName": "Melloria quoyi",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/254525",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Black butcherbird"
+      "vernacularNamesEnglish": "white-winged chough"
     },
     {
       "scientificName": "Macropodidae",
@@ -609,130 +288,22 @@
       "vernacularNamesEnglish": "Macropods"
     },
     {
-      "scientificName": "Dendrolagus lumholtzi",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/168240",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Lumholtz's tree-kangaroo"
-    },
-    {
-      "scientificName": "Entomyzon cyanotis",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/266349",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Blue-faced honeyeater"
-    },
-    {
-      "scientificName": "Casuarius casuarius",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8787",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "southern cassowary"
-    },
-    {
-      "scientificName": "Megapodiidae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8977",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "Scrubfowl"
-    },
-    {
-      "scientificName": "Pseudocheiridae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/37889",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "ring-tailed possums"
-    },
-    {
-      "scientificName": "Hydromys chrysogaster",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/160448",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Golden-bellied Water Rat"
-    },
-    {
-      "scientificName": "Dasyuridae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9277",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "Dasyurids"
-    },
-    {
-      "scientificName": "Dactylopsila trivirgata",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38616",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "striped possum"
-    },
-    {
-      "scientificName": "Rhinella marina",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8386",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "marine toad"
-    },
-    {
-      "scientificName": "Sericornis keri",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38398",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Atherton scrubwren"
-    },
-    {
-      "scientificName": "Passerellidae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1729112",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "New World sparrow"
-    },
-    {
-      "scientificName": "Rallidae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9119",
-      "taxonRank": "family",
-      "vernacularNamesEnglish": "rails"
-    },
-    {
-      "scientificName": "Pachycephala rufiventris",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/381037",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Rufous whistler"
-    },
-    {
-      "scientificName": "Colluricincla boweri",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/675632",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Bower's shrikethrush"
-    },
-    {
-      "scientificName": "Lophophanes cristatus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/156565",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "crested tit"
-    },
-    {
-      "scientificName": "Heteromyias cinereifrons",
-      "taxonID": "https://www.gbif.org/species/2489269",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Grey-headed robin"
-    },
-    {
-      "scientificName": "Canis",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9611",
-      "taxonRank": "genus",
-      "vernacularNamesEnglish": "dog, coyote, wolf, fox"
-    },
-    {
-      "scientificName": "Canis familiaris",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9615",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Domestic dog"
-    },
-    {
       "scientificName": "Canis dingo",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/286419",
       "taxonRank": "species",
       "vernacularNamesEnglish": "Dingo"
     },
     {
-      "scientificName": "Chalcophaps longirostris",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/2881382",
+      "scientificName": "Notamacropus rufogriseus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1960652",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Pacific emerald dove"
+      "vernacularNamesEnglish": "red-necked wallaby"
     },
     {
-      "scientificName": "Corvus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/30420",
+      "scientificName": "Petaurus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/34898",
       "taxonRank": "genus",
-      "vernacularNamesEnglish": "crows"
+      "vernacularNamesEnglish": "lesser gliding possums"
     },
     {
       "scientificName": "Rattus",
@@ -741,40 +312,34 @@
       "vernacularNamesEnglish": "Rat species"
     },
     {
-      "scientificName": "Neosericornis citreogularis",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38399",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Yellow-throated scrubwren"
-    },
-    {
-      "scientificName": "Thylogale stigmatica",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9328",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "red-legged pademelon"
-    },
-    {
-      "scientificName": "Wallabia",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9329",
+      "scientificName": "Trichosurus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9336",
       "taxonRank": "genus",
-      "vernacularNamesEnglish": "Wallaby species"
+      "vernacularNamesEnglish": "brush-tailed possums"
     },
     {
-      "scientificName": "Zoothera",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/36287",
-      "taxonRank": "genus",
-      "vernacularNamesEnglish": "Asian thrush species"
-    },
-    {
-      "scientificName": "Alectura lathami",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/81907",
+      "scientificName": "Acanthiza pusilla",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/117193",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "australian brush-turkey"
+      "vernacularNamesEnglish": "brown thornbill"
     },
     {
-      "scientificName": "Bos taurus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9913",
+      "scientificName": "Antechinus agilis",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/400481",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "cattle"
+      "vernacularNamesEnglish": "Agile antechinus"
+    },
+    {
+      "scientificName": "Antechinus flavipes",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38775",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "yellow-footed antechinus"
+    },
+    {
+      "scientificName": "Anthochaera carunculata",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/266366",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Red wattlebird"
     },
     {
       "scientificName": "Cacatua galerita",
@@ -783,46 +348,94 @@
       "vernacularNamesEnglish": "sulfur-crested cockatoo"
     },
     {
-      "scientificName": "Centropus phasianinus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/121387",
+      "scientificName": "Caligavis chrysops",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1921805",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Pheasant coucal"
+      "vernacularNamesEnglish": "Yellow-faced honeyeater"
     },
     {
-      "scientificName": "Columba leucomela",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/471126",
+      "scientificName": "Cinclosoma punctatum",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/626376",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "White-headed pigeon"
+      "vernacularNamesEnglish": "Spotted quail-thrush"
     },
     {
-      "scientificName": "Isoodon macrourus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/37698",
+      "scientificName": "Climacteris erythrops",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/254447",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "northern brown bandicoot"
+      "vernacularNamesEnglish": "Red-browed treecreeper"
     },
     {
-      "scientificName": "Leucosarcia melanoleuca",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/115673",
+      "scientificName": "Colluricincla harmonica",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/254449",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Wonga pigeon"
+      "vernacularNamesEnglish": "grey shrike-thrush"
     },
     {
-      "scientificName": "Macropygia phasianella",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/115675",
+      "scientificName": "Egernia cunninghami",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/186169",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "brown cuckoo-dove"
+      "vernacularNamesEnglish": "Cunningham's skink"
     },
     {
-      "scientificName": "Perameles nasuta",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9344",
+      "scientificName": "Eopsaltria australis",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/44318",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "long-nosed bandicoot"
+      "vernacularNamesEnglish": "eastern yellow robin"
     },
     {
-      "scientificName": "Pitta versicolor",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/182340",
+      "scientificName": "Macropus giganteus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9317",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Noisy pitta"
+      "vernacularNamesEnglish": "eastern gray kangaroo"
+    },
+    {
+      "scientificName": "Malurus cyaneus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/55807",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Superb fairywren"
+    },
+    {
+      "scientificName": "Menura novaehollandiae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/47692",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "superb lyrebird"
+    },
+    {
+      "scientificName": "Pardalotus punctatus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/254575",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "spotted pardalote"
+    },
+    {
+      "scientificName": "Pardalotus striatus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/108840",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Striated pardalote"
+    },
+    {
+      "scientificName": "Petauroides volans",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/146632",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "greater glider"
+    },
+    {
+      "scientificName": "Petroica boodang",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/665151",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "scarlet robin"
+    },
+    {
+      "scientificName": "Petroica phoenicea",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/665152",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "flame robin"
+    },
+    {
+      "scientificName": "Petroica rodinogaster",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/665154",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Pink robin"
     },
     {
       "scientificName": "Platycercus elegans",
@@ -831,16 +444,22 @@
       "vernacularNamesEnglish": "crimson rosella"
     },
     {
+      "scientificName": "Platycercus eximius",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/141282",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Eastern rosella"
+    },
+    {
       "scientificName": "Pseudechis porphyriacus",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8671",
       "taxonRank": "species",
       "vernacularNamesEnglish": "Red-bellied black snake"
     },
     {
-      "scientificName": "Psophodes olivaceus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/461246",
+      "scientificName": "Pseudocheirus peregrinus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9333",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "eastern whipbird"
+      "vernacularNamesEnglish": "common ring-tailed possum"
     },
     {
       "scientificName": "Ptilonorhynchus violaceus",
@@ -855,16 +474,34 @@
       "vernacularNamesEnglish": "bush rat"
     },
     {
-      "scientificName": "Rhipidura rufifrons",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/135976",
+      "scientificName": "Rhipidura albiscapa",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/315356",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "rufous fantail"
+      "vernacularNamesEnglish": "Grey fantail"
     },
     {
       "scientificName": "Strepera graculina",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/254663",
       "taxonRank": "species",
       "vernacularNamesEnglish": "pied currawong"
+    },
+    {
+      "scientificName": "Trichosurus vulpecula",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9337",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "common brushtail"
+    },
+    {
+      "scientificName": "Turdus merula",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9187",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "blackbird"
+    },
+    {
+      "scientificName": "Varanus rosenbergi",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/71011",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Rosenberg's monitor"
     },
     {
       "scientificName": "Varanus varius",
@@ -877,72 +514,6 @@
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/46908",
       "taxonRank": "species",
       "vernacularNamesEnglish": "olive-tailed thrush"
-    },
-    {
-      "scientificName": "Rhipidura phoenicura",
-      "taxonID": "https://www.gbif.org/species/5231727",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Rufous-tailed fantail"
-    },
-    {
-      "scientificName": "Dendrolagus bennettianus",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/168239",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "Bennett's tree-kangaroo"
-    },
-    {
-      "scientificName": "Homo sapiens",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9606",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "human"
-    },
-    {
-      "scientificName": "Homo sapiens-pedestrian",
-      "taxonID": "https://www.gbif.org/species/2436436",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "human-pedestrian"
-    },
-    {
-      "scientificName": "Homo sapiens-biker",
-      "taxonID": "https://www.gbif.org/species/2436436",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "human-biker"
-    },
-    {
-      "scientificName": "Homo sapiens-research",
-      "taxonID": "https://www.gbif.org/species/2436436",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "human-researcher"
-    },
-    {
-      "scientificName": "Homo sapiens-tourist",
-      "taxonID": "https://www.gbif.org/species/2436436",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "human-tourist"
-    },
-    {
-      "scientificName": "Homo sapiens-park ranger",
-      "taxonID": "https://www.gbif.org/species/2436436",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "human-park ranger"
-    },
-    {
-      "scientificName": "Homo sapiens-park maintenance",
-      "taxonID": "https://www.gbif.org/species/2436436",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "human-park maintenance"
-    },
-    {
-      "scientificName": "Homo sapiens-hunter",
-      "taxonID": "https://www.gbif.org/species/2436436",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "human-hunter"
-    },
-    {
-      "scientificName": "Homo sapiens-vehicle",
-      "taxonID": "https://www.gbif.org/species/2436436",
-      "taxonRank": "species",
-      "vernacularNamesEnglish": "human-vehicle"
     }
   ],
   "resources": [
@@ -981,7 +552,7 @@
           },
           {
             "name": "locationName",
-            "description": "Name given to the deployment location. Several nearby national parks (e.g., crater lakes and curtin fig NPs) were combined due to close proximity, and one very large national park (Wooroonooran) had its lowland sampling split out into a separate locationName. This is denoted by the column CAPADlocationName in the WildObs verified spatial hierarchy.",
+            "description": "Name given to the deployment location. All deployments were within 1-5 km of Woomargama NP This is denoted by the column CAPADlocationName in the WildObs verified spatial hierarchy.",
             "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/locality",
             "constraints": {
               "required": false
@@ -1221,7 +792,7 @@
           {
             "name": "multiSeason_deploymentGroup",
             "description": "Long-term sampling based on spatially and temporally limited deploymentGroups. Continuous sampling was split into new multiSeason_deploymentGroups using a cutoff time of 30 days between deploymentGroups. This is the parent column to deploymentGroups, where multiple deploymentGroups may be nested within a single multiSeason_deploymentGroup value.",
-            "example": "Eacham_Curtain_Fig_NPs_2022_Amir_WildObsID_0001",
+            "example": "Woomargama_NP_long-term_sampling_2021-22_WildObsID_0010",
             "type": "string"
           },
           {
@@ -1573,7 +1144,7 @@
           {
             "name": "deltaTime_event",
             "description": "The amount of time, in seconds, between distinct eventIDs",
-            "example": "0",
+            "example": "798342",
             "type": "number"
           },
           {
@@ -1649,9 +1220,7 @@
               "required": true,
               "unique": true
             },
-            "example": [
-              "dep1"
-            ],
+            "example": "dep1",
             "type": "string"
           },
           {
@@ -1661,21 +1230,17 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              "loc1"
-            ],
+            "example": "loc1",
             "type": "string"
           },
           {
             "name": "locationName",
-            "description": "Name given to the deployment location. Several nearby national parks (e.g., crater lakes and curtin fig NPs) were combined due to close proximity, and one very large national park (Wooroonooran) had its lowland sampling split out into a separate locationName. This is denoted by the column CAPADlocationName in the WildObs verified spatial hierarchy.",
+            "description": "Name given to the deployment location. All deployments were within 1-5 km of Woomargama NP This is denoted by the column CAPADlocationName in the WildObs verified spatial hierarchy.",
             "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/locality",
             "constraints": {
               "required": false
             },
-            "example": [
-              "Białowieża MRI 01"
-            ],
+            "example": "Białowieża MRI 01",
             "type": "string"
           },
           {
@@ -1687,9 +1252,7 @@
               "minimum": -90,
               "maximum": 90
             },
-            "example": [
-              52.7044
-            ],
+            "example": "52.7044",
             "type": "number"
           },
           {
@@ -1701,9 +1264,7 @@
               "minimum": -180,
               "maximum": 180
             },
-            "example": [
-              23.8499
-            ],
+            "example": "23.8499",
             "type": "number"
           },
           {
@@ -1713,9 +1274,7 @@
             "constraints": {
               "required": true
             },
-            "example": [
-              "2020-03-01T22:00:00Z"
-            ],
+            "example": "2020-03-01T22:00:00Z",
             "format": "%Y-%m-%dT%H:%M:%S%z",
             "type": "datetime"
           },
@@ -1726,9 +1285,7 @@
             "constraints": {
               "required": true
             },
-            "example": [
-              "2020-04-01T22:00:00Z"
-            ],
+            "example": "2020-04-01T22:00:00Z",
             "format": "%Y-%m-%dT%H:%M:%S%z",
             "type": "datetime"
           },
@@ -1738,9 +1295,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              "season:winter 2020 | grid:A1"
-            ],
+            "example": "season:winter 2020 | grid:A1",
             "type": "string"
           },
           {
@@ -1751,9 +1306,7 @@
               "minimum": 0,
               "maximum": 10
             },
-            "example": [
-              1.708
-            ],
+            "example": "5.99",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1775,9 +1328,7 @@
               "minimum": 0,
               "maximum": 10
             },
-            "example": [
-              0.7363
-            ],
+            "example": "7.0635",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1799,9 +1350,7 @@
               "minimum": 0,
               "maximum": 10
             },
-            "example": [
-              0.8721
-            ],
+            "example": "7.2676",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1823,9 +1372,7 @@
               "minimum": 0,
               "maximum": 10
             },
-            "example": [
-              1.0952
-            ],
+            "example": "7.4024",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1847,9 +1394,7 @@
               "minimum": 0,
               "maximum": 10
             },
-            "example": [
-              1.2343
-            ],
+            "example": "7.4335",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1871,9 +1416,7 @@
               "minimum": 0,
               "maximum": 50
             },
-            "example": [
-              11
-            ],
+            "example": "2",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1895,9 +1438,7 @@
               "minimum": 0,
               "maximum": 50
             },
-            "example": [
-              11
-            ],
+            "example": "2",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1919,9 +1460,7 @@
               "minimum": 0,
               "maximum": 50
             },
-            "example": [
-              9.6667
-            ],
+            "example": "2",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1943,9 +1482,7 @@
               "minimum": 0,
               "maximum": 50
             },
-            "example": [
-              8.3333
-            ],
+            "example": "2",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1967,9 +1504,7 @@
               "minimum": 0,
               "maximum": 50
             },
-            "example": [
-              7.5556
-            ],
+            "example": "1.8",
             "type": "number",
             "custom": {
               "spatial": {
@@ -1991,9 +1526,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              814.0001
-            ],
+            "example": "636",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2015,9 +1548,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              776.4581
-            ],
+            "example": "657.8642",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2039,9 +1570,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              766.0306
-            ],
+            "example": "679.0414",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2063,9 +1592,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              762.816
-            ],
+            "example": "683.5639",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2087,9 +1614,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              761.0627
-            ],
+            "example": "678.4597",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2111,9 +1636,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.041
-            ],
+            "example": "0.283",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2135,9 +1658,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.041
-            ],
+            "example": "0.2785",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2159,9 +1680,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.0737
-            ],
+            "example": "0.2785",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2183,9 +1702,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.0652
-            ],
+            "example": "0.2785",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2207,9 +1724,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.075
-            ],
+            "example": "0.2881",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2230,9 +1745,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              225.471
-            ],
+            "example": "140.6203",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2253,9 +1766,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              225.471
-            ],
+            "example": "140.6203",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2276,9 +1787,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              219.9265
-            ],
+            "example": "140.1014",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2299,9 +1808,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              219.9265
-            ],
+            "example": "140.1469",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2322,9 +1829,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              223.7736
-            ],
+            "example": "139.8268",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2345,9 +1850,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              23.5127
-            ],
+            "example": "6.4866",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2368,9 +1871,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              23.5127
-            ],
+            "example": "6.4866",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2391,9 +1892,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              23.4952
-            ],
+            "example": "6.6094",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2414,9 +1913,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              23.4952
-            ],
+            "example": "6.5414",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2437,9 +1934,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              23.4574
-            ],
+            "example": "6.5871",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2460,9 +1955,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              0.2676
-            ],
+            "example": "0.209",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2483,9 +1976,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              0.2698
-            ],
+            "example": "0.2157",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2506,9 +1997,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              0.2759
-            ],
+            "example": "0.2194",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2529,9 +2018,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              0.2781
-            ],
+            "example": "0.22",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2552,9 +2039,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              0.288
-            ],
+            "example": "0.2184",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2575,9 +2060,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              90.8647
-            ],
+            "example": "0",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2598,9 +2081,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              90.8647
-            ],
+            "example": "0",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2621,9 +2102,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              38.6821
-            ],
+            "example": "0",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2644,9 +2123,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              29.0116
-            ],
+            "example": "0",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2667,9 +2144,7 @@
               "required": true,
               "minimum": 0
             },
-            "example": [
-              35.7631
-            ],
+            "example": "0.2038",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2691,9 +2166,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              1
-            ],
+            "example": "1",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2715,9 +2188,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.25
-            ],
+            "example": "1",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2739,9 +2210,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.2308
-            ],
+            "example": "1",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2763,9 +2232,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.25
-            ],
+            "example": "1",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2787,9 +2254,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.3659
-            ],
+            "example": "0.925",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2812,9 +2277,7 @@
                 [0, 1, 2, 3, 4, 5]
               ]
             },
-            "example": [
-              0
-            ],
+            "example": "2",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2837,9 +2300,7 @@
                 [0, 1, 2, 3, 4, 5]
               ]
             },
-            "example": [
-              0
-            ],
+            "example": "2",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2862,9 +2323,7 @@
                 [0, 1, 2, 3, 4, 5]
               ]
             },
-            "example": [
-              0
-            ],
+            "example": "2",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2887,9 +2346,7 @@
                 [0, 1, 2, 3, 4, 5]
               ]
             },
-            "example": [
-              0
-            ],
+            "example": "3",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2912,9 +2369,7 @@
                 [0, 1, 2, 3, 4, 5]
               ]
             },
-            "example": [
-              0
-            ],
+            "example": "3",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2934,9 +2389,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2956,9 +2409,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "1.4201",
             "type": "number",
             "custom": {
               "spatial": {
@@ -2978,9 +2429,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "69.8225",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3000,9 +2449,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "28.5207",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3022,9 +2469,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0.2367",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3044,9 +2489,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3065,9 +2508,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3086,9 +2527,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0.8512",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3107,9 +2546,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "52.0065",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3128,9 +2565,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "41.7511",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3149,9 +2584,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "4.4994",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3170,9 +2603,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0.8918",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3191,9 +2622,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3212,9 +2641,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0.665",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3233,9 +2660,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "41.6502",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3254,9 +2679,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "46.8966",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3275,9 +2698,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "9.2611",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3296,9 +2717,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "1.5271",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3317,9 +2736,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3338,9 +2755,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "0.434",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3359,9 +2774,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "30.878",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3380,9 +2793,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "46.7262",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3401,9 +2812,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "18.2912",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3422,9 +2831,7 @@
             "constraints": {
               "required": false
             },
-            "example": [
-              0
-            ],
+            "example": "3.6706",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3444,9 +2851,7 @@
               "required": false,
               "minimum": 0
             },
-            "example": [
-              0
-            ],
+            "example": "5",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3467,9 +2872,7 @@
               "required": false,
               "minimum": 0
             },
-            "example": [
-              0
-            ],
+            "example": "6",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3490,9 +2893,7 @@
               "required": false,
               "minimum": 0
             },
-            "example": [
-              0
-            ],
+            "example": "6",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3513,9 +2914,7 @@
               "required": false,
               "minimum": 0
             },
-            "example": [
-              0
-            ],
+            "example": "6",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3536,9 +2935,7 @@
               "required": false,
               "minimum": 0
             },
-            "example": [
-              0
-            ],
+            "example": "6",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3559,6 +2956,7 @@
               "required": false,
               "minimum": 0
             },
+            "example": "552",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3579,6 +2977,7 @@
               "required": false,
               "minimum": 0
             },
+            "example": "552",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3599,6 +2998,7 @@
               "required": false,
               "minimum": 0
             },
+            "example": "552",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3619,6 +3019,7 @@
               "required": false,
               "minimum": 0
             },
+            "example": "552",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3639,6 +3040,7 @@
               "required": false,
               "minimum": 0
             },
+            "example": "552",
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3660,9 +3062,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.7983
-            ],
+            "example": "0.8836",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3684,9 +3084,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.6666
-            ],
+            "example": "0.8292",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3708,9 +3106,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.5137
-            ],
+            "example": "0.8267",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3732,9 +3128,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.4386
-            ],
+            "example": "0.8278",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3756,9 +3150,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.3969
-            ],
+            "example": "0.826",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3778,9 +3170,7 @@
             "constraints": {
               "required": true
             },
-            "example": [
-              "Biome: 1, name: Queensland tropical rain forests"
-            ],
+            "example": "Biome: 4, name: Southeast Australia temperate forests",
             "type": "string",
             "custom": {
               "spatial": {
@@ -3802,9 +3192,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.3517
-            ],
+            "example": "0.5682",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3826,9 +3214,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.3517
-            ],
+            "example": "0.5682",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3850,9 +3236,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.3566
-            ],
+            "example": "0.5545",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3874,9 +3258,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.3566
-            ],
+            "example": "0.54",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3898,9 +3280,7 @@
               "minimum": 0,
               "maximum": 1
             },
-            "example": [
-              0.3587
-            ],
+            "example": "0.5617",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3922,9 +3302,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              11.125
-            ],
+            "example": "4.875",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3946,9 +3324,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              7.3061
-            ],
+            "example": "8.6862",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3970,9 +3346,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              6.652
-            ],
+            "example": "11.0517",
             "type": "number",
             "custom": {
               "spatial": {
@@ -3994,9 +3368,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              6.4218
-            ],
+            "example": "11.6044",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4018,9 +3390,7 @@
               "minimum": 0,
               "maximum": 2250
             },
-            "example": [
-              6.762
-            ],
+            "example": "12.8656",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4042,9 +3412,7 @@
               "minimum": -3.7,
               "maximum": 3.7
             },
-            "example": [
-              0.6759
-            ],
+            "example": "0.699",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4066,9 +3434,7 @@
               "minimum": -3.7,
               "maximum": 3.7
             },
-            "example": [
-              0.6759
-            ],
+            "example": "0.7648",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4090,9 +3456,7 @@
               "minimum": -3.7,
               "maximum": 3.7
             },
-            "example": [
-              0.5914
-            ],
+            "example": "0.7648",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4114,9 +3478,7 @@
               "minimum": -3.7,
               "maximum": 3.7
             },
-            "example": [
-              0.5914
-            ],
+            "example": "0.7648",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4138,9 +3500,7 @@
               "minimum": -3.7,
               "maximum": 3.7
             },
-            "example": [
-              0.5914
-            ],
+            "example": "0.699",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4162,9 +3522,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              8.3563
-            ],
+            "example": "5.0007",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4186,9 +3544,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              14.2689
-            ],
+            "example": "2.9012",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4210,9 +3566,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              15.1991
-            ],
+            "example": "2.5034",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4234,9 +3588,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              14.1509
-            ],
+            "example": "2.2778",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4258,9 +3610,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              13.6862
-            ],
+            "example": "1.9666",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4282,9 +3632,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              0.0346
-            ],
+            "example": "0.4612",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4306,9 +3654,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              0.0346
-            ],
+            "example": "0.4632",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4330,9 +3676,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              0.0355
-            ],
+            "example": "0.4664",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4354,9 +3698,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              0.0366
-            ],
+            "example": "0.4686",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4378,9 +3720,7 @@
               "minimum": 0,
               "maximum": 160
             },
-            "example": [
-              0.0386
-            ],
+            "example": "0.4703",
             "type": "number",
             "custom": {
               "spatial": {
@@ -4400,9 +3740,7 @@
             "constraints": {
               "required": true
             },
-            "example": [
-              "Bellenden Ker-Lamb"
-            ],
+            "example": "Tallaringa",
             "type": "string",
             "custom": {
               "spatial": {
@@ -4422,9 +3760,7 @@
             "constraints": {
               "required": true
             },
-            "example": [
-              "Wet Tropics"
-            ],
+            "example": "Great Victoria Desert",
             "type": "string",
             "custom": {
               "spatial": {

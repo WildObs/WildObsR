@@ -37,8 +37,8 @@ This function performs the following steps:
 The function uses the \code{terra} package for spatial processing.
 }
 \examples{
-# two cameras of the Paluma project shipped with WildObsR
-dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
+# two cameras of the Woomargama project shipped with WildObsR
+dp <- example_datapackages("NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")[[1]]
 dep <- frictionless::read_resource(dp, "deployments")
 dep <- dep[c(1, 40), c("deploymentID", "latitude", "longitude")]
 

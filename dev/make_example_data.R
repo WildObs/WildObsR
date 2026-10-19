@@ -1,13 +1,13 @@
-### make_example_data.R -- build the Wet Tropics example data packages shipped in inst/extdata
+### make_example_data.R -- build the example data packages shipped in inst/extdata
 ##
-## Two open WildObs projects from the Queensland Wet Tropics, downloaded through the
+## Two open WildObs projects, downloaded through the
 ## public API exactly as any key holder would get them, then written to disk as Camtrap DP
 ## packages (datapackage.json plus gzipped CSVs). example_datapackages() reads them back,
 ## so examples, tests and vignettes run offline on real data.
 ##
 ## Both projects are open and CC-BY-4.0, and their providers approved bundling them.
-## Media are left out: they are the largest table and no example needs them. Contributor
-## email addresses are left out too. Coordinates are kept as the public API serves them,
+## Media are left out: they are the largest table and no example needs them. Email
+## addresses of contributors and sources are left out too. Coordinates are kept as the public API serves them,
 ## and threatened-species records stay obscured.
 ##
 ## Re-run after a public database rebuild to refresh the copies, then re-run the tests.
@@ -30,8 +30,8 @@ if (!nzchar(api_key)) {
 ### The projects to bundle
 ## add an approved project's ID here and re-run to ship it too
 projects <- c(
-  "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",          # systematic, unbaited, roads and trails
-  "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"  # targeted, baited game trails
+  "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",            # systematic, unbaited, roads and trails
+  "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010"  # wombat burrows and controls, two years
 )
 
 ## keep only animal observations, which is all the detection examples need
@@ -39,7 +39,7 @@ animal_only <- TRUE
 
 ## where the packages are written, one folder per project, named by its WildObsID
 ## (a full project ID would make file paths too long for an R package tarball)
-out_dir <- here("inst", "extdata", "wet_tropics")
+out_dir <- here("inst", "extdata", "example_datapackages")
 
 
 #
@@ -70,6 +70,12 @@ for (id in names(dp_list)) {
     c$email <- NULL
     c
   }) # end per contributor
+  # the same for the sources, which can carry a provider's personal address
+  dp$sources <- lapply(dp$sources, function(src) {
+    # drop the address, keep the title and link
+    src$email <- NULL
+    src
+  }) # end per source
 
   ## the in-memory copy of the tables is rebuilt on reading, so it is not written
   dp$data <- NULL
@@ -86,4 +92,4 @@ for (id in names(dp_list)) {
 
 ## report the size shipped with the package
 sizes <- file.info(list.files(out_dir, recursive = TRUE, full.names = TRUE))$size
-message(sprintf("inst/extdata/wet_tropics: %.2f MB", sum(sizes) / 1e6))
+message(sprintf("inst/extdata/example_datapackages: %.2f MB", sum(sizes) / 1e6))

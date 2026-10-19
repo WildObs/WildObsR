@@ -27,12 +27,13 @@
   their spatial versions), spAbundance (`NMix()`, `msNMix()`), or as plain arrays for
   JAGS, NIMBLE or Stan. Camera-days of effort, and the share of effort under each level
   of an `effort_matrix()` `split_by` column, are added as observation covariates.
-- `example_datapackages()` reads two open Wet Tropics projects shipped with the
-  package (`ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001`, systematic and unbaited;
-  `QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006`, targeted and baited), in
+- `example_datapackages()` reads two open projects shipped with the package
+  (`ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001`, systematic and unbaited cameras in
+  the Queensland Wet Tropics; `NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010`,
+  wombat burrows and controls in New South Wales over four surveys in 2021-22), in
   the same shape `wildobs_dp_download()` returns. Examples, tests and tutorials now
   run offline on real data. The copies hold animal observations only, no
-  media and no contributor email addresses, and are rebuilt from the public API by `dev/make_example_data.R`. The
+  media and no email addresses, and are rebuilt from the public API by `dev/make_example_data.R`. The
   examples of `extract_metadata()`, `extract_tags()`,
   `recombine_deployment_groups()`, `locationName_buffer_CAPAD()` and
   `locationName_verification_CAPAD()` now run on them.

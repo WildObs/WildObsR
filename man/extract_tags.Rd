@@ -55,11 +55,11 @@ Type coercion is attempted in order: numeric, then logical, then date-time
 \code{NA} values beyond those already present in the column.
 }
 \examples{
-# deployments of the baited cassowary project shipped with WildObsR
-dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
+# deployments of the Woomargama wombat project shipped with WildObsR
+dp <- example_datapackages("NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")[[1]]
 dep <- frictionless::read_resource(dp, "deployments")
 
-# deploymentTags holds "key: value" pairs, e.g. the lure used
+# deploymentTags holds "key: value" pairs, e.g. the lure used and predator management
 head(dep$deploymentTags, 3)
 
 # expand each key into its own column

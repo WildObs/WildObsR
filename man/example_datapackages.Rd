@@ -2,11 +2,11 @@
 % Please edit documentation in R/example_datapackages.R
 \name{example_datapackages}
 \alias{example_datapackages}
-\title{Example WildObs Data Packages from the Queensland Wet Tropics}
+\title{Example WildObs Data Packages}
 \usage{
 example_datapackages(
   project_ids = c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
-    "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")
+    "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")
 )
 }
 \arguments{
@@ -27,19 +27,21 @@ its tables in \code{resources} and date-times in the project's local time zone. 
 tables with \code{\link[frictionless:read_resource]{frictionless::read_resource()}}. A copy also sits in \code{dp$data}, because the
 \code{camtrapdp} class expects one, but other tools do not always keep it up to date.
 
-The two projects sample the same rainforest with different designs, which is what
-makes pooling them a useful exercise:
+The two projects have different designs, regions and seasons:
 \describe{
 \item{\code{ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001}}{Systematic, unbaited cameras on
-roads, trails and off-trail across six national parks, 2022-23: 275 deployments.}
-\item{\verb{QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006}}{Targeted, baited
-cameras on game trails in Paluma Range National Park, 2023-24: 75 deployments.}
+roads, trails and off-trail across six national parks in the Queensland Wet
+Tropics, 2022-23: 275 deployments at 145 stations, most with two cameras.}
+\item{\verb{NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010}}{Unbaited cameras at
+wombat burrows and at nearby controls in Woomargama National Park, New South
+Wales, over four surveys in 2021-22 that form one multi-season group: 219
+deployments at 28 stations, in the time zone Australia/Sydney.}
 }
 Both are open and licensed CC-BY-4.0; cite them with \code{\link[=cite_datapackages]{cite_datapackages()}}. They
 are copies of the public data at the time the package was built (see
 \code{versionControlWildObs}), with three differences from a live download: only animal
-observations are kept, there is no media table, and contributors' email addresses
-are left out. Threatened-species records stay
+observations are kept, there is no media table, and the email addresses of
+contributors and sources are left out. Threatened-species records stay
 obscured, exactly as the public API serves them. The copies are rebuilt by
 \code{dev/make_example_data.R} in the package source.
 }

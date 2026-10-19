@@ -5,18 +5,18 @@
 
 ## the two shipped projects
 p1 <- "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"
-p6 <- "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
+p10 <- "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010"
 
 test_that("example_datapackages lists the shipped projects without reading them", {
-  expect_setequal(example_datapackages(project_ids = NULL), c(p1, p6))
+  expect_setequal(example_datapackages(project_ids = NULL), c(p1, p10))
 })
 
 test_that("example_datapackages returns packages shaped like a download", {
   dp_list <- example_datapackages()
 
   # both projects, named, in the order asked for
-  expect_named(dp_list, c(p1, p6))
-  dp <- dp_list[[p6]]
+  expect_named(dp_list, c(p1, p10))
+  dp <- dp_list[[p10]]
   # recognised as a Camtrap DP package
   expect_s3_class(dp, "camtrapdp")
   # the three tables, readable by frictionless without the files on disk
@@ -29,7 +29,7 @@ test_that("example_datapackages returns packages shaped like a download", {
 })
 
 test_that("example_datapackages types columns and times as a download does", {
-  dp <- example_datapackages(p6)[[1]]
+  dp <- example_datapackages(p10)[[1]]
   deps <- frictionless::read_resource(dp, "deployments")
 
   # date-times are POSIXct in the project's own time zone
@@ -39,12 +39,12 @@ test_that("example_datapackages types columns and times as a download does", {
   expect_type(deps$baitUse, "logical")
   # and a camera starts when the live database says it does
   # (compared as instants, since one is shown in local time and the other in UTC)
-  start <- deps$deploymentStart[deps$deploymentID == "Bambaroo Track_WildObsID_0006_2023_b"]
-  expect_equal(as.numeric(start), as.numeric(as.POSIXct("2023-11-07 05:33:26", tz = "UTC")))
+  start <- deps$deploymentStart[deps$deploymentID == "10_WildObsID_0010_2021_a_Cam1"]
+  expect_equal(as.numeric(start), as.numeric(as.POSIXct("2021-07-03 14:36:04", tz = "UTC")))
 })
 
 test_that("example_datapackages holds animal observations only, obscured records included", {
-  obs <- frictionless::read_resource(example_datapackages(p6)[[1]], "observations")
+  obs <- frictionless::read_resource(example_datapackages(p10)[[1]], "observations")
 
   expect_true(all(obs$observationType == "animal"))
   # threatened species stay obscured, exactly as the public API serves them

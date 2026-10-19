@@ -96,8 +96,8 @@
 #' placeholder) that is not in the deployments.
 #'
 #' @examples
-#' # the cassowary project shipped with WildObsR ran across two seasons
-#' dp <- example_datapackages("QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006")[[1]]
+#' # the Woomargama project shipped with WildObsR ran four surveys over two years
+#' dp <- example_datapackages("NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")[[1]]
 #' long_dp <- recombine_deployment_groups(dp)
 #'
 #' # fewer, longer deployments

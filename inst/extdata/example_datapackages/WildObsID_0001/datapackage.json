@@ -1,18 +1,18 @@
 {
   "profile": "https://raw.githubusercontent.com/tdwg/camtrap-dp/1.0.2/camtrap-dp-profile.json",
-  "created": "2025-02-04T12:53:06+10:00",
-  "title": "Cassowary baited camera trap observations in Paluma 2023-2024",
+  "created": "2025-02-18T17:18:45+10:00",
+  "title": "Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates",
   "contributors": [
     {
-      "title": "Wren Mclean",
-      "path": "0000-0001-7287-037X",
+      "title": "Zachary Amir",
+      "path": "0000-0002-8398-2059",
       "role": "principalInvestigator",
-      "organization": "Cassowary Recovery Team",
-      "ROR": null
+      "organization": "University of Queensland",
+      "ROR": "https://ror.org/00rqy9422"
     },
     {
-      "title": "Skye Anderson",
-      "path": "0009-0000-6554-1981",
+      "title": "Tom Bruce",
+      "path": "0000-0001-6958-1657",
       "role": "contact",
       "organization": "University of Queensland",
       "ROR": "https://ror.org/00rqy9422"
@@ -20,22 +20,21 @@
     {
       "title": "Matthew Luskin",
       "path": "0000-0002-5236-7096",
-      "role": "contributor",
+      "role": "rightsHolder",
       "organization": "University of Queensland",
       "ROR": "https://ror.org/00rqy9422"
     }
   ],
-  "description": "This camera trap survey was carried out to examine the population of cassowaries (Casuarius casuarius) in Paluma Range National Park. This was acheived by sampling many areas throughout the park and using colored lures (painted red and blue balls) that increase the likelihood of detecting cassowaries. Paluma National Park is the southern extent of the cassowaries range and little is known about their populations in this area. As this area is isolated from the rest of the Wet Tropics by sclerophyll forest is it important to understand if there are corridors the cassowaries are using to travel between fragments, or of this population is completely isolated",
+  "description": "This data was collected by Zachary Amir and the Ecolocical Cascades Lab at the University of Queensland to study interactions between native and invasive vertebrates in North Queenslands Wet Tropics Rainforests. The camera trap surveys conducted here compliment and extend prior surveys conducted by Dr. Tom Bruce as part of his PhD research studying feral cats in North Queensland forests. Important to note that these surveys implemented paired camera deployments, where each sampling locaiton received a camera palced on the road and another camera placed 50 m into the bush. Sampling locations were typically spaced 1km apart form each other, though this varies between small and large landscapes.",
   "version": "1.0.2",
-  "versionControlWildObs": "1.1.2",
-  "keywords": ["cassowary", "Wet Tropics", "Paluma", "camera traps", "public awareness", "lures", "collaboration"],
+  "versionControlWildObs": "1.1.1",
+  "keywords": ["camtrapDP", "camera traps", "native wildlife", "invasive wildlife", "rainforest", "australia", "Queensland", "paired deployments", "feral cats", "feral pigs"],
   "image": "",
-  "homepage": "https://www.tern.org.au/wildobs/",
+  "homepage": "https://www.ecologicalcascades.com/",
   "sources": [
     {
       "title": "Wildlife Insights",
-      "path": "https://app.wildlifeinsights.org/explore/2007336/145625598251_2007336_894_cassowary_cam_trap",
-      "email": "info@wildlifeinsights.org"
+      "path": "https://app.wildlifeinsights.org/explore/2004322/145625598251_2004322_621_wet_tropics_cam_trap"
     }
   ],
   "licenses": [
@@ -50,41 +49,65 @@
       "scope": "media"
     }
   ],
-  "bibliographicCitation": "Wren Mclean, Skye Anderson & Matthew Luskin (2023). WildObs Camera Trap Data Package: Cassowary baited camera trap observations in Paluma 2023-2024 [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/7be2c341",
+  "bibliographicCitation": "Zachary Amir, Tom Bruce & Matthew Luskin (2022). WildObs Camera Trap Data Package: Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/cb5829ab",
   "relatedIdentifiers": [
     {
+      "relationType": "IsSupplementTo",
+      "relatedIdentifier": "https://doi.org/10.1002/ece3.71464",
+      "resourceTypeGeneral": "JournalArticle",
+      "relatedIdentifierType": "DOI"
+    },
+    {
       "relationType": "IsPartOf",
-      "relatedIdentifier": "https://raid.org/10.83062/7be2c341",
+      "relatedIdentifier": "https://raid.org/10.83062/cb5829ab",
       "resourceTypeGeneral": "Dataset",
       "relatedIdentifierType": "RAiD"
+    },
+    {
+      "relationType": "IsSupplementTo",
+      "relatedIdentifier": "https://doi.org/10.1016/j.scitotenv.2026.181926",
+      "resourceTypeGeneral": "JournalArticle",
+      "relatedIdentifierType": "DOI"
+    },
+    {
+      "relationType": "IsSourceOf",
+      "relatedIdentifier": "https://doi.org/10.15468/kjqw3f",
+      "resourceTypeGeneral": "Dataset",
+      "relatedIdentifierType": "DOI"
+    },
+    {
+      "relationType": "IsCitedBy",
+      "relatedIdentifier": "https://doi.org/10.5281/zenodo.19552244",
+      "resourceTypeGeneral": "Workflow",
+      "relatedIdentifierType": "DOI"
     }
   ],
   "references": [],
-  "name": "qld_paluma_cassowary_mclean_2023-24",
-  "id": "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006",
+  "name": "zamir_qld_wet_tropics_2022",
+  "id": "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
   "project": {
-    "id": "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006",
-    "title": "Cassowary baited camera trap observations in Paluma 2023-2024",
-    "acronym": "PALCASS",
-    "description": "This camera trap survey was carried out to examine the population of cassowaries (Casuarius casuarius) in Paluma Range National Park. This was acheived by sampling many areas throughout the park and using colored lures (painted red and blue balls) that increase the likelihood of detecting cassowaries. Paluma National Park is the southern extent of the cassowaries range and little is known about their populations in this area. As this area is isolated from the rest of the Wet Tropics by sclerophyll forest is it important to understand if there are corridors the cassowaries are using to travel between fragments, or of this population is completely isolated",
-    "samplingDesign": "targeted",
-    "path": "https://www.tern.org.au/wildobs/",
+    "id": "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
+    "title": "Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates",
+    "acronym": "ZAQWT",
+    "description": "This data was collected by Zachary Amir and the Ecolocical Cascades Lab at the University of Queensland to study interactions between native and invasive vertebrates in North Queenslands Wet Tropics Rainforests. The camera trap surveys conducted here compliment and extend prior surveys conducted by Dr. Tom Bruce as part of his PhD research studying feral cats in North Queensland forests. Important to note that these surveys implemented paired camera deployments, where each sampling locaiton received a camera palced on the road and another camera placed 50 m into the bush. Sampling locations were typically spaced 1km apart form each other, though this varies between small and large landscapes.",
+    "samplingDesign": "systematicRandom",
+    "path": "https://www.ecologicalcascades.com/",
     "captureMethod": "activityDetection",
     "individualAnimals": false,
     "observationLevel": "event",
-    "DPID": "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006"
+    "DPID": "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"
   },
   "WildObsMetadata": {
-    "thinnedMedia": true,
+    "thinnedMedia": false,
     "deploymentClusters": true,
-    "fundingAgency": "unknown",
+    "fundingAgency": "federalGovernment; ngoGrant",
     "tabularSharingPreference": "open",
-    "desiredOutputs": "unknown",
+    "desiredOutputs": "everything",
     "groupSizes": true,
-    "DPID": "QLD_Paluma_cassowary_Mclean_2023-24_WildObsID_0006",
-    "embargoPeriodMonths": 6,
+    "DPID": "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
+    "embargoPeriodMonths": 0,
     "WildObsContribution": "dingo-cat-fox project",
-    "deploymentTags": "bait"
+    "deploymentTags": "bait;predatorManagement"
   },
   "coordinatePrecision": 1e-05,
   "spatial": {
@@ -93,17 +116,107 @@
       {
         "type": "Feature",
         "properties": {
-          "locationName": "Paluma_Range_NP"
+          "locationName": "Mount_Lewis_NP"
         },
         "geometry": {
           "type": "Polygon",
           "coordinates": [
             [
-              [146.1385, -19.2945],
-              [146.4519, -19.2945],
-              [146.4519, -18.9141],
-              [146.1385, -18.9141],
-              [146.1385, -19.2945]
+              [145.2638, -16.5993],
+              [145.3392, -16.5993],
+              [145.3392, -16.5094],
+              [145.2638, -16.5094],
+              [145.2638, -16.5993]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "locationName": "Wooroonooran_NP"
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [145.6712, -17.5968],
+              [145.7635, -17.5968],
+              [145.7635, -17.3264],
+              [145.6712, -17.3264],
+              [145.6712, -17.5968]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "locationName": "Wooroonooran_Goldfield_Track"
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [145.7491, -17.3354],
+              [145.8669, -17.3354],
+              [145.8669, -17.208],
+              [145.7491, -17.208],
+              [145.7491, -17.3354]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "locationName": "Daintree_NP"
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [145.3807, -16.2647],
+              [145.4693, -16.2647],
+              [145.4693, -15.97],
+              [145.3807, -15.97],
+              [145.3807, -16.2647]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "locationName": "Danbulla_NP"
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [145.5661, -17.1276],
+              [145.6295, -17.1276],
+              [145.6295, -17.0745],
+              [145.5661, -17.0745],
+              [145.5661, -17.1276]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "locationName": "Eacham_Curtain_Fig_NPs"
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [145.5707, -17.2911],
+              [145.6399, -17.2911],
+              [145.6399, -17.2694],
+              [145.5707, -17.2694],
+              [145.5707, -17.2911]
             ]
           ]
         }
@@ -111,28 +224,32 @@
     ]
   },
   "temporal": {
-    "start": "2023-06-16",
-    "end": "2024-07-27",
+    "start": "2022-09-20",
+    "end": "2023-03-19",
     "timeZone": "Australia/Brisbane",
-    "Paluma_Range_NP_2023_b_Mclean_WildObsID_0006": {
-      "start": "2023-09-23",
-      "end": "2024-01-01"
+    "Eacham_Curtain_Fig_NPs_2022_Amir_WildObsID_0001": {
+      "start": "2022-12-15",
+      "end": "2023-03-07"
     },
-    "Paluma_Range_NP_2024_a_Mclean_WildObsID_0006": {
-      "start": "2024-01-01",
-      "end": "2024-04-10"
+    "Danbulla_NP_2022_Amir_WildObsID_0001": {
+      "start": "2022-10-04",
+      "end": "2023-01-05"
     },
-    "Paluma_Range_NP_2024_b_Mclean_WildObsID_0006": {
-      "start": "2024-04-11",
-      "end": "2024-07-18"
+    "Daintree_NP_2022_Amir_WildObsID_0001": {
+      "start": "2022-09-20",
+      "end": "2022-12-07"
     },
-    "Paluma_Range_NP_2023_a_Mclean_WildObsID_0006": {
-      "start": "2023-06-16",
-      "end": "2023-09-23"
+    "Wooroonooran_Goldfield_Track_2022_Amir_WildObsID_0001": {
+      "start": "2022-12-12",
+      "end": "2023-03-17"
     },
-    "Paluma_Range_NP_2024_c_Mclean_WildObsID_0006": {
-      "start": "2024-07-21",
-      "end": "2024-07-27"
+    "Wooroonooran_NP_2022_Amir_WildObsID_0001": {
+      "start": "2022-12-20",
+      "end": "2023-03-19"
+    },
+    "Mount_Lewis_NP_2022_Amir_WildObsID_0001": {
+      "start": "2022-09-27",
+      "end": "2022-12-15"
     }
   },
   "taxonomic": [
@@ -155,16 +272,46 @@
       "vernacularNamesEnglish": "pig"
     },
     {
+      "scientificName": "Burhinus grallarius",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/585466",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Bush thick-knee"
+    },
+    {
       "scientificName": "Rodentia",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9989",
       "taxonRank": "order",
       "vernacularNamesEnglish": "rodent"
     },
     {
+      "scientificName": "Homo sapiens-camera trapper",
+      "taxonID": "https://www.gbif.org/species/2436436",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human-camera trapper"
+    },
+    {
+      "scientificName": "Felis catus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9685",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "domestic cat"
+    },
+    {
       "scientificName": "Aves",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8782",
       "taxonRank": "class",
       "vernacularNamesEnglish": "birds"
+    },
+    {
+      "scientificName": "Rhipidura leucophrys",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/512576",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Willie-wagtail"
+    },
+    {
+      "scientificName": "Lepidosauria",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8504",
+      "taxonRank": "class",
+      "vernacularNamesEnglish": "lepidosaurs"
     },
     {
       "scientificName": "unidentified",
@@ -179,28 +326,202 @@
       "vernacularNamesEnglish": "Varanus species"
     },
     {
+      "scientificName": "Squamata",
+      "taxonID": "https://www.gbif.org/species/11592253",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "lizard sp."
+    },
+    {
+      "scientificName": "Podargus strigoides",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8905",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "tawny frogmouth"
+    },
+    {
+      "scientificName": "Equus caballus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9796",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "horse"
+    },
+    {
+      "scientificName": "Tachyglossus aculeatus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9261",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Australian echidna"
+    },
+    {
+      "scientificName": "Dacelo novaeguineae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8939",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Laughing kookaburra"
+    },
+    {
+      "scientificName": "Artiodactyla",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/91561",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "even-toed ungulates & whales"
+    },
+    {
       "scientificName": "Peramelemorphia",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38611",
       "taxonRank": "order",
       "vernacularNamesEnglish": "Not known in online database"
     },
     {
+      "scientificName": "Passeriformes",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9126",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "song birds"
+    },
+    {
+      "scientificName": "Lepidoptera",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/7088",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "butterflies and moths"
+    },
+    {
+      "scientificName": "Araneae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/6893",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "spiders"
+    },
+    {
+      "scientificName": "Galliformes",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8976",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "landfowls"
+    },
+    {
+      "scientificName": "Carnivora",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/33554",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "carnivores"
+    },
+    {
+      "scientificName": "Struthioniformes",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8798",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "ostriches"
+    },
+    {
+      "scientificName": "Strigiformes",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/30458",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "owls"
+    },
+    {
+      "scientificName": "Bicaudavirus pozzuoliense",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/315953",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Not known in online database"
+    },
+    {
+      "scientificName": "Columbiformes",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8929",
+      "taxonRank": "order",
+      "vernacularNamesEnglish": "pigeons and others"
+    },
+    {
+      "scientificName": "Amphibia",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8292",
+      "taxonRank": "class",
+      "vernacularNamesEnglish": "amphibians"
+    },
+    {
+      "scientificName": "Dasyurus maculatus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9281",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "spotted-tailed quoll"
+    },
+    {
+      "scientificName": "Antechinus",
+      "taxonID": "https://www.gbif.org/species/2435365",
+      "taxonRank": "genus",
+      "vernacularNamesEnglish": "broad-footed marsupial mice"
+    },
+    {
       "scientificName": "Chiroptera",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9397",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/30560",
       "taxonRank": "order",
       "vernacularNamesEnglish": "bats"
     },
     {
-      "scientificName": "Accipiter novaehollandiae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/387801",
+      "scientificName": "Intellagama lesueurii",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/2878566",
       "taxonRank": "species",
-      "vernacularNamesEnglish": "Grey goshawk"
+      "vernacularNamesEnglish": "Eastern water dragon"
+    },
+    {
+      "scientificName": "Sericornis frontalis",
+      "taxonID": "https://www.gbif.org/species/2486602",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "white-browed scrubwren"
+    },
+    {
+      "scientificName": "Insecta",
+      "taxonID": "https://www.gbif.org/species/216",
+      "taxonRank": "class",
+      "vernacularNamesEnglish": "true insects"
+    },
+    {
+      "scientificName": "Microeca flavigaster",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/665145",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Lemon-bellied flyrobin"
+    },
+    {
+      "scientificName": "Pseudochirops archeri",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38621",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "green ringtail possum"
+    },
+    {
+      "scientificName": "Scenopoeetes dentirostris",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/34929",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "tooth-billed bowerbird"
+    },
+    {
+      "scientificName": "Myotis",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9434",
+      "taxonRank": "genus",
+      "vernacularNamesEnglish": "Mouse-eared bats"
+    },
+    {
+      "scientificName": "Rallina tricolor",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1294535",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "red-necked crake"
+    },
+    {
+      "scientificName": "Acrobates pygmaeus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/190720",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Feathertail glider"
+    },
+    {
+      "scientificName": "Tanysiptera sylvia",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1961835",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Buff-breasted paradise-kingfisher"
+    },
+    {
+      "scientificName": "Colluricincla megarhyncha",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/156160",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Arafura shrikethrush"
     },
     {
       "scientificName": "Hypsiprymnodon moschatus",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/65631",
       "taxonRank": "species",
       "vernacularNamesEnglish": "musky rat kangaroo"
+    },
+    {
+      "scientificName": "Orthonyx spaldingii",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38397",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "northern chowchilla"
     },
     {
       "scientificName": "Megapodius reinwardt",
@@ -221,10 +542,64 @@
       "vernacularNamesEnglish": "giant uromys"
     },
     {
+      "scientificName": "Muridae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/10066",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "Rodent species"
+    },
+    {
+      "scientificName": "Didelphidae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9265",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "opossums"
+    },
+    {
+      "scientificName": "Columbidae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8930",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "pigeons"
+    },
+    {
+      "scientificName": "Pachycephala pectoralis",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/46904",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "golden whistler"
+    },
+    {
+      "scientificName": "Colubridae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8578",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "colubrid snakes"
+    },
+    {
+      "scientificName": "Peramelidae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9342",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "bandicoots"
+    },
+    {
       "scientificName": "Notamacropus agilis",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9313",
       "taxonRank": "species",
       "vernacularNamesEnglish": "Agile wallaby"
+    },
+    {
+      "scientificName": "Xanthotis macleayanus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1199189",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Macleay honeyeater"
+    },
+    {
+      "scientificName": "Phasianidae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9005",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "turkeys"
+    },
+    {
+      "scientificName": "Melloria quoyi",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/254525",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Black butcherbird"
     },
     {
       "scientificName": "Macropodidae",
@@ -233,16 +608,112 @@
       "vernacularNamesEnglish": "Macropods"
     },
     {
+      "scientificName": "Dendrolagus lumholtzi",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/168240",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Lumholtz's tree-kangaroo"
+    },
+    {
+      "scientificName": "Entomyzon cyanotis",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/266349",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Blue-faced honeyeater"
+    },
+    {
       "scientificName": "Casuarius casuarius",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8787",
       "taxonRank": "species",
       "vernacularNamesEnglish": "southern cassowary"
     },
     {
-      "scientificName": "Phalangeridae",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9335",
+      "scientificName": "Megapodiidae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8977",
       "taxonRank": "family",
-      "vernacularNamesEnglish": "possums and cuscuses"
+      "vernacularNamesEnglish": "Scrubfowl"
+    },
+    {
+      "scientificName": "Pseudocheiridae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/37889",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "ring-tailed possums"
+    },
+    {
+      "scientificName": "Hydromys chrysogaster",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/160448",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Golden-bellied Water Rat"
+    },
+    {
+      "scientificName": "Dasyuridae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9277",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "Dasyurids"
+    },
+    {
+      "scientificName": "Dactylopsila trivirgata",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38616",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "striped possum"
+    },
+    {
+      "scientificName": "Rhinella marina",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8386",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "marine toad"
+    },
+    {
+      "scientificName": "Sericornis keri",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38398",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Atherton scrubwren"
+    },
+    {
+      "scientificName": "Passerellidae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/1729112",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "New World sparrow"
+    },
+    {
+      "scientificName": "Rallidae",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9119",
+      "taxonRank": "family",
+      "vernacularNamesEnglish": "rails"
+    },
+    {
+      "scientificName": "Pachycephala rufiventris",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/381037",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Rufous whistler"
+    },
+    {
+      "scientificName": "Colluricincla boweri",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/675632",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Bower's shrikethrush"
+    },
+    {
+      "scientificName": "Lophophanes cristatus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/156565",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "crested tit"
+    },
+    {
+      "scientificName": "Heteromyias cinereifrons",
+      "taxonID": "https://www.gbif.org/species/2489269",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Grey-headed robin"
+    },
+    {
+      "scientificName": "Canis",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9611",
+      "taxonRank": "genus",
+      "vernacularNamesEnglish": "dog, coyote, wolf, fox"
+    },
+    {
+      "scientificName": "Canis familiaris",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9615",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Domestic dog"
     },
     {
       "scientificName": "Canis dingo",
@@ -251,16 +722,46 @@
       "vernacularNamesEnglish": "Dingo"
     },
     {
-      "scientificName": "Thylogale",
-      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9326",
+      "scientificName": "Chalcophaps longirostris",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/2881382",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Pacific emerald dove"
+    },
+    {
+      "scientificName": "Corvus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/30420",
       "taxonRank": "genus",
-      "vernacularNamesEnglish": "Pademelon species"
+      "vernacularNamesEnglish": "crows"
+    },
+    {
+      "scientificName": "Rattus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/10114",
+      "taxonRank": "genus",
+      "vernacularNamesEnglish": "Rat species"
+    },
+    {
+      "scientificName": "Neosericornis citreogularis",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/38399",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Yellow-throated scrubwren"
     },
     {
       "scientificName": "Thylogale stigmatica",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9328",
       "taxonRank": "species",
       "vernacularNamesEnglish": "red-legged pademelon"
+    },
+    {
+      "scientificName": "Wallabia",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9329",
+      "taxonRank": "genus",
+      "vernacularNamesEnglish": "Wallaby species"
+    },
+    {
+      "scientificName": "Zoothera",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/36287",
+      "taxonRank": "genus",
+      "vernacularNamesEnglish": "Asian thrush species"
     },
     {
       "scientificName": "Alectura lathami",
@@ -275,10 +776,46 @@
       "vernacularNamesEnglish": "cattle"
     },
     {
+      "scientificName": "Cacatua galerita",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/141274",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "sulfur-crested cockatoo"
+    },
+    {
+      "scientificName": "Centropus phasianinus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/121387",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Pheasant coucal"
+    },
+    {
+      "scientificName": "Columba leucomela",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/471126",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "White-headed pigeon"
+    },
+    {
       "scientificName": "Isoodon macrourus",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/37698",
       "taxonRank": "species",
       "vernacularNamesEnglish": "northern brown bandicoot"
+    },
+    {
+      "scientificName": "Leucosarcia melanoleuca",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/115673",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Wonga pigeon"
+    },
+    {
+      "scientificName": "Macropygia phasianella",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/115675",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "brown cuckoo-dove"
+    },
+    {
+      "scientificName": "Perameles nasuta",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9344",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "long-nosed bandicoot"
     },
     {
       "scientificName": "Pitta versicolor",
@@ -287,10 +824,124 @@
       "vernacularNamesEnglish": "Noisy pitta"
     },
     {
+      "scientificName": "Platycercus elegans",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/269190",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "crimson rosella"
+    },
+    {
+      "scientificName": "Pseudechis porphyriacus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8671",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Red-bellied black snake"
+    },
+    {
       "scientificName": "Psophodes olivaceus",
       "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/461246",
       "taxonRank": "species",
       "vernacularNamesEnglish": "eastern whipbird"
+    },
+    {
+      "scientificName": "Ptilonorhynchus violaceus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/28724",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "satin bowerbird"
+    },
+    {
+      "scientificName": "Rattus fuscipes",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/10119",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "bush rat"
+    },
+    {
+      "scientificName": "Rhipidura rufifrons",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/135976",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "rufous fantail"
+    },
+    {
+      "scientificName": "Strepera graculina",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/254663",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "pied currawong"
+    },
+    {
+      "scientificName": "Varanus varius",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/8559",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "lace monitor"
+    },
+    {
+      "scientificName": "Zoothera lunulata",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/46908",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "olive-tailed thrush"
+    },
+    {
+      "scientificName": "Rhipidura phoenicura",
+      "taxonID": "https://www.gbif.org/species/5231727",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Rufous-tailed fantail"
+    },
+    {
+      "scientificName": "Dendrolagus bennettianus",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/168239",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "Bennett's tree-kangaroo"
+    },
+    {
+      "scientificName": "Homo sapiens",
+      "taxonID": "https://www.ncbi.nlm.nih.gov/taxonomy/9606",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human"
+    },
+    {
+      "scientificName": "Homo sapiens-pedestrian",
+      "taxonID": "https://www.gbif.org/species/2436436",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human-pedestrian"
+    },
+    {
+      "scientificName": "Homo sapiens-biker",
+      "taxonID": "https://www.gbif.org/species/2436436",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human-biker"
+    },
+    {
+      "scientificName": "Homo sapiens-research",
+      "taxonID": "https://www.gbif.org/species/2436436",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human-researcher"
+    },
+    {
+      "scientificName": "Homo sapiens-tourist",
+      "taxonID": "https://www.gbif.org/species/2436436",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human-tourist"
+    },
+    {
+      "scientificName": "Homo sapiens-park ranger",
+      "taxonID": "https://www.gbif.org/species/2436436",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human-park ranger"
+    },
+    {
+      "scientificName": "Homo sapiens-park maintenance",
+      "taxonID": "https://www.gbif.org/species/2436436",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human-park maintenance"
+    },
+    {
+      "scientificName": "Homo sapiens-hunter",
+      "taxonID": "https://www.gbif.org/species/2436436",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human-hunter"
+    },
+    {
+      "scientificName": "Homo sapiens-vehicle",
+      "taxonID": "https://www.gbif.org/species/2436436",
+      "taxonRank": "species",
+      "vernacularNamesEnglish": "human-vehicle"
     }
   ],
   "resources": [
@@ -329,7 +980,7 @@
           },
           {
             "name": "locationName",
-            "description": "Name given to the deployment location. Some location names from the CAPAD dataset were overwritten from Girringun_IPA to Paluma_Range_NP to maintain consistency due to close proximity. This is denoted by the column CAPADlocationName in the WildObs verified spatial hierarchy.",
+            "description": "Name given to the deployment location. Several nearby national parks (e.g., crater lakes and curtin fig NPs) were combined due to close proximity, and one very large national park (Wooroonooran) had its lowland sampling split out into a separate locationName. This is denoted by the column CAPADlocationName in the WildObs verified spatial hierarchy.",
             "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/locality",
             "constraints": {
               "required": false
@@ -569,7 +1220,7 @@
           {
             "name": "multiSeason_deploymentGroup",
             "description": "Long-term sampling based on spatially and temporally limited deploymentGroups. Continuous sampling was split into new multiSeason_deploymentGroups using a cutoff time of 30 days between deploymentGroups. This is the parent column to deploymentGroups, where multiple deploymentGroups may be nested within a single multiSeason_deploymentGroup value.",
-            "example": "Paluma_Range_NP_long-term_sampling_2023-24_WildObsID_0006",
+            "example": "Eacham_Curtain_Fig_NPs_2022_Amir_WildObsID_0001",
             "type": "string"
           },
           {
@@ -1016,7 +1667,7 @@
           },
           {
             "name": "locationName",
-            "description": "Name given to the deployment location. Some location names from the CAPAD dataset were overwritten from Girringun_IPA to Paluma_Range_NP to maintain consistency due to close proximity. This is denoted by the column CAPADlocationName in the WildObs verified spatial hierarchy.",
+            "description": "Name given to the deployment location. Several nearby national parks (e.g., crater lakes and curtin fig NPs) were combined due to close proximity, and one very large national park (Wooroonooran) had its lowland sampling split out into a separate locationName. This is denoted by the column CAPADlocationName in the WildObs verified spatial hierarchy.",
             "skos:exactMatch": "http://rs.tdwg.org/dwc/terms/locality",
             "constraints": {
               "required": false
@@ -1100,7 +1751,7 @@
               "maximum": 10
             },
             "example": [
-              8.82
+              1.708
             ],
             "type": "number",
             "custom": {
@@ -1124,7 +1775,7 @@
               "maximum": 10
             },
             "example": [
-              8.8495
+              0.7363
             ],
             "type": "number",
             "custom": {
@@ -1148,7 +1799,7 @@
               "maximum": 10
             },
             "example": [
-              8.8413
+              0.8721
             ],
             "type": "number",
             "custom": {
@@ -1172,7 +1823,7 @@
               "maximum": 10
             },
             "example": [
-              8.8055
+              1.0952
             ],
             "type": "number",
             "custom": {
@@ -1196,7 +1847,7 @@
               "maximum": 10
             },
             "example": [
-              8.7573
+              1.2343
             ],
             "type": "number",
             "custom": {
@@ -1220,7 +1871,7 @@
               "maximum": 50
             },
             "example": [
-              2
+              11
             ],
             "type": "number",
             "custom": {
@@ -1244,7 +1895,7 @@
               "maximum": 50
             },
             "example": [
-              2
+              11
             ],
             "type": "number",
             "custom": {
@@ -1268,7 +1919,7 @@
               "maximum": 50
             },
             "example": [
-              2
+              9.6667
             ],
             "type": "number",
             "custom": {
@@ -1292,7 +1943,7 @@
               "maximum": 50
             },
             "example": [
-              2.1667
+              8.3333
             ],
             "type": "number",
             "custom": {
@@ -1316,7 +1967,7 @@
               "maximum": 50
             },
             "example": [
-              2.2
+              7.5556
             ],
             "type": "number",
             "custom": {
@@ -1340,7 +1991,7 @@
               "maximum": 2250
             },
             "example": [
-              700.0001
+              814.0001
             ],
             "type": "number",
             "custom": {
@@ -1364,7 +2015,7 @@
               "maximum": 2250
             },
             "example": [
-              701.4304
+              776.4581
             ],
             "type": "number",
             "custom": {
@@ -1388,7 +2039,7 @@
               "maximum": 2250
             },
             "example": [
-              701.5875
+              766.0306
             ],
             "type": "number",
             "custom": {
@@ -1412,7 +2063,7 @@
               "maximum": 2250
             },
             "example": [
-              691.7778
+              762.816
             ],
             "type": "number",
             "custom": {
@@ -1436,7 +2087,7 @@
               "maximum": 2250
             },
             "example": [
-              674.304
+              761.0627
             ],
             "type": "number",
             "custom": {
@@ -1460,7 +2111,7 @@
               "maximum": 1
             },
             "example": [
-              0.282
+              0.041
             ],
             "type": "number",
             "custom": {
@@ -1484,7 +2135,7 @@
               "maximum": 1
             },
             "example": [
-              0.282
+              0.041
             ],
             "type": "number",
             "custom": {
@@ -1508,7 +2159,7 @@
               "maximum": 1
             },
             "example": [
-              0.2627
+              0.0737
             ],
             "type": "number",
             "custom": {
@@ -1532,7 +2183,7 @@
               "maximum": 1
             },
             "example": [
-              0.248
+              0.0652
             ],
             "type": "number",
             "custom": {
@@ -1556,7 +2207,7 @@
               "maximum": 1
             },
             "example": [
-              0.2659
+              0.075
             ],
             "type": "number",
             "custom": {
@@ -1579,7 +2230,7 @@
               "minimum": 0
             },
             "example": [
-              236.9635
+              225.471
             ],
             "type": "number",
             "custom": {
@@ -1602,7 +2253,7 @@
               "minimum": 0
             },
             "example": [
-              236.9635
+              225.471
             ],
             "type": "number",
             "custom": {
@@ -1625,7 +2276,7 @@
               "minimum": 0
             },
             "example": [
-              237.5025
+              219.9265
             ],
             "type": "number",
             "custom": {
@@ -1648,7 +2299,7 @@
               "minimum": 0
             },
             "example": [
-              237.3885
+              219.9265
             ],
             "type": "number",
             "custom": {
@@ -1671,7 +2322,7 @@
               "minimum": 0
             },
             "example": [
-              239.7587
+              223.7736
             ],
             "type": "number",
             "custom": {
@@ -1694,7 +2345,7 @@
               "minimum": 0
             },
             "example": [
-              23.2698
+              23.5127
             ],
             "type": "number",
             "custom": {
@@ -1717,7 +2368,7 @@
               "minimum": 0
             },
             "example": [
-              23.2698
+              23.5127
             ],
             "type": "number",
             "custom": {
@@ -1740,7 +2391,7 @@
               "minimum": 0
             },
             "example": [
-              23.1233
+              23.4952
             ],
             "type": "number",
             "custom": {
@@ -1763,7 +2414,7 @@
               "minimum": 0
             },
             "example": [
-              23.472
+              23.4952
             ],
             "type": "number",
             "custom": {
@@ -1786,7 +2437,7 @@
               "minimum": 0
             },
             "example": [
-              23.3049
+              23.4574
             ],
             "type": "number",
             "custom": {
@@ -1809,7 +2460,7 @@
               "minimum": 0
             },
             "example": [
-              0.256
+              0.2676
             ],
             "type": "number",
             "custom": {
@@ -1832,7 +2483,7 @@
               "minimum": 0
             },
             "example": [
-              0.2604
+              0.2698
             ],
             "type": "number",
             "custom": {
@@ -1855,7 +2506,7 @@
               "minimum": 0
             },
             "example": [
-              0.2541
+              0.2759
             ],
             "type": "number",
             "custom": {
@@ -1878,7 +2529,7 @@
               "minimum": 0
             },
             "example": [
-              0.2527
+              0.2781
             ],
             "type": "number",
             "custom": {
@@ -1901,7 +2552,7 @@
               "minimum": 0
             },
             "example": [
-              0.2509
+              0.288
             ],
             "type": "number",
             "custom": {
@@ -1924,7 +2575,7 @@
               "minimum": 0
             },
             "example": [
-              0
+              90.8647
             ],
             "type": "number",
             "custom": {
@@ -1947,7 +2598,7 @@
               "minimum": 0
             },
             "example": [
-              0
+              90.8647
             ],
             "type": "number",
             "custom": {
@@ -1970,7 +2621,7 @@
               "minimum": 0
             },
             "example": [
-              0
+              38.6821
             ],
             "type": "number",
             "custom": {
@@ -1993,7 +2644,7 @@
               "minimum": 0
             },
             "example": [
-              0
+              29.0116
             ],
             "type": "number",
             "custom": {
@@ -2016,7 +2667,7 @@
               "minimum": 0
             },
             "example": [
-              0
+              35.7631
             ],
             "type": "number",
             "custom": {
@@ -2064,7 +2715,7 @@
               "maximum": 1
             },
             "example": [
-              1
+              0.25
             ],
             "type": "number",
             "custom": {
@@ -2088,7 +2739,7 @@
               "maximum": 1
             },
             "example": [
-              1
+              0.2308
             ],
             "type": "number",
             "custom": {
@@ -2112,7 +2763,7 @@
               "maximum": 1
             },
             "example": [
-              1
+              0.25
             ],
             "type": "number",
             "custom": {
@@ -2136,7 +2787,7 @@
               "maximum": 1
             },
             "example": [
-              1
+              0.3659
             ],
             "type": "number",
             "custom": {
@@ -2862,7 +3513,7 @@
               "minimum": 0
             },
             "example": [
-              1
+              0
             ],
             "type": "integer",
             "custom": {
@@ -2885,7 +3536,7 @@
               "minimum": 0
             },
             "example": [
-              2
+              0
             ],
             "type": "integer",
             "custom": {
@@ -2967,9 +3618,6 @@
               "required": false,
               "minimum": 0
             },
-            "example": [
-              5486
-            ],
             "type": "integer",
             "custom": {
               "spatial": {
@@ -2990,9 +3638,6 @@
               "required": false,
               "minimum": 0
             },
-            "example": [
-              5486
-            ],
             "type": "integer",
             "custom": {
               "spatial": {
@@ -3015,7 +3660,7 @@
               "maximum": 1
             },
             "example": [
-              0.8232
+              0.7983
             ],
             "type": "number",
             "custom": {
@@ -3039,7 +3684,7 @@
               "maximum": 1
             },
             "example": [
-              0.7974
+              0.6666
             ],
             "type": "number",
             "custom": {
@@ -3063,7 +3708,7 @@
               "maximum": 1
             },
             "example": [
-              0.7935
+              0.5137
             ],
             "type": "number",
             "custom": {
@@ -3087,7 +3732,7 @@
               "maximum": 1
             },
             "example": [
-              0.7881
+              0.4386
             ],
             "type": "number",
             "custom": {
@@ -3111,7 +3756,7 @@
               "maximum": 1
             },
             "example": [
-              0.7857
+              0.3969
             ],
             "type": "number",
             "custom": {
@@ -3157,7 +3802,7 @@
               "maximum": 1
             },
             "example": [
-              0.8508
+              0.3517
             ],
             "type": "number",
             "custom": {
@@ -3181,7 +3826,7 @@
               "maximum": 1
             },
             "example": [
-              0.8508
+              0.3517
             ],
             "type": "number",
             "custom": {
@@ -3205,7 +3850,7 @@
               "maximum": 1
             },
             "example": [
-              0.8602
+              0.3566
             ],
             "type": "number",
             "custom": {
@@ -3229,7 +3874,7 @@
               "maximum": 1
             },
             "example": [
-              0.8188
+              0.3566
             ],
             "type": "number",
             "custom": {
@@ -3253,7 +3898,7 @@
               "maximum": 1
             },
             "example": [
-              0.8556
+              0.3587
             ],
             "type": "number",
             "custom": {
@@ -3277,7 +3922,7 @@
               "maximum": 2250
             },
             "example": [
-              25.125
+              11.125
             ],
             "type": "number",
             "custom": {
@@ -3301,7 +3946,7 @@
               "maximum": 2250
             },
             "example": [
-              18.8109
+              7.3061
             ],
             "type": "number",
             "custom": {
@@ -3325,7 +3970,7 @@
               "maximum": 2250
             },
             "example": [
-              18.9594
+              6.652
             ],
             "type": "number",
             "custom": {
@@ -3349,7 +3994,7 @@
               "maximum": 2250
             },
             "example": [
-              19.6864
+              6.4218
             ],
             "type": "number",
             "custom": {
@@ -3373,7 +4018,7 @@
               "maximum": 2250
             },
             "example": [
-              20.8017
+              6.762
             ],
             "type": "number",
             "custom": {
@@ -3397,7 +4042,7 @@
               "maximum": 3.7
             },
             "example": [
-              -0.1347
+              0.6759
             ],
             "type": "number",
             "custom": {
@@ -3421,7 +4066,7 @@
               "maximum": 3.7
             },
             "example": [
-              -0.0677
+              0.6759
             ],
             "type": "number",
             "custom": {
@@ -3445,7 +4090,7 @@
               "maximum": 3.7
             },
             "example": [
-              -0.0677
+              0.5914
             ],
             "type": "number",
             "custom": {
@@ -3469,7 +4114,7 @@
               "maximum": 3.7
             },
             "example": [
-              -0.0677
+              0.5914
             ],
             "type": "number",
             "custom": {
@@ -3493,7 +4138,7 @@
               "maximum": 3.7
             },
             "example": [
-              -0.0677
+              0.5914
             ],
             "type": "number",
             "custom": {
@@ -3517,7 +4162,7 @@
               "maximum": 160
             },
             "example": [
-              3.2523
+              8.3563
             ],
             "type": "number",
             "custom": {
@@ -3541,7 +4186,7 @@
               "maximum": 160
             },
             "example": [
-              2.9529
+              14.2689
             ],
             "type": "number",
             "custom": {
@@ -3565,7 +4210,7 @@
               "maximum": 160
             },
             "example": [
-              2.5097
+              15.1991
             ],
             "type": "number",
             "custom": {
@@ -3589,7 +4234,7 @@
               "maximum": 160
             },
             "example": [
-              2.2719
+              14.1509
             ],
             "type": "number",
             "custom": {
@@ -3613,7 +4258,7 @@
               "maximum": 160
             },
             "example": [
-              1.9801
+              13.6862
             ],
             "type": "number",
             "custom": {
@@ -3637,7 +4282,7 @@
               "maximum": 160
             },
             "example": [
-              0.4605
+              0.0346
             ],
             "type": "number",
             "custom": {
@@ -3661,7 +4306,7 @@
               "maximum": 160
             },
             "example": [
-              0.4614
+              0.0346
             ],
             "type": "number",
             "custom": {
@@ -3685,7 +4330,7 @@
               "maximum": 160
             },
             "example": [
-              0.4638
+              0.0355
             ],
             "type": "number",
             "custom": {
@@ -3709,7 +4354,7 @@
               "maximum": 160
             },
             "example": [
-              0.4653
+              0.0366
             ],
             "type": "number",
             "custom": {
@@ -3733,7 +4378,7 @@
               "maximum": 160
             },
             "example": [
-              0.4652
+              0.0386
             ],
             "type": "number",
             "custom": {
@@ -3755,7 +4400,7 @@
               "required": true
             },
             "example": [
-              "Paluma-Seaview"
+              "Bellenden Ker-Lamb"
             ],
             "type": "string",
             "custom": {
