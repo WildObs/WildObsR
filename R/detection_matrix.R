@@ -14,10 +14,20 @@
 #'     of its `eventStart` in the effort matrix's time zone. A detection on a day its camera
 #'     was not running stops the function, because it means the deployment dates and the
 #'     observations disagree.
-#'   \item With `type = "occupancy"`, a cell is 1 if the species was detected at all. With
-#'     `type = "abundance"`, each event (`eventID`) counts the largest `count` among its
-#'     observations, and events are then combined over the occasion with `individuals`:
-#'     `"sum"` adds them, while `"max"` takes the largest observed value per event. 
+#'   \item With `type = "occupancy"`, a cell is 1 if the species was detected at all.
+#'   \item With `type = "abundance"`, counts are combined in two steps:
+#'     \enumerate{
+#'       \item Within each event (`eventID`, a 30-minute window at one camera in WildObs
+#'         data), the largest `count` among its observations is the number of animals
+#'         seen. Repeat triggers by the same animals are therefore counted once.
+#'       \item Events are then combined over the occasion with `individuals`: `"sum"` adds
+#'         them, a relative abundance index; `"max"` takes the largest single event, the
+#'         most animals seen at once, as N-mixture models assume.
+#'     }
+#'     With `by_camera = FALSE`, the second step pools the events of every camera in the
+#'     site, so `"sum"` can count an animal twice if it passes two cameras, while `"max"`
+#'     cannot. The day of a detection only decides which occasion its event falls in;
+#'     nothing is summarised per day.
 #' }
 #'
 #' @param obs A data frame of observations with at least `deploymentID`, `eventStart`
@@ -27,9 +37,14 @@
 #' @param scientificNames Character vector of species to build histories for. A species
 #'   never detected is kept, with zeros wherever cameras ran.
 #' @param type `"occupancy"` (default) or `"abundance"`.
-#' @param individuals For abundance: `"sum"` (default) or `"max"`; see Description.
+#' @param individuals For abundance: `"sum"` (default) or `"max"`, how events are combined
+#'   over an occasion; see Description.
 #' @param by_camera Logical. Keep each deployment separate, as a fourth dimension matching
-#'   the third dimension of `effort$effort`? Defaults to `FALSE`.
+#'   the third dimension of `effort$effort`? Defaults to `FALSE`. This is for custom models
+#'   that treat each camera's detection separately. It cannot be used with an effort matrix
+#'   built with `split_by`, whose third dimension holds the split levels rather than
+#'   cameras; to model detection by a split such as trail status, keep `FALSE` and use the
+#'   share covariates [model_matrix_input()] adds.
 #'
 #' @return A numeric array, species x site x occasion (x deployment slot when
 #'   `by_camera = TRUE`), with dimnames from `effort` and a `type` attribute
@@ -83,6 +98,16 @@ detection_matrix <- function(obs, effort, scientificNames,
     stop("detection_matrix() needs effort from effort_matrix(), built from the same deployments.",
          call. = FALSE)
   } # end effort check
+  ## with split_by, the effort's third dimension holds the split levels, not the cameras
+  if (isTRUE(by_camera) && !is.null(effort$settings$split_by)) {
+    # hard stop, explaining what to do instead
+    stop(sprintf("detection_matrix() cannot use by_camera = TRUE with an effort matrix built with split_by = \"%s\".\n",
+                 effort$settings$split_by),
+         "That effort matrix is split by level, not by camera, so there is no camera dimension to match. ",
+         sprintf("Leave by_camera = FALSE: model_matrix_input() turns the split into observation covariates (effort and the share of camera-days under each %s level). ",
+                 effort$settings$split_by),
+         "For one history per camera, build effort_matrix() without split_by.", call. = FALSE)
+  } # end by_camera with split_by check
   ## resampled observations are summed per cell and day, and have no deploymentID to place them
   # recognised by the tag resample_covariates_and_observations() adds, or by its summary columns
   resampled <- !is.null(attr(obs, "wildobs_resampled")) ||

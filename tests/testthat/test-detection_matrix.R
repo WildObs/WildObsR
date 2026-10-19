@@ -196,3 +196,16 @@ test_that("detection_matrix and effort_matrix agree with camtrapR on single-came
   their_effort[is.na(their_effort)] <- 0
   expect_equal(unname(eff$effort_total), unname(their_effort), tolerance = 1e-4)
 })
+
+test_that("detection_matrix() refuses by_camera = TRUE with an effort matrix split by a column", {
+  # cameras A and B on trail, C off trail
+  deps <- three_cameras()
+  deps$trailStatus <- c("onTrail", "onTrail", "offTrail")
+  eff <- effort_matrix(deps, site_col = "cell", w = 5, split_by = "trailStatus")
+
+  # the split levels are not cameras, so there is nothing to match
+  expect_error(detection_matrix(detections(), eff, "X", by_camera = TRUE),
+               "cannot use by_camera = TRUE with an effort matrix built with split_by")
+  # the same effort works without by_camera
+  expect_equal(dim(detection_matrix(detections(), eff, "X")), c(1, 2, 2))
+})

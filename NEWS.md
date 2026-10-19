@@ -89,6 +89,13 @@ it.
   `detection_matrix()` now stop with a message naming the right table when given resampled
   covariates or observations: effort needs the deployments with their cellIDs, and
   detections the observations themselves.
+- `detection_matrix(by_camera = TRUE)` now stops, with an explanation, when the effort
+  matrix was built with `split_by`. It used to place detections by camera number in a
+  dimension that holds the split levels, misplacing them or failing with "subscript out of
+  bounds". `?detection_matrix` now spells out how abundance counts are combined (the
+  largest count per event, then summed or maximised over events), and
+  `?resample_covariates_and_observations` what its `individuals = "sum"` does and does not
+  count.
 
 ## Breaking changes
 

@@ -25,10 +25,15 @@ never detected is kept, with zeros wherever cameras ran.}
 
 \item{type}{\code{"occupancy"} (default) or \code{"abundance"}.}
 
-\item{individuals}{For abundance: \code{"sum"} (default) or \code{"max"}; see Description.}
+\item{individuals}{For abundance: \code{"sum"} (default) or \code{"max"}, how events are combined
+over an occasion; see Description.}
 
 \item{by_camera}{Logical. Keep each deployment separate, as a fourth dimension matching
-the third dimension of \code{effort$effort}? Defaults to \code{FALSE}.}
+the third dimension of \code{effort$effort}? Defaults to \code{FALSE}. This is for custom models
+that treat each camera's detection separately. It cannot be used with an effort matrix
+built with \code{split_by}, whose third dimension holds the split levels rather than
+cameras; to model detection by a split such as trail status, keep \code{FALSE} and use the
+share covariates \code{\link[=model_matrix_input]{model_matrix_input()}} adds.}
 }
 \value{
 A numeric array, species x site x occasion (x deployment slot when
@@ -52,10 +57,20 @@ message saying how many.
 of its \code{eventStart} in the effort matrix's time zone. A detection on a day its camera
 was not running stops the function, because it means the deployment dates and the
 observations disagree.
-\item With \code{type = "occupancy"}, a cell is 1 if the species was detected at all. With
-\code{type = "abundance"}, each event (\code{eventID}) counts the largest \code{count} among its
-observations, and events are then combined over the occasion with \code{individuals}:
-\code{"sum"} adds them, while \code{"max"} takes the largest observed value per event.
+\item With \code{type = "occupancy"}, a cell is 1 if the species was detected at all.
+\item With \code{type = "abundance"}, counts are combined in two steps:
+\enumerate{
+\item Within each event (\code{eventID}, a 30-minute window at one camera in WildObs
+data), the largest \code{count} among its observations is the number of animals
+seen. Repeat triggers by the same animals are therefore counted once.
+\item Events are then combined over the occasion with \code{individuals}: \code{"sum"} adds
+them, a relative abundance index; \code{"max"} takes the largest single event, the
+most animals seen at once, as N-mixture models assume.
+}
+With \code{by_camera = FALSE}, the second step pools the events of every camera in the
+site, so \code{"sum"} can count an animal twice if it passes two cameras, while \code{"max"}
+cannot. The day of a detection only decides which occasion its event falls in;
+nothing is summarised per day.
 }
 }
 \examples{
