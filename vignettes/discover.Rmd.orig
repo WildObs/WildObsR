@@ -15,13 +15,16 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height
 key to rebuild discover.Rmd, which ships with its results already in place. -->
 
 Before you download any camera data, it helps to know what the database holds: which
-projects sampled your region, when, with what design, which species they recorded, and
-whether their data are released yet. All of that lives in each project's metadata, which
-is small and quick to fetch. This vignette searches WildObs, reads the metadata of what it
-finds, shows where the same records are published in other standards, and ends with the
-references to cite. It downloads no WildObs data tables.
+projects sampled your region of interest, when, with what samplingdesign, which species
+were recorded, and whether their data remain under embargo or are released yet. All of
+that lives in each project's metadata, which is small and quick to access. This vignette
+searches the WildObs Database, reads the metadata of what it finds, shows where the same
+records are published in other standards (*e.g.*, ALA and TERN), and ends with the each
+data package's citations to include in a reference list when using the data. This vignette
+does not download any tables from any data packages.
 
 ```{r key}
+# load the WildObs R library
 library(WildObsR)
 
 # your personal API key, read from .Renviron (see the Get started vignette)
@@ -35,11 +38,11 @@ A filter left out does not restrict the search, but at least one filter is neede
 
 | Filter | What it matches | Example |
 |---|---|---|
-| `spatial` | cameras inside a box, in decimal degrees | `list(xmin = 145, xmax = 154, ymin = -29, ymax = -10)` |
-| `temporal` | surveys running at any time in a date range | `list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2022-12-31"))` |
-| `taxonomic` | projects that recorded any of these species | `c("Phascolarctos cinereus", "Felis catus")` |
-| `samplingDesign` | the Camtrap DP sampling design | `"targeted"`, `"systematicRandom"`, `"opportunistic"`, ... |
-| `contributors` | a person's name, email or ORCID, in any role | `"Zachary Amir"` |
+| `spatial` | projects with cameras deployed inside a bounding box, in latitude and longitude decimal degrees | `list(xmin = 145, xmax = 154, ymin = -29, ymax = -10)` |
+| `temporal` | projects collecting data at any time in a date range | `list(minDate = as.Date("2022-01-01"), maxDate = as.Date("2022-12-31"))` |
+| `taxonomic` | projects that recorded any particular species | `c("Phascolarctos cinereus", "Felis catus")` |
+| `samplingDesign` | the sampling desing, matching [enumerated Camtrap DP values](https://camtrap-dp.tdwg.org/metadata/#project.samplingDesign) | `"targeted"`, `"systematicRandom"`, `"opportunistic"`, ... |
+| `contributors` | projects that include a person's name, email or ORCID, in any role | `"Zachary Amir"` |
 
 A box over the whole continent lists every project a key can see:
 
@@ -47,20 +50,23 @@ A box over the whole continent lists every project a key can see:
 # a box over Australia and its islands
 australia <- list(xmin = 110, xmax = 160, ymin = -45, ymax = -9)
 
-# every project visible to a public key
+# query the database to return every public project ID
 all_ids <- wildobs_mongo_query(api_key = api_key, spatial = australia)
+# how many projects?
 length(all_ids)
 
-# and those whose data tables can be downloaded today
+# run the same query, but only for open projects whose tables can be downloaded today
 open_ids <- wildobs_mongo_query(api_key = api_key, spatial = australia,
                                 tabularSharingPreference = "open")
+# how many projects?
 length(open_ids)
 ```
 
-The difference is the **partial** projects. Their metadata are public, but their tables
-are withheld, usually under an embargo that will end. They are worth knowing about: a
-partial project in your study region is a dataset you could request from its contributors
-or plan to use once it is released.
+The difference is the **partial** projects. Their metadata are made public, but their
+data tables are withheld because of an embargo (of up to 24 months) placed by a data
+provider. Partial projects are worth knowing about: a partial project in your study
+region is a dataset you could request from its contributors or plan to use once its
+embargo has expired.
 
 Filters combine as an intersection. For example, the projects that recorded feral cats in
 2022 with a targeted design:
@@ -73,27 +79,30 @@ cat_ids <- wildobs_mongo_query(
   taxonomic = "Felis catus",
   samplingDesign = "targeted"
 )
+# which project IDs were returned?
 cat_ids
 ```
 
 ## Download metadata only
 
-`metadata_only = TRUE` downloads each project's descriptor without its tables, which takes
-seconds even for every project in the database. Partial projects always download this way.
+You can use the function `wildobs_dp_download()` to download both metadata and data tables
+for all WildObs datasets. To access metadata only, set the parameter `metadata_only = TRUE`
+to download each project's descriptor without its tables, which takes seconds even for every
+ project in the database. Partial projects always download this way.
 
 ```{r metadata}
-# the descriptors of every visible project
+# access the descriptors of every visible project
 meta <- wildobs_dp_download(api_key = api_key, project_ids = all_ids, metadata_only = TRUE)
 ```
 
 ## Read the metadata as tables
 
 `extract_metadata()` turns one element of the metadata, across all packages, into a table
-with a `DPID` column naming the project. Ask for several elements at once to get a named
-list of tables.
+with a `DPID` column naming the project. You may also ask for several elements at once to
+get a named list of tables.
 
 ```{r tables}
-# design and data-sharing preference, one row per project
+# Inspect sampling design and data-sharing preference, one row per project
 project <- extract_metadata(meta, "project")
 sharing <- extract_metadata(meta, "WildObsMetadata")
 
@@ -104,14 +113,14 @@ table(project$samplingDesign)
 table(sharing$tabularSharingPreference)
 ```
 
-The temporal metadata hold one row per survey (a `deploymentGroup`), so they show how long
-each project has been running:
+The temporal metadata hold one row per single-season survey (a `deploymentGroup`), so
+they show how long each project has been running:
 
 ```{r temporal}
 # start and end of every survey in every project
 temporal <- extract_metadata(meta, "temporal")
 
-# the span of each project, in years
+# Calculate the time span of each project, in years
 span <- tapply(seq_len(nrow(temporal)), temporal$DPID, function(i) {
   # from the first survey's start to the last survey's end
   as.numeric(difftime(max(as.Date(temporal$end[i])), min(as.Date(temporal$start[i])),
@@ -120,35 +129,38 @@ span <- tapply(seq_len(nrow(temporal)), temporal$DPID, function(i) {
 summary(span)
 ```
 
-The spatial metadata give a bounding box for each landscape a project sampled. Plotted
-together they show where WildObs has cameras:
+The spatial metadata returns a bounding box, formatted as `geoJSON`, for each
+landscape (a `locationName`) a project sampled. Plotted together they show
+where WildObs's data providers have deployed cameras:
 
 ```{r map, fig.alt = "Map of Australia with a point at the centre of each landscape sampled by a WildObs project, coloured by whether its data tables are open or partial."}
+# load ggplot to render nice maps
 library(ggplot2)
 
-# one bounding box per locationName per project
+# extract one bounding box per locationName per project
 spatial <- extract_metadata(meta, "spatial")
-# the centre of each box, since most landscapes are too small to see as boxes
+# add the centroid of each box, since many landscapes are too small to see as boxes across the country
 spatial$x <- (spatial$xmin + spatial$xmax) / 2
 spatial$y <- (spatial$ymin + spatial$ymax) / 2
-# each landscape's data-sharing preference, from its project
+# add each landscape's data-sharing preference, from its project
 spatial <- merge(spatial, sharing[, c("DPID", "tabularSharingPreference")], by = "DPID")
 
 # grab an outline of Australia's states, as an sf object
 aus <- sf::st_as_sf(ozmaps::ozmap_states)
 
+# intialize a ggplot
 ggplot() +
-  # the states, in pale grey
+  # Add the outline with states in pale grey
   geom_sf(data = aus, fill = "grey95", colour = "grey60") +
-  # the larger landscapes' boxes
+  # add the larger landscapes as boxes
   geom_rect(data = spatial, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax,
                                 colour = tabularSharingPreference), fill = NA) +
-  # a point at the centre of every landscape
+  # add a point at the centre of every landscape
   geom_point(data = spatial, aes(x = x, y = y, fill = tabularSharingPreference),
              shape = 21, colour = "white", size = 2.5) +
-  # the same two colours for boxes and points
+  # specify two colours for open vs partial, consistent for boxes and points
   scale_fill_manual(values = c(open = "darkgreen", partial = "darkorange"),
-                    aesthetics = c("colour", "fill"), name = "Data tables") +
+                    aesthetics = c("colour", "fill"), name = "WildObs data sharing agreement") +
   # crop to the mainland and Tasmania
   coord_sf(xlim = c(113, 154), ylim = c(-44, -10)) +
   # count the landscapes and projects in the title
@@ -161,34 +173,37 @@ ggplot() +
 
 ## Which species were recorded
 
-The taxonomic metadata list every taxon each project detected, with its rank and English
-name, so you can tell which projects hold a species before downloading anything.
+The taxonomic metadata list every taxon each project detected, with its rank (e.g.,
+species, genus, family, etc.) and English name, so you can search projects for a
+specific species before downloading anything.
 
 ```{r taxa}
 # every taxon each project recorded
 taxa <- extract_metadata(meta, "taxonomic")
 
-# taxa named to species, by their two-part scientific name
+# create a vector of taxa ranked to species-level, and by their two-part scientific name
 species <- taxa[taxa$taxonRank == "species" & grepl("^[A-Z][a-z]+ [a-z-]+$", taxa$scientificName), ]
 # the number of projects that recorded each species, most widespread first
 head(sort(table(species$scientificName), decreasing = TRUE), 10)
 ```
 
-## Find the publications behind a project
+## Find the publications associated with a project
 
-Papers and datasets linked to a project are listed in its `relatedIdentifiers`, as DOIs.
-WildObs adds one more type, the project's [RAiD](https://raid.org), a persistent
+Papers, datasets, reports, and workflows linked to a project are listed in its
+`relatedIdentifiers`, using persitent identifiers like a DOI or a URL. WildObs
+adds one more type, the project's [RAiD](https://raid.org), a persistent
 identifier for the research activity itself.
 
 ```{r related}
 # links from each project to papers, datasets and its RAiD
 related <- extract_metadata(meta, "relatedIdentifiers")
+# display the type of identifer and how its related to the project
 table(related$relatedIdentifierType, related$relationType)
 ```
 
 ## Find the contributors associated with a project
 
-Each project lists the people behind it, with their role, organisation and
+Each project lists the people affiliated with it, with their role, organisation and
 [ORCID](https://orcid.org). For a partial project, they are who to ask about access before
 its embargo ends. `extract_metadata()` returns them as a table with one row per person per
 project:
@@ -199,13 +214,13 @@ collab <- extract_metadata(meta, "contributors")
 # the roles people hold across all projects
 table(collab$role)
 
-# the partial projects, and how many months their tables are embargoed for
+# Inspect partial projects, and how many months their tables are embargoed for
 partial <- sharing[sharing$tabularSharingPreference == "partial",
                    c("DPID", "embargoPeriodMonths")]
 
-# the principal investigators of the partial projects
+# add the principal investigators of the partial projects to create a new table
 partial_pi <- merge(partial, collab[collab$role == "principalInvestigator", ], by = "DPID")
-# their names, organisations and embargo lengths
+# inspect their names, organisations and embargo lengths
 head(partial_pi[, c("DPID", "title", "organization", "embargoPeriodMonths")], 5)
 ```
 
@@ -216,27 +231,30 @@ project names one. For a project with no address listed, write to
 
 ## Find WildObs data in other portals
 
-WildObs also publishes the animal records of open projects to two national portals, so
+WildObs also publishes animal detections of open projects to two national portals, so
 that people who work in other standards can use them without this package:
 
 | Portal | Standard | What it holds | Find it with |
 |---|---|---|---|
-| [Atlas of Living Australia](https://www.ala.org.au) (ALA) | Darwin Core occurrences, passed on to [GBIF](https://www.gbif.org) | one record per animal observation | the [`galah`](https://galah.ala.org.au) package |
-| [TERN EcoPlots](https://ecoplots.tern.org.au) | the [TERN ontology](https://linkeddata.tern.org.au) for plot data | one record per animal observation, grouped by landscape | the EcoPlots API, or the Python library [`terndata.ecoplots`](https://github.com/ternaustralia/terndata.ecoplots) |
+| [Atlas of Living Australia](https://collections.ala.org.au/public/show/dr31594) (ALA) | Darwin Core occurrences, passed on to [GBIF](https://www.gbif.org) | one record per animal observation | the [`galah`](https://galah.ala.org.au/R/) package |
+| [TERN EcoPlots](https://portal.tern.org.au/metadata/ed3bf2bc-4e31-4cb0-adb6-56fd4bfe3736) | the [TERN ontology](https://linkeddata.tern.org.au) for plot data | one record per animal observation, grouped by landscape | the EcoPlots API, or the Python library [`terndata.ecoplots`](https://github.com/ternaustralia/terndata.ecoplots) |
 
-The records are the same in all three places. What the portals leave out are the camera
-deployments and their dates of operation, so they tell you where and when a species was
-recorded, but not how hard anyone looked. For occupancy or abundance models, which need
-that sampling effort, download the data package from WildObs.
+The records are the same in both portals and in the WildObs Database. Each portal
+structures the data differently. The ALA occurrence records tell you where and when
+a species was recorded, but not how hard anyone looked. The EcoPlots portal includes
+structured survey effort that links the camera trap data to other structured
+ecological monitoring efforts, such as Ecological Monitoring System Australia
+([EMSA](https://emsa.tern.org.au/)). Clear sampling effort is necessary for
+occupancy and abundance models, and is easily derived from data downloaded from WildObs.
 
 The checks below compare each portal with the two projects bundled with WildObsR, which
 `example_datapackages()` loads without a download.
 
 ```{r bundled}
-# the bundled copies of two open projects
+# use the bundled copies of two open projects
 bundled <- example_datapackages()
 
-# the animal records of each, read from its observations table
+# Grab the observations table for each, subsetted to only animal records
 animals <- lapply(bundled, function(dp) {
   # every observation in the package
   obs <- frictionless::read_resource(dp, "observations")
@@ -253,15 +271,16 @@ providers finds WildObs, and counting its records by data resource lists every p
 it has published:
 
 ```{r ala-provider, message = FALSE}
+# load ALA's r library for accessing data
 library(galah)
 
-# query the Atlas of Living Australia
+# set configurations to query the Atlas of Living Australia (rather than global)
 galah_config(atlas = "Australia", verbose = FALSE)
 
 # WildObs as a data provider, with its ALA identifier
-search_all(providers, "Wildlife Observatory")
+search_all(providers, "Wildlife Observatory of Australia")
 
-# the number of records in each WildObs dataset in the ALA
+# count the number of records in each WildObs dataset in the ALA
 ala_datasets <- galah_call() |>
   # only records that WildObs provided
   galah_filter(dataProviderUid == "dp5214") |>
@@ -269,6 +288,7 @@ ala_datasets <- galah_call() |>
   galah_group_by(dataResourceUid) |>
   # count records rather than download them
   atlas_counts()
+# display the results below
 ala_datasets
 ```
 
@@ -276,7 +296,7 @@ Each dataset's description in the ALA's collections registry gives its title, an
 stores the WildObs project ID as its `guid`, which links the two:
 
 ```{r ala-guid}
-# the ALA's description of each WildObs dataset, read as JSON
+# For each project, read the ALA's description as JSON
 registry <- lapply(ala_datasets$dataResourceUid, function(dr) {
   jsonlite::fromJSON(paste0("https://collections.ala.org.au/ws/dataResource/", dr))
 }) # end per dataset
@@ -285,6 +305,7 @@ registry <- lapply(ala_datasets$dataResourceUid, function(dr) {
 ala_datasets$WildObsID <- vapply(registry, function(reg) reg$guid, character(1))
 # and its DOI at GBIF
 ala_datasets$doi <- vapply(registry, function(reg) reg$doi, character(1))
+# view what was returned as a data frame
 as.data.frame(ala_datasets)
 ```
 
@@ -308,16 +329,17 @@ ala_species <- galah_call() |>
 wildobs_species <- as.data.frame(table(scientificName = animals[[woomargama]]$scientificName),
                                  responseName = "wildobs")
 
-# side by side, most recorded first
+# merge both sources side by side
 both <- merge(ala_species, wildobs_species, by = "scientificName", all = TRUE)
+# inspect detctions by most recorded first
 head(both[order(-both$count), ], 8)
 
 # species where the two disagree
 sum(both$count != both$wildobs, na.rm = TRUE)
 ```
 
-Counts need no account, but downloading the records themselves does: the ALA asks for
-an email address registered with it. With one stored in `.Renviron` as `ALA_EMAIL`, the
+Counts require no ALA account, but downloading the records themselves does: the ALA asks
+for an email address registered with it. With one stored in `.Renviron` as `ALA_EMAIL`, the
 records of a dataset come down as one table:
 
 ```{r ala-download, eval = nzchar(Sys.getenv("ALA_EMAIL"))}
@@ -330,6 +352,7 @@ occs <- galah_call() |>
   galah_filter(dataResourceUid == dr_uid) |>
   # download the occurrences
   atlas_occurrences()
+# how many occurrences were returned?
 nrow(occs)
 ```
 
@@ -343,10 +366,10 @@ account or key. Every search is a POST request whose body holds a `query`, and t
 `discovery` endpoints list the values a query can use.
 
 ```{r tern-datasets}
-# the EcoPlots API
+# specify the EcoPlots API
 ecoplots <- "https://ecoplots.tern.org.au/api/v1.0"
 
-# list the values of one search field, optionally within an existing query
+# helper function to list the values of one search field, optionally within an existing query
 ecoplots_discover <- function(field, query = setNames(list(), character(0))) {
   # the query as a JSON body, keeping an empty query as {}
   body <- jsonlite::toJSON(list(query = query), auto_unbox = TRUE)
@@ -363,7 +386,7 @@ ecoplots_discover <- function(field, query = setNames(list(), character(0))) {
 datasets <- ecoplots_discover("dataset")
 datasets
 
-# the identifier of the WildObs dataset
+# grab the identifier of the WildObs dataset
 wildobs_uri <- datasets$uri[datasets$key == "WildObs"]
 ```
 
@@ -374,12 +397,14 @@ the WildObs project ID. Listing the sites therefore shows which projects are pub
 # the WildObs query: everything from the WildObs dataset
 wildobs_query <- list(dataset = list(wildobs_uri))
 
-# every WildObs site in EcoPlots
+# gather every WildObs site in EcoPlots
 sites <- ecoplots_discover("site_id", wildobs_query)
+# inspect what was returned
 sites$key
 
 # the type of record they hold, which a data request must name
 feature <- ecoplots_discover("feature_type", wildobs_query)
+# inspect what was returned
 feature$key
 ```
 
@@ -387,13 +412,13 @@ The `data` endpoint returns the records that match a query, here as CSV. One lan
 from the Wet Tropics project:
 
 ```{r tern-data}
-# the Daintree landscape of the Wet Tropics project, and its animal records
+# specify the Daintree landscape of the Wet Tropics project, and its animal records
 daintree_query <- c(wildobs_query, list(
   site_id = list(sites$uri[sites$key == "Daintree_NP-wildobsid_0001"]),
   feature_type = list(feature$uri)
 ))
 
-# ask for the records as CSV
+# Format a httr request to return records as CSV
 res <- httr::POST(paste0(ecoplots, "/data/stream"), query = list(dformat = "csv"),
                   body = jsonlite::toJSON(list(query = daintree_query), auto_unbox = TRUE),
                   httr::content_type_json(), httr::add_headers(Accept = "text/event-stream"),
@@ -404,6 +429,7 @@ tern <- utils::read.csv(text = httr::content(res, "text", encoding = "UTF-8"))
 
 # one row per animal record
 nrow(tern)
+# inspect some key values
 head(tern[, c("siteName", "scientificName", "animalCount_number", "animalCountResultTime")])
 ```
 
@@ -412,14 +438,16 @@ The same landscape in the bundled package holds the same records:
 ```{r tern-compare}
 # the Wet Tropics project, and the cameras in its Daintree landscape
 wet_tropics <- "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"
+# extract the deployments data table and susbet to Daintree landscape
 deps <- frictionless::read_resource(bundled[[wet_tropics]], "deployments")
 daintree_deps <- deps$deploymentID[deps$locationName == "Daintree_NP"]
 
-# the animal records from those cameras
+# grab all animal records from the Daintree cameras
 daintree <- animals[[wet_tropics]][animals[[wet_tropics]]$deploymentID %in% daintree_deps, ]
 
-# the number of records, and of animals counted, in each source
+# compare the number of records in each source
 c(ecoplots = nrow(tern), wildobs = nrow(daintree))
+# repate for the number of animals counted
 c(ecoplots = sum(tern$animalCount_number), wildobs = sum(daintree$count))
 ```
 
@@ -431,24 +459,47 @@ describes more of the query fields.
 
 ## Cite what you use
 
-Each project carries the citation its contributors asked for. `cite_datapackages()`
-returns it, with the version of the database the data came from, as text, as BibTeX for a
-reference manager, or as a table:
+Each project carries the citation that ensures fair recognition to each contributors
+associated with a particular dataset. `cite_datapackages()` returns it, with the version
+of the data package stored in the database when it was accessed. The citations
+can be returned as text, as BibTeX for a reference manager, or as a table:
 
 ```{r cite}
 # the two open projects bundled with WildObsR, as an example
 examples <- c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
               "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")
 
-# formatted references, with the date the data were accessed
+# display formatted references, with the date the data were accessed
 writeLines(cite_datapackages(meta[examples], accessed = Sys.Date()))
 
 # or BibTeX
 utils::toBibtex(cite_datapackages(meta[examples], format = "bibtex"))
 ```
 
-Packages downloaded with their tables can also cite the products behind the WildObs
-covariates, such as the Forest Landscape Integrity Index, with `covariates = TRUE`.
+Packages downloaded with their tables also record the source of each WildObs covariate
+in the covariates table's schema. For example, the Forest Landscape Integrity Index
+behind the `FLII_` columns of the bundled Wet Tropics package:
+
+```{r cite-covariate}
+# the bundled Wet Tropics package, which holds its covariates table
+wt <- example_datapackages()[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]]
+
+# the schema describing each column of the covariates table
+cov_schema <- frictionless::schema(wt, "covariates")
+# the column holding the index averaged over 3 km2
+flii <- Filter(function(f) f$name == "FLII_3km2", cov_schema$fields)[[1]]
+# the product it came from, and how to cite it
+flii$custom$source$citation
+```
+
+`covariates = TRUE` adds every covariate product to the reference list at once:
+
+```{r cite-covariates}
+# the package's own citation, followed by each covariate product's
+refs <- cite_datapackages(wt, covariates = TRUE, format = "data.frame")
+# how many references of each kind
+table(refs$type)
+```
 
 <details>
 <summary>Session information</summary>
