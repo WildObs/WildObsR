@@ -78,8 +78,13 @@ test_that("cite_datapackages cites each covariate product once", {
   expect_gt(nrow(cov), 5)
   # each product is cited once, however many buffer scales use it
   expect_false(any(duplicated(cov$citation)))
-  # the forest integrity index is among them
-  expect_true(any(grepl("Grantham", cov$citation)))
+  # the forest integrity index is among them, named by its covariate without the scale
+  expect_true(any(grepl("Grantham", cov$citation[cov$id == "FLII"])))
+  # a product behind several covariates names them all
+  expect_true(any(grepl("; ", cov$id)))
+  # and the BibTeX keys are the first covariate, so they hold no spaces
+  bib <- cite_datapackages(dl, format = "bibtex", covariates = TRUE)
+  expect_false(any(grepl(" ", vapply(unclass(bib), function(b) attr(b, "key"), character(1)))))
 })
 
 test_that("cite_datapackages says why there are no covariate citations for metadata only", {

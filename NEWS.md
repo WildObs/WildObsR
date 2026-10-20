@@ -46,7 +46,8 @@
   without a citation, such as other Camtrap DP datasets, get one built from their
   contributors, year, title and link. `covariates = TRUE` also cites, once each, the
   products behind the covariates table (forest integrity, human footprint, climate
-  and so on), and `accessed` adds the download date.
+  and so on), each named by the covariates it is behind (e.g. `FLII`), and `accessed`
+  adds the download date.
 - `recombine_deployment_groups()` rebuilds long-term deployments from the 100-day
   pieces the curation pipeline cuts them into, for multi-season occupancy, trend
   indices and other long-term analyses (#109). A data package goes in and a data

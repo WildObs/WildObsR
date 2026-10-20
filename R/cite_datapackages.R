@@ -43,10 +43,13 @@
 #' @return Depends on `format`:
 #'   \describe{
 #'     \item{`"text"`}{A character vector of references, named by package `id`. The
-#'       covariate product citations, if asked for, follow, named `covariate_1`,
-#'       `covariate_2`, ...}
+#'       covariate product citations, if asked for, follow, each named by the
+#'       covariates it is behind, without their spatial scale (e.g. `"FLII"`, or
+#'       `"mean_monthly_precipitation; mean_monthly_temperature"` for a product behind
+#'       several).}
 #'     \item{`"bibtex"`}{A [utils::bibentry()] object: one `@misc` entry per package,
-#'       keyed by package `id`, plus one per covariate product.}
+#'       keyed by package `id`, plus one per covariate product, keyed by its first
+#'       covariate.}
 #'     \item{`"data.frame"`}{One row per reference, with columns `type` (`"data
 #'       package"` or `"covariate product"`), `id`, `authors`, `year`, `title`,
 #'       `version`, `identifier` (RAiD or DOI where there is one), `url` (the
@@ -228,8 +231,15 @@ cite_datapackages <- function(dp_list,
   if (isTRUE(covariates)) {
     # every covariate source cited across the packages, once each
     cov_refs <- do.call(rbind, lapply(dp_list, .covariate_sources))
-    # a product cited by several fields can carry slightly different links, so keep its first
-    if (!is.null(cov_refs)) cov_refs <- cov_refs[!duplicated(cov_refs$citation), , drop = FALSE]
+    if (!is.null(cov_refs)) {
+      # the covariates behind each product, once each, in the order they first appear
+      behind <- tapply(cov_refs$covariate, factor(cov_refs$citation, unique(cov_refs$citation)),
+                       function(x) paste(unique(x), collapse = "; "))
+      # a product cited by several fields can carry slightly different links, so keep its first
+      cov_refs <- cov_refs[!duplicated(cov_refs$citation), , drop = FALSE]
+      # and name it by its covariates
+      cov_refs$covariate <- unname(behind[cov_refs$citation])
+    } # end products condition
     # a package without its covariates table has none to give
     if (is.null(cov_refs) || nrow(cov_refs) == 0) {
       message("cite_datapackages(): no covariate sources found. Covariate citations come from ",
@@ -240,7 +250,7 @@ cite_datapackages <- function(dp_list,
       cov_refs <- cov_refs[order(tolower(cov_refs$citation)), , drop = FALSE]
       # one row each, in the same columns as the packages
       cov_rows <- data.frame(
-        type = "covariate product", id = paste0("covariate_", seq_len(nrow(cov_refs))),
+        type = "covariate product", id = cov_refs$covariate,
         authors = NA_character_, year = vapply(cov_refs$citation, .citation_year, character(1)),
         title = NA_character_, version = NA_character_, identifier = cov_refs$doi,
         url = cov_refs$doi, licenses = NA_character_, citation = cov_refs$citation, stringsAsFactors = FALSE)
@@ -277,7 +287,8 @@ cite_datapackages <- function(dp_list,
     # a @misc entry needs no author, so a reference without one simply leaves it out
     utils::bibentry(
       bibtype = "Misc",
-      key = refs$id[k],
+      # a covariate product is keyed by its first covariate, since keys hold no spaces
+      key = if (refs$type[k] == "covariate product") sub(";.*", "", refs$id[k]) else refs$id[k],
       title = if (is.na(refs$title[k])) refs$citation[k] else refs$title[k],
       author = people,
       year = if (is.na(refs$year[k])) "n.d." else refs$year[k],
@@ -428,8 +439,9 @@ cite_datapackages <- function(dp_list,
 #' The covariate products cited in a package's covariates schema
 #'
 #' @param dp A data package.
-#' @return A data frame with columns `citation` and `doi`, one row per distinct
-#'   product, or `NULL` when the package has no covariates table.
+#' @return A data frame with columns `covariate` (the field name without its spatial
+#'   scale), `citation` and `doi`, one row per distinct covariate and product, or `NULL`
+#'   when the package has no covariates table.
 #' @author Zachary Amir
 #' @noRd
 .covariate_sources <- function(dp) {
@@ -438,11 +450,15 @@ cite_datapackages <- function(dp_list,
   if (length(res) == 0 || is.null(res[[1]]$schema$fields)) return(NULL)
   # each field may name its source under custom
   srcs <- lapply(res[[1]]$schema$fields, function(f) f$custom$source)
-  # keep the fields that cite one
-  srcs <- Filter(function(s) !is.null(s$citation), srcs)
+  # keep the fields that cite one, with their names
+  cited <- !vapply(srcs, function(s) is.null(s$citation), logical(1))
+  fields <- vapply(res[[1]]$schema$fields[cited], function(f) f$name, character(1))
+  srcs <- srcs[cited]
   if (length(srcs) == 0) return(NULL)
-  # one row per field, then one per product
+  # one row per field, then one per covariate and product
   out <- data.frame(
+    # the covariate, without its spatial scale: FLII_3km2 and FLII_point are both FLII
+    covariate = sub("_(point|[0-9]+km2)$", "", fields),
     citation = vapply(srcs, function(s) .first_text(s$citation), character(1)),
     doi = vapply(srcs, function(s) .first_text(s$doi, s$url), character(1)),
     stringsAsFactors = FALSE)

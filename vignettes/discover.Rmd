@@ -650,35 +650,26 @@ utils::toBibtex(cite_datapackages(meta[examples], format = "bibtex"))
 #> }
 ```
 
-Packages downloaded with their tables also record the source of each WildObs covariate
-in the covariates table's schema. For example, the Forest Landscape Integrity Index
-behind the `FLII_` columns of the bundled Wet Tropics package:
+Packages downloaded with their tables can also cite the products behind each WildObs
+covariate, with `covariates = TRUE`. Each product's citation is named by the covariates it
+is behind, without their spatial scale, so `FLII` covers `FLII_point` to `FLII_10km2`:
 
 
 ``` r
-# the bundled Wet Tropics package, which holds its covariates table
+# select the bundled Wet Tropics package, which holds its covariates table
 wt <- example_datapackages()[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]]
 
-# the schema describing each column of the covariates table
-cov_schema <- frictionless::schema(wt, "covariates")
-# the column holding the index averaged over 3 km2
-flii <- Filter(function(f) f$name == "FLII_3km2", cov_schema$fields)[[1]]
-# the product it came from, and how to cite it
-flii$custom$source$citation
+# the package's citation, then one per covariate product
+refs <- cite_datapackages(wt, covariates = TRUE)
+
+# the Forest Landscape Integrity Index, behind the FLII_ columns
+refs[["FLII"]]
 #> [1] "Grantham, H.S., Duncan, A., Evans, T.D., Jones, K.R., Beyer, H.L., Schuster, R. et al. (2020). Anthropogenic modification of forests means only 40% of remaining forests have high ecosystem integrity. Nature Communications, 11, 5978."
-```
 
-`covariates = TRUE` adds every covariate product to the reference list at once:
-
-
-``` r
-# the package's own citation, followed by each covariate product's
-refs <- cite_datapackages(wt, covariates = TRUE, format = "data.frame")
-# how many references of each kind
-table(refs$type)
-#> 
-#> covariate product      data package 
-#>                16                 1
+# a product behind several covariates names them all, so search the names
+refs[grepl("mean_monthly_temperature", names(refs))]
+#>                                                             mean_monthly_precipitation; mean_monthly_temperature 
+#> "Hutchinson, M., Xu, T., Kesteven, J., Marang, I., & Evans, B. (2021). ANUClimate 2.0 [Dataset]. NCI Australia."
 ```
 
 <details>

@@ -40,10 +40,13 @@ Defaults to \code{FALSE}.}
 Depends on \code{format}:
 \describe{
 \item{\code{"text"}}{A character vector of references, named by package \code{id}. The
-covariate product citations, if asked for, follow, named \code{covariate_1},
-\code{covariate_2}, ...}
+covariate product citations, if asked for, follow, each named by the
+covariates it is behind, without their spatial scale (e.g. \code{"FLII"}, or
+\code{"mean_monthly_precipitation; mean_monthly_temperature"} for a product behind
+several).}
 \item{\code{"bibtex"}}{A \code{\link[utils:bibentry]{utils::bibentry()}} object: one \verb{@misc} entry per package,
-keyed by package \code{id}, plus one per covariate product.}
+keyed by package \code{id}, plus one per covariate product, keyed by its first
+covariate.}
 \item{\code{"data.frame"}}{One row per reference, with columns \code{type} (\code{"data package"} or \code{"covariate product"}), \code{id}, \code{authors}, \code{year}, \code{title},
 \code{version}, \code{identifier} (RAiD or DOI where there is one), \code{url} (the
 identifier, else the package \code{homepage} or \code{id}), \code{licenses} and \code{citation}.}
