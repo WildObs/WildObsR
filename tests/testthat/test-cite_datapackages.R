@@ -44,7 +44,7 @@ test_that("cite_datapackages keeps a WildObs citation word for word and adds the
   # the provider's citation is there in full, RAiD included
   expect_true(startsWith(out[[1]], dl[[1]]$bibliographicCitation))
   # followed by the database release it was downloaded from
-  expect_match(out[[1]], sprintf("WildObs database version %s\\.$", dl[[1]]$versionControlWildObs))
+  expect_match(out[[1]], sprintf("WildObs data package version %s\\.$", dl[[1]]$versionControlWildObs))
   # and nothing is added when the version is not wanted
   expect_identical(cite_datapackages(dl, include_version = FALSE)[[1]],
                    sub("([^.])$", "\\1.", dl[[1]]$bibliographicCitation))

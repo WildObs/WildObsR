@@ -109,7 +109,7 @@ table(obscured$scientificName, obscured$deploymentID)
 
 Every project carries the citation you agreed to, ending with its
 [RAiD](https://raid.org), a persistent identifier for your research activity. Anyone using
-`cite_datapackages()` receives it with the database version they downloaded, so you can
+`cite_datapackages()` receives it with the version of your data package they downloaded, so you can
 search for your RAiD to find where your data were used:
 
 ```{r cite}

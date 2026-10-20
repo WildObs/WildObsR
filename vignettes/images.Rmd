@@ -144,7 +144,7 @@ extract_metadata(dp, "licenses")[, c("name", "scope", "path")]
 
 # and the reference to cite
 writeLines(cite_datapackages(dp))
-#> Zachary Amir & Annabel Smith (2023). WildObs Camera Trap Data Package: UQ's undergraduate widlife techonologies camera trapping module comparing human and AI comptuer vision [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/a3efd562. WildObs database version 1.0.1.
+#> Zachary Amir & Annabel Smith (2023). WildObs Camera Trap Data Package: UQ's undergraduate widlife techonologies camera trapping module comparing human and AI comptuer vision [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/a3efd562. WildObs data package version 1.0.1.
 ```
 
 <details>

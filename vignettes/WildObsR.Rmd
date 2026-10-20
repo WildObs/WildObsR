@@ -198,7 +198,7 @@ observations <- observations[!obscured, ]
 who collected the data, under which licence, and with what sampling design.
 `cite_datapackages()` provides citations formatted by WildObs, including each dataset's
 Research Activity Identifier ([RAiD](https://ardc.edu.au/services/ardc-identifier-services/raid-research-activity-identifier-service/)), which provides a persitent identifier to reference data used in research. 
-Additional parameters allow you to include the database version you downloaded and citations
+Additional parameters allow you to include the data package version you downloaded and citations
 for the WildObs-generated covariates table. 
 
 
@@ -211,7 +211,7 @@ extract_metadata(dp_list, "licenses")[, c("name", "scope", "DPID")]
 
 # the references to cite, one per project
 writeLines(cite_datapackages(dp_list))
-#> Zachary Amir, Tom Bruce & Matthew Luskin (2022). WildObs Camera Trap Data Package: Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/cb5829ab. WildObs database version 1.1.1.
+#> Zachary Amir, Tom Bruce & Matthew Luskin (2022). WildObs Camera Trap Data Package: Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/cb5829ab. WildObs data package version 1.1.1.
 ```
 
 ## Work offline with the example data

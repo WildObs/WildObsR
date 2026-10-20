@@ -13,9 +13,10 @@
 #'       the year `created`, `title`, and `homepage`, else `id`.
 #'   }
 #'   With `include_version = TRUE` the version of the data is appended: for WildObs
-#'   packages the WildObs database release they were downloaded from
-#'   (`versionControlWildObs`), otherwise the package `version`, unless it is only the
-#'   Camtrap DP standard version named in `profile` or the citation already gives it.
+#'   packages the data package version (`versionControlWildObs`), which is specific to
+#'   each project and rises whenever WildObs corrects its data; otherwise the package
+#'   `version`, unless it is only the Camtrap DP standard version named in `profile` or
+#'   the citation already gives it.
 #'
 #'   With `covariates = TRUE`, the products behind the WildObs covariates (e.g. the
 #'   Forest Landscape Integrity Index or the human footprint) are cited too, once
@@ -32,7 +33,7 @@
 #'   the first author's family name, as most reference lists are), `"year"` (oldest first, then by
 #'   author), or `"none"` (the order of `dp_list`).
 #' @param include_version Logical. Append the version of the data to each reference?
-#'   Defaults to `TRUE`, because the same project can grow between database releases.
+#'   Defaults to `TRUE`, because a project's data can be corrected between downloads.
 #' @param accessed Optional date the data were downloaded, as a `Date` or a
 #'   `"YYYY-MM-DD"` string, appended as "Accessed YYYY-MM-DD.". Defaults to `NULL`
 #'   (left out).
@@ -177,8 +178,8 @@ cite_datapackages <- function(dp_list,
     } # end citation condition
     # add the version, unless the citation already gives it
     if (!is.na(version) && !grepl(version, text, fixed = TRUE)) {
-      # WildObs data are versioned by the database release they came from
-      label <- if (!is.null(dp$versionControlWildObs)) "WildObs database version" else "Version"
+      # each WildObs project has its own version, raised when its data are corrected
+      label <- if (!is.null(dp$versionControlWildObs)) "WildObs data package version" else "Version"
       text <- paste(text, sprintf("%s %s.", label, version))
     } # end version condition
     # and the access date
@@ -382,12 +383,12 @@ cite_datapackages <- function(dp_list,
 #' The version of the data in a package, if it is worth stating
 #'
 #' @param dp A data package.
-#' @return The WildObs database release, else a package version that is not just
+#' @return The WildObs data package version, else a package version that is not just
 #'   the Camtrap DP standard version, else `NA_character_`.
 #' @author Zachary Amir
 #' @noRd
 .data_version <- function(dp) {
-  # WildObs stores the release as text, or as a block holding currentVersion
+  # WildObs stores the project's version as text, or as a block holding currentVersion
   wildobs <- dp$versionControlWildObs
   if (is.list(wildobs)) wildobs <- wildobs$currentVersion
   wildobs <- .first_text(wildobs)

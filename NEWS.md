@@ -40,8 +40,9 @@
 - `cite_datapackages()` turns a list of downloaded data packages into a reference
   list: formatted text, BibTeX (`utils::bibentry`) or a table. It uses each
   package's own `bibliographicCitation` word for word (WildObs citations end with
-  the project's RAiD) and adds the WildObs database release the data came from, so
-  a reader can tell which version of a growing project was analysed. Packages
+  the project's RAiD) and adds the project's WildObs data package version, which
+  rises whenever WildObs corrects that project's data, so a reader can tell which
+  version was analysed. Packages
   without a citation, such as other Camtrap DP datasets, get one built from their
   contributors, year, title and link. `covariates = TRUE` also cites, once each, the
   products behind the covariates table (forest integrity, human footprint, climate

@@ -27,7 +27,7 @@ the first author's family name, as most reference lists are), \code{"year"} (old
 author), or \code{"none"} (the order of \code{dp_list}).}
 
 \item{include_version}{Logical. Append the version of the data to each reference?
-Defaults to \code{TRUE}, because the same project can grow between database releases.}
+Defaults to \code{TRUE}, because a project's data can be corrected between downloads.}
 
 \item{accessed}{Optional date the data were downloaded, as a \code{Date} or a
 \code{"YYYY-MM-DD"} string, appended as "Accessed YYYY-MM-DD.". Defaults to \code{NULL}
@@ -65,9 +65,10 @@ or \code{contributor}, or no role; never \code{rightsHolder}, \code{publisher} o
 the year \code{created}, \code{title}, and \code{homepage}, else \code{id}.
 }
 With \code{include_version = TRUE} the version of the data is appended: for WildObs
-packages the WildObs database release they were downloaded from
-(\code{versionControlWildObs}), otherwise the package \code{version}, unless it is only the
-Camtrap DP standard version named in \code{profile} or the citation already gives it.
+packages the data package version (\code{versionControlWildObs}), which is specific to
+each project and rises whenever WildObs corrects its data; otherwise the package
+\code{version}, unless it is only the Camtrap DP standard version named in \code{profile} or
+the citation already gives it.
 
 With \code{covariates = TRUE}, the products behind the WildObs covariates (e.g. the
 Forest Landscape Integrity Index or the human footprint) are cited too, once

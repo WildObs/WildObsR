@@ -176,7 +176,7 @@ observations <- observations[!obscured, ]
 who collected the data, under which licence, and with what sampling design.
 `cite_datapackages()` provides citations formatted by WildObs, including each dataset's
 Research Activity Identifier ([RAiD](https://ardc.edu.au/services/ardc-identifier-services/raid-research-activity-identifier-service/)), which provides a persitent identifier to reference data used in research. 
-Additional parameters allow you to include the database version you downloaded and citations
+Additional parameters allow you to include the data package version you downloaded and citations
 for the WildObs-generated covariates table. 
 
 ```{r metadata}
