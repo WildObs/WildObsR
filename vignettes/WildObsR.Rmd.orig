@@ -75,16 +75,19 @@ If this returns `FALSE`, check the spelling of `WILDOBSR_API_KEY` and that you r
 `wildobs_mongo_query()` searches the metadata of every project and returns the IDs of
 those that match. Filters for place, time, species, sampling design and contributor
 can be combined, and a project must match all of them. Here we look for projects in a
-box around the Wet Tropics of Queensland:
+box around the Wet Tropics of Queensland that list Zachary Amir as a contributor:
 
 ```{r query}
 # a box around the Wet Tropics, in decimal degrees
 wet_tropics <- list(xmin = 144.9, xmax = 146.5, ymin = -19.6, ymax = -15.3)
 
-# every project with cameras inside the box
-ids <- wildobs_mongo_query(api_key = api_key, spatial = wet_tropics)
+# projects with cameras inside the box and Zachary Amir among their contributors
+ids <- wildobs_mongo_query(api_key = api_key, spatial = wet_tropics,
+                           contributors = "Zachary Amir")
 ids
 ```
+
+Leave out `contributors` to see every project in the box.
 
 By default the search returns two kinds of project. **Open** projects share their data
 tables. **Partial** projects share only their metadata, usually because the data are
@@ -113,7 +116,7 @@ gives, and date-times in the project's own time zone. The package also keeps a c
 that copy up to date, so read tables with `read_resource()`.
 
 ```{r tables}
-# the first open project
+# the Wet Tropics project
 dp <- dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]]
 
 # its camera deployments, one row per camera per survey

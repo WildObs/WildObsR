@@ -64,17 +64,25 @@ public <- merge(media[media$filePublic, c("mediaID", "deploymentID", "observatio
                                           "timestamp", "filePath")],
                 labels, by = "observationID")
 
-# how many labelled images of each kind
-table(public$observationType)
-
 # the species with the most openly hosted images
 head(sort(table(public$scientificName[public$observationType == "animal"]),
           decreasing = TRUE), 8)
 ```
 
-Projects differ in which images they host openly. This one also hosts blank images
-(`observationType == "blank"`); keep some in a training set, because models must also learn
-to say that nothing is there.
+Subset to the species you need straight away. A project's openly hosted images can
+include records that do not belong in a training set, such as images of people, and
+working from one species keeps them out. Here, the Australian brush-turkey:
+
+```{r species}
+# the openly hosted images of brush-turkeys only
+turkey <- public[public$observationType == "animal" &
+                   public$scientificName %in% "Alectura lathami", ]
+nrow(turkey)
+```
+
+Projects also differ in whether they host blank images (`observationType == "blank"`).
+This one does; keep some in a training set, because models must also learn to say that
+nothing is there.
 
 ## Download a batch
 
@@ -83,14 +91,8 @@ files already on disk, and reports what happened to each one. Start with a few f
 check the setup before downloading thousands:
 
 ```{r batch}
-# the two species with the most images
-top <- names(sort(table(public$scientificName[public$observationType == "animal"]),
-                  decreasing = TRUE))[1:2]
-# three labelled images of each, as a test batch
-batch <- do.call(rbind, lapply(top, function(sp) {
-  # the first three images of this species
-  utils::head(public[public$scientificName %in% sp, ], 3)
-}))
+# six brush-turkey images, as a test batch
+batch <- utils::head(turkey, 6)
 
 # download them into a temporary folder
 out_dir <- file.path(tempdir(), "wildobs_images")
