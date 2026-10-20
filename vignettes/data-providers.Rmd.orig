@@ -21,6 +21,7 @@ public API key everyone uses. Here we use the package maintainer's projects as t
 put your own name, email or ORCID in their place.
 
 ```{r key}
+# load the R package
 library(WildObsR)
 
 # your personal API key, read from .Renviron (see the Get started vignette)
@@ -34,9 +35,10 @@ an email address or an ORCID; mixing them catches projects where you were listed
 differently:
 
 ```{r find}
-# projects listing this person, by name or ORCID
+# query the database for projects listing this person, by name or ORCID
 mine <- wildobs_mongo_query(api_key = api_key,
                             contributors = c("Zachary Amir", "0000-0002-8398-2059"))
+# see which IDs were returned 
 mine
 ```
 
@@ -57,8 +59,12 @@ contributors[, c("title", "role", "DPID")]
 extract_metadata(meta, "licenses")[, c("name", "scope", "DPID")]
 ```
 
-If something is wrong, contact WildObs at <data@wildobs.org.au> rather than editing a
-download: the database is the record everyone else reads.
+You can read the same metadata without R on the
+[WildObs Database Dashboard](https://dashboard.wildobs.org.au/camdb), where you created your
+API key: each project's **More** button opens a summary of them. If something is wrong or
+missing, or you want to add to it, email <data@wildobs.org.au> and we will update it, rather
+than you editing a download: the database is the record everyone else reads. This is mainly
+for metadata, but we can explore changes to the data tables too.
 
 ## Know when embargoed data are released
 
@@ -103,6 +109,21 @@ obs <- frictionless::read_resource(dp, "observations")
 # your records that the public cannot place on a camera, by listing category and species
 obscured <- obs[grepl("^obscured_for_", obs$deploymentID), ]
 table(obscured$scientificName, obscured$deploymentID)
+```
+
+Your own projects are the exception. Sign in to the
+[WildObs Database Dashboard](https://dashboard.wildobs.org.au/camdb) with the email address
+stored with your projects, and you can download each one in full from **My Datasets**:
+unobscured, with file names, and whatever its embargo. WildObs emails you a secure link to
+the data package as a .zip file. Unzip it and read it like any other data package, noting
+that its times are in UTC, where `wildobs_dp_download()` gives local time:
+
+```{r own-data, eval = FALSE}
+# read your unzipped data package from the folder it was saved in
+own <- frictionless::read_package(here::here("QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",
+                                             "datapackage.json"))
+# then read its tables as usual
+own_obs <- frictionless::read_resource(own, "observations")
 ```
 
 ## How you will be cited

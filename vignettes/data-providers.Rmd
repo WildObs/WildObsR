@@ -19,6 +19,7 @@ put your own name, email or ORCID in their place.
 
 
 ``` r
+# load the R package
 library(WildObsR)
 
 # your personal API key, read from .Renviron (see the Get started vignette)
@@ -33,9 +34,10 @@ differently:
 
 
 ``` r
-# projects listing this person, by name or ORCID
+# query the database for projects listing this person, by name or ORCID
 mine <- wildobs_mongo_query(api_key = api_key,
                             contributors = c("Zachary Amir", "0000-0002-8398-2059"))
+# see which IDs were returned 
 mine
 #> [1] "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
 #> [2] "QLD_Kgari_BIOL2015_2023-24_WildObsID_0004"    
@@ -45,17 +47,19 @@ mine
 
 ## Check how your projects are described
 
-The metadata are what people read first, and what they cite. Download them alone, which
+The metadata contains contextual information that people should read first,
+and it contains the dataset's citation. You can download metadata alone, which
 takes seconds, and check that the contributors, roles, organisations and licences are right:
 
 
 ``` r
-# the descriptors of your projects, without their tables
+# download the descriptors of your projects, without their tables
 meta <- wildobs_dp_download(api_key = api_key, project_ids = mine, metadata_only = TRUE)
 #> metadata_only = TRUE -> skipping data resource downloads for speed.
 
-# who is credited on each project, and in what role
+# extract the contributors table from the metadata 
 contributors <- extract_metadata(meta, "contributors")
+# and view who is credited on each project, and in what role
 contributors[, c("title", "role", "DPID")]
 #>                title                  role
 #> 1       Zachary Amir principalInvestigator
@@ -84,7 +88,7 @@ contributors[, c("title", "role", "DPID")]
 #> 11     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 #> 12     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 
-# the licence of the data and of the images
+# view the licence of the data and of the media
 extract_metadata(meta, "licenses")[, c("name", "scope", "DPID")]
 #>        name scope                                          DPID
 #> 1 CC-BY-4.0  data QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005
@@ -97,8 +101,12 @@ extract_metadata(meta, "licenses")[, c("name", "scope", "DPID")]
 #> 8 CC-BY-4.0 media     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 ```
 
-If something is wrong, contact WildObs at <data@wildobs.org.au> rather than editing a
-download: the database is the record everyone else reads.
+You can read the same metadata without R on the
+[WildObs Database Dashboard](https://dashboard.wildobs.org.au/camdb), where you created your
+API key: each project's **More** button opens a summary of them. If any information is wrong,
+missing, or you want to add new informatation, email <data@wildobs.org.au> and we will update
+it, rather than you editing a download: the database is the record everyone else reads. This 
+is mainly for metadata, but we can explore changes to the data tables too.
 
 ## Know when embargoed data are released
 
@@ -108,16 +116,17 @@ tables are released at the next database update after that:
 
 
 ``` r
-# sharing preference and embargo length for each project
+# extract sharing preference and embargo length for each project
 sharing <- extract_metadata(meta, "WildObsMetadata")
-# the date each project was created
+# gather the dates each project was created
 created <- vapply(meta, function(dp) substr(dp$created, 1, 10), character(1))
 
-# the earliest date each embargo can end
+# View the earliest date each embargo can end
 data.frame(
   project = sharing$DPID,
   sharing = sharing$tabularSharingPreference,
   embargo_months = sharing$embargoPeriodMonths,
+  # add embargo to created date to determine embargo release date 
   embargo_ends = as.Date(created[sharing$DPID]) + round(sharing$embargoPeriodMonths * 30.44),
   row.names = NULL
 )
@@ -141,19 +150,21 @@ from what you uploaded in three ways:
 - **Threatened species are obscured** in the states where they are listed under the
   *Environment Protection and Biodiversity Conservation Act 1999*. The species, date and
   count stay, but the camera identifiers are replaced, so no one can place the record.
-- **Image file names are withheld**, and only images hosted openly by WildObs
+- **Image file names are withheld**, and only images hosted openly by WildObs or ALA 
   (`filePublic = TRUE`) can be downloaded.
 - **Embargoed projects** show their metadata only, as above.
 
 
 ``` r
-# one of your open projects, as the public receives it
+# download one of your open projects, as the public receives it
 dp <- wildobs_dp_download(api_key = api_key,
                           project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")[[1]]
+# and pull out the observations table 
 obs <- frictionless::read_resource(dp, "observations")
 
-# your records that the public cannot place on a camera, by listing category and species
+# subset obscured records that the public cannot place on a camera
 obscured <- obs[grepl("^obscured_for_", obs$deploymentID), ]
+# and view the threat category and species
 table(obscured$scientificName, obscured$deploymentID)
 #>                      
 #>                       obscured_for_endangered_species
@@ -161,15 +172,31 @@ table(obscured$scientificName, obscured$deploymentID)
 #>   Dasyurus maculatus                               39
 ```
 
+Your own projects are the exception. Sign in to the
+[WildObs Database Dashboard](https://dashboard.wildobs.org.au/camdb) with the email address
+stored with your projects, and you can download each one in full from **My Datasets**:
+unobscured, with file names, and whatever its embargo. WildObs emails you a secure link to
+the data package as a .zip file. Unzip it and read it like any other data package, noting
+that its times are in UTC, where `wildobs_dp_download()` gives local time:
+
+``` r
+# read your unzipped data package from the folder it was saved in
+own <- frictionless::read_package(here::here("QLD_Kgari_BIOL2015_2023-24_WildObsID_0004",
+                                             "datapackage.json"))
+# then read its tables as usual
+own_obs <- frictionless::read_resource(own, "observations")
+```
+
 ## How you will be cited
 
-Every project carries the citation you agreed to, ending with its
-[RAiD](https://raid.org), a persistent identifier for your research activity. Anyone using
-`cite_datapackages()` receives it with the version of your data package they downloaded, so you can
-search for your RAiD to find where your data were used:
+Every project carries a citation that ties together each dataset's contributors, ending 
+with its [RAiD](https://raid.org), a persistent identifier for your research activity. 
+Anyone using `cite_datapackages()` receives it with the version of your data package they
+downloaded, so you can search for your RAiD to find where your data were used:
 
 
 ``` r
+# View citations from all projects with metadata
 writeLines(cite_datapackages(meta))
 #> Zachary Amir & Annabel Smith (2023). WildObs Camera Trap Data Package: UQ's undergraduate widlife techonologies camera trapping module comparing human and AI comptuer vision [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/a3efd562. WildObs data package version 1.0.1.
 #> Zachary Amir, Linda Behrendorff & Matthew Luskin (2022). WildObs Camera Trap Data Package: UQ & QPWS collaboration to study impacts of 2019-20 bushfires on K'gari's long-nosed potoroos [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/ba8f4587. WildObs data package version 1.0.2.
@@ -177,11 +204,13 @@ writeLines(cite_datapackages(meta))
 #> Zachary Amir, Tom Bruce & Matthew Luskin (2022). WildObs Camera Trap Data Package: Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/cb5829ab. WildObs data package version 1.1.1.
 ```
 
-Papers and datasets that already use a project are listed in its `relatedIdentifiers`:
+Papers and datasets that are associated with a project are listed in its `relatedIdentifiers`:
 
 
 ``` r
+# extract the related identifiers table from metadata
 related <- extract_metadata(meta, "relatedIdentifiers")
+# and view the type, ID, and relevant project its from
 related[related$relatedIdentifierType == "DOI", c("relationType", "relatedIdentifier", "DPID")]
 #>      relationType                               relatedIdentifier
 #> 6  IsSupplementTo              https://doi.org/10.1002/ece3.71464
@@ -195,7 +224,7 @@ related[related$relatedIdentifierType == "DOI", c("relationType", "relatedIdenti
 #> 10 ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 ```
 
-To add a publication that uses your data, send its DOI to <data@wildobs.org.au>.
+To add a publication that uses your data, please send its DOI to <data@wildobs.org.au>.
 
 <details>
 <summary>Session information</summary>
