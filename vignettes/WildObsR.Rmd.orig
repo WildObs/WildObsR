@@ -49,9 +49,9 @@ Database, where sensitive species records are obscured and data sharing agreemen
 applied. Therefore, each API key delivers the same data for everyone.
 
 1. Create an account or log in at the [WildObs Dashboard](https://dashboard.wildobs.org.au).
-  - Note that if you have submitted data to the WildObs Database, please create an account 
-    using the same email address you used to share data to ensure you have access to your 
-    private unobscured data. 
+   - Note that if you have submitted data to the WildObs Database, please create an account
+     using the same email address you used to share data to ensure you have access to your
+     private unobscured data.
 2. Under **WildObs Database**, select **Get Started** to open the
    [database page](https://dashboard.wildobs.org.au/camdb).
 3. In the panel at the top right, select **Create** under **API Key**, and copy the key.
