@@ -18,7 +18,8 @@ Before you download any camera data, it helps to know what the database holds: w
 projects sampled your region, when, with what design, which species they recorded, and
 whether their data are released yet. All of that lives in each project's metadata, which
 is small and quick to fetch. This vignette searches WildObs, reads the metadata of what it
-finds, and ends with the references to cite. It downloads no data tables.
+finds, shows where the same records are published in other standards, and ends with the
+references to cite. It downloads no WildObs data tables.
 
 ```{r key}
 library(WildObsR)
@@ -167,6 +168,221 @@ identifier for the research activity itself.
 related <- extract_metadata(meta, "relatedIdentifiers")
 table(related$relatedIdentifierType, related$relationType)
 ```
+
+## Find WildObs data in other portals
+
+WildObs also publishes the animal records of open projects to two national portals, so
+that people who work in other standards can use them without this package:
+
+| Portal | Standard | What it holds | Find it with |
+|---|---|---|---|
+| [Atlas of Living Australia](https://www.ala.org.au) (ALA) | Darwin Core occurrences, passed on to [GBIF](https://www.gbif.org) | one record per animal observation | the [`galah`](https://galah.ala.org.au) package |
+| [TERN EcoPlots](https://ecoplots.tern.org.au) | the [TERN ontology](https://linkeddata.tern.org.au) for plot data | one record per animal observation, grouped by landscape | the EcoPlots API, or the Python library [`terndata.ecoplots`](https://github.com/ternaustralia/terndata.ecoplots) |
+
+The records are the same in all three places. What the portals leave out are the camera
+deployments and their dates of operation, so they tell you where and when a species was
+recorded, but not how hard anyone looked. For occupancy or abundance models, which need
+that sampling effort, download the data package from WildObs.
+
+The checks below compare each portal with the two projects bundled with WildObsR, which
+`example_datapackages()` loads without a download.
+
+```{r bundled}
+# the bundled copies of two open projects
+bundled <- example_datapackages()
+
+# the animal records of each, read from its observations table
+animals <- lapply(bundled, function(dp) {
+  # every observation in the package
+  obs <- frictionless::read_resource(dp, "observations")
+  # keep only the records of animals, which are what the portals receive
+  obs[obs$observationType == "animal", ]
+}) # end per project
+```
+
+### Atlas of Living Australia
+
+In the ALA, WildObs is a data provider, "Wildlife Observatory of Australia", and each
+WildObs project is a dataset, which the ALA calls a data resource. Searching the
+providers finds WildObs, and counting its records by data resource lists every project
+it has published:
+
+```{r ala-provider, message = FALSE}
+library(galah)
+
+# query the Atlas of Living Australia
+galah_config(atlas = "Australia", verbose = FALSE)
+
+# WildObs as a data provider, with its ALA identifier
+search_all(providers, "Wildlife Observatory")
+
+# the number of records in each WildObs dataset in the ALA
+ala_datasets <- galah_call() |>
+  # only records that WildObs provided
+  galah_filter(dataProviderUid == "dp5214") |>
+  # one row per dataset, by its ALA identifier
+  galah_group_by(dataResourceUid) |>
+  # count records rather than download them
+  atlas_counts()
+ala_datasets
+```
+
+Each dataset's description in the ALA's collections registry gives its title, and
+stores the WildObs project ID as its `guid`, which links the two:
+
+```{r ala-guid}
+# the ALA's description of each WildObs dataset, read as JSON
+registry <- lapply(ala_datasets$dataResourceUid, function(dr) {
+  jsonlite::fromJSON(paste0("https://collections.ala.org.au/ws/dataResource/", dr))
+}) # end per dataset
+
+# the WildObs project ID each dataset was published from
+ala_datasets$WildObsID <- vapply(registry, function(reg) reg$guid, character(1))
+# and its DOI at GBIF
+ala_datasets$doi <- vapply(registry, function(reg) reg$doi, character(1))
+as.data.frame(ala_datasets)
+```
+
+The Woomargama project is in the ALA as one of these datasets. Its records per species
+match the bundled copy exactly:
+
+```{r ala-compare}
+# the ALA identifier of the Woomargama project
+woomargama <- "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010"
+dr_uid <- ala_datasets$dataResourceUid[ala_datasets$WildObsID == woomargama]
+
+# records per species in the ALA, counted without a download
+ala_species <- galah_call() |>
+  # only the Woomargama dataset
+  galah_filter(dataResourceUid == dr_uid) |>
+  # one row per scientific name
+  galah_group_by(scientificName) |>
+  atlas_counts()
+
+# records per species in the bundled WildObs package
+wildobs_species <- as.data.frame(table(scientificName = animals[[woomargama]]$scientificName),
+                                 responseName = "wildobs")
+
+# side by side, most recorded first
+both <- merge(ala_species, wildobs_species, by = "scientificName", all = TRUE)
+head(both[order(-both$count), ], 8)
+
+# species where the two disagree
+sum(both$count != both$wildobs, na.rm = TRUE)
+```
+
+Counts need no account, but downloading the records themselves does: the ALA asks for
+an email address registered with it. With one stored in `.Renviron` as `ALA_EMAIL`, the
+records of a dataset come down as one table:
+
+```{r ala-download, eval = nzchar(Sys.getenv("ALA_EMAIL"))}
+# the email address registered with the ALA, read from .Renviron
+galah_config(email = Sys.getenv("ALA_EMAIL"))
+
+# every occurrence record in the Woomargama dataset
+occs <- galah_call() |>
+  # only the relevant dataset
+  galah_filter(dataResourceUid == dr_uid) |>
+  # download the occurrences
+  atlas_occurrences()
+nrow(occs)
+```
+
+The ALA passes the records on to GBIF, which gave each WildObs dataset the DOI listed above.
+
+### TERN EcoPlots
+
+[EcoPlots](https://ecoplots.tern.org.au) is TERN's portal for plot-based ecological
+data, where WildObs is one of the datasets. Its API is open: searching it needs no
+account or key. Every search is a POST request whose body holds a `query`, and the
+`discovery` endpoints list the values a query can use.
+
+```{r tern-datasets}
+# the EcoPlots API
+ecoplots <- "https://ecoplots.tern.org.au/api/v1.0"
+
+# list the values of one search field, optionally within an existing query
+ecoplots_discover <- function(field, query = setNames(list(), character(0))) {
+  # the query as a JSON body, keeping an empty query as {}
+  body <- jsonlite::toJSON(list(query = query), auto_unbox = TRUE)
+  # send it to the discovery endpoint for this field
+  res <- httr::POST(paste0(ecoplots, "/discovery/", field), body = body,
+                    httr::content_type_json())
+  # stop if the request failed
+  httr::stop_for_status(res)
+  # read the answer as a table of names (key) and identifiers (uri)
+  jsonlite::fromJSON(httr::content(res, "text", encoding = "UTF-8"))
+} # end ecoplots_discover
+
+# every dataset in EcoPlots
+datasets <- ecoplots_discover("dataset")
+datasets
+
+# the identifier of the WildObs dataset
+wildobs_uri <- datasets$uri[datasets$key == "WildObs"]
+```
+
+In EcoPlots, a site is one landscape (a WildObs `locationName`), and its name ends with
+the WildObs project ID. Listing the sites therefore shows which projects are published:
+
+```{r tern-sites}
+# the WildObs query: everything from the WildObs dataset
+wildobs_query <- list(dataset = list(wildobs_uri))
+
+# every WildObs site in EcoPlots
+sites <- ecoplots_discover("site_id", wildobs_query)
+sites$key
+
+# the type of record they hold, which a data request must name
+feature <- ecoplots_discover("feature_type", wildobs_query)
+feature$key
+```
+
+The `data` endpoint returns the records that match a query, here as CSV. One landscape
+from the Wet Tropics project:
+
+```{r tern-data}
+# the Daintree landscape of the Wet Tropics project, and its animal records
+daintree_query <- c(wildobs_query, list(
+  site_id = list(sites$uri[sites$key == "Daintree_NP-wildobsid_0001"]),
+  feature_type = list(feature$uri)
+))
+
+# ask for the records as CSV
+res <- httr::POST(paste0(ecoplots, "/data/stream"), query = list(dformat = "csv"),
+                  body = jsonlite::toJSON(list(query = daintree_query), auto_unbox = TRUE),
+                  httr::content_type_json(), httr::add_headers(Accept = "text/event-stream"),
+                  httr::timeout(120))
+httr::stop_for_status(res)
+# read the CSV into a table
+tern <- utils::read.csv(text = httr::content(res, "text", encoding = "UTF-8"))
+
+# one row per animal record
+nrow(tern)
+head(tern[, c("siteName", "scientificName", "animalCount_number", "animalCountResultTime")])
+```
+
+The same landscape in the bundled package holds the same records:
+
+```{r tern-compare}
+# the Wet Tropics project, and the cameras in its Daintree landscape
+wet_tropics <- "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"
+deps <- frictionless::read_resource(bundled[[wet_tropics]], "deployments")
+daintree_deps <- deps$deploymentID[deps$locationName == "Daintree_NP"]
+
+# the animal records from those cameras
+daintree <- animals[[wet_tropics]][animals[[wet_tropics]]$deploymentID %in% daintree_deps, ]
+
+# the number of records, and of animals counted, in each source
+c(ecoplots = nrow(tern), wildobs = nrow(daintree))
+c(ecoplots = sum(tern$animalCount_number), wildobs = sum(daintree$count))
+```
+
+EcoPlots places every record at the landscape's single coordinate and gives its date
+without a time, so it suits questions about where and when species occur rather than
+camera-level analyses. TERN's [guide to the EcoPlots API in
+R](https://ternaus.atlassian.net/wiki/spaces/TERNSup/pages/3042344973/How+to+Access+Data+from+an+API+using+R+-+EcoPlots)
+describes more of the query fields.
 
 ## Cite what you use
 
