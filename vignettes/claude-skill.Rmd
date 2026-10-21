@@ -11,8 +11,8 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-AI coding assistants write R quickly, but they do not know how a WildObs data package is
-built. Left to guess, an assistant may count every row of `observations` as a detection
+AI coding assistants write R code quickly, but they do not know how a WildObs data package
+is built. Left to guess, an assistant may count every row of `observations` as a detection
 (blanks and people included), join tables on the wrong key, or treat a 100-day deployment
 as a whole survey. WildObsR ships a *skill* for [Claude](https://claude.ai): a short,
 plain-text guide to the data that Claude reads before it writes code for you. This
@@ -41,15 +41,15 @@ API key.
 The skill ships inside WildObsR, so you can read every file before installing it:
 
 ```{r files}
-# where the skill sits in your installed copy of WildObsR
+# view where the skill sits in your installed copy of WildObsR
 skill_dir <- system.file("claude-skills", "wildobsr-data", package = "WildObsR")
 
-# its files: an overview, and field-by-field reference tables
+# view its files: an overview, and field-by-field reference tables
 list.files(skill_dir, recursive = TRUE)
 ```
 
 ```{r head}
-# the first lines of the overview, which tell Claude when to use the skill
+# view the first lines of the overview, which tell Claude when to use the skill
 cat(head(readLines(file.path(skill_dir, "SKILL.md")), 14), sep = "\n")
 ```
 
