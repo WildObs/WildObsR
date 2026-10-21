@@ -31,7 +31,7 @@ library(WildObsR)
 # your personal API key, read from .Renviron (see the Get started vignette)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
-# specify the specific project to access 
+# specify the project to access 
 id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
 # download the data package, while including the media resource, and take the first value in the list
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[id]]
@@ -41,7 +41,7 @@ dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[id
 
 
 ``` r
-# remove the WildObs additions to become canonical camtrapDP 
+# remove the WildObs additions to become canonical Camtrap DP 
 out <- as_camtrapdp(dp, warn = "none")
 
 # check the result to see what was changed: how many fields, values and tables, by the kind of change
@@ -98,7 +98,7 @@ list.files(dwc_dir)
 
 ## Use it with camtrapR
 
-[camtrapR](https://jniedballa.github.io/camtrapR/) is a popular R pacakge for camera trap
+[camtrapR](https://jniedballa.github.io/camtrapR/) is a popular R package for camera trap
 data management. While this package offers a number of useful tools, we focus on a few. 
 camtrapR reads Camtrap DP from disk. Therefore, we must first write the converted package,
 then read it back with `camtrapR::readcamtrapDP()`, which returns camtrapR's camera table
@@ -178,8 +178,7 @@ activity times matter.
 
 A key function of the camtrapR package is `camtrapR::surveyDashboard()`, which opens an 
 interactive app for exploring and analysing a survey. It provides summaries, maps, 
-activity patterns, species accumulation, and occupancy models. Use this function from the
-it the two tables read by `camtrapR::readcamtrapDP` above:
+activity patterns, species accumulation, and occupancy models. Pass it the two tables read by `camtrapR::readcamtrapDP()` above:
 
 
 ``` r
@@ -264,7 +263,7 @@ sessionInfo()
 #>  [94] devtools_2.4.6        nlme_3.1-168          raster_3.6-32        
 #>  [97] secr_5.3.0            cli_3.6.6             dplyr_1.2.1          
 #> [100] V8_8.2.0              gtable_0.3.6          digest_0.6.37        
-#> [103] classInt_0.4-11       RcppNumerical_0.6-0   lutz_0.3.2           
+#> [103] RcppNumerical_0.6-0   classInt_0.4-11       lutz_0.3.2           
 #> [106] htmlwidgets_1.6.4     farver_2.1.2          memoise_2.0.1        
 #> [109] htmltools_0.5.8.1     lifecycle_1.0.5       leaflet_2.2.2        
 #> [112] httr_1.4.9            mime_0.13             bit64_4.8.6          

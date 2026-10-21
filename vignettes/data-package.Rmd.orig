@@ -20,18 +20,20 @@ standard meaning, so anyone who knows Camtrap DP can already read most of it. Th
 downloads one complete project, images included, and walks through what each part holds,
 which identifiers link the tables, and exactly where WildObs extends the standard.
 
-The project is a 2023 University of Queensland teaching survey at Dwyers Scrub,
-Queensland: 32 cameras, small enough to download in full, images included, in about a
+The project is a 2023 University of Queensland teaching survey at Dwyers Scrub Conservation
+Park, Queensland: 32 cameras, small enough to download in full, images included, in about a
 minute.
 
 ```{r download, message = FALSE}
+# load the R package 
 library(WildObsR)
 
 # your personal API key, read from .Renviron (see the Get started vignette)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
-# one project, with its media table
+# Specify the known project rather than running wildobs_mongo_query()
 id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
+# download the data, with its full media table, and take the first package out of the list 
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[1]]
 ```
 
@@ -46,11 +48,16 @@ names(dp)
 
 # the Camtrap DP version the package follows
 dp$version
-# and, separately, the WildObs database release it was built from
+# and, separately, the three-point version control for changes applied to this dataset
 dp$versionControlWildObs
+
+# inspect the data package class, recognised by the camtrapdp and frictionless packages, and base R
+class(dp)
 ```
 
-`WildObsMetadata` records what the data provider agreed to and how the survey was run:
+`WildObsMetadata` is a WildObs extension that includes information about the data sharing 
+conditions data providers set, and several fields describing how the data were 
+supplied:
 
 ```{r wildobsmetadata}
 str(dp$WildObsMetadata)
@@ -61,27 +68,29 @@ time zone. WildObs adds one `{start, end}` block for each survey, named by its
 `deploymentGroups`:
 
 ```{r temporal}
-# the package-wide extent and time zone
+# view the package-wide extent and time zone
 dp$temporal[c("start", "end", "timeZone")]
-# and the survey blocks
+# and repeat for the individual survey blocks
 extract_metadata(dp, "temporal")[, c("deploymentGroup", "start", "end")]
 ```
 
 ## The tables
 
 ```{r tables}
-# the tables in the package, each with its number of rows
+# grab the names of the tables in the package
 tables <- frictionless::resource_names(dp)
+# and count the number of rows in each 
 vapply(tables, function(r) nrow(frictionless::read_resource(dp, r)), integer(1))
 ```
 
-Each table carries its schema, with a description, type and allowed values for every field,
-so the documentation travels with the data:
+Each table carries its schema, with a description, type and allowed values for every field. 
+[Frictionless data packages](https://specs.frictionlessdata.io/), which Camtrap DP relies
+upon, ensure that the documentation travels with the data:
 
 ```{r schema}
-# the schema of the deployments table
+# grab the schema of the fields in the deployments table, stored as a list 
 fields <- frictionless::schema(dp, "deployments")$fields
-# the name and the start of the description of the first few fields
+# view a data frame with the name and the start of the description of the first 6 fields
 data.frame(
   field = vapply(fields, function(f) f$name, character(1)),
   description = vapply(fields, function(f) substr(f$description, 1, 70), character(1))
@@ -90,47 +99,52 @@ data.frame(
 
 ## Deployments: cameras, stations, landscapes and surveys
 
-A **deployment** is one camera at one place for one continuous period. Four fields group
-deployments at increasing scales:
+A **deployment** is one camera that is active at one place for one continuous period. 
+Four fields group deployments at increasing scales:
 
 ```{r deployments-read}
-# the deployments table, read with its schema types
+# grab the deployments table, read with its schema types via frictionless
 deps <- frictionless::read_resource(dp, "deployments")
 ```
 
 | Field | Groups deployments into | Example in this project |
 |---|---|---|
-| `locationID` | a camera station, which can host several deployments over time | `r deps$locationID[1]` |
+| `locationID` | a camera sampling location, which can host several deployments | `r deps$locationID[1]` |
 | `locationName` | a named landscape, usually a protected area | `r deps$locationName[1]` |
-| `deploymentGroups` | a survey: one landscape, at most 100 days | `r deps$deploymentGroups[1]` |
-| `multiSeason_deploymentGroup` | **WildObs:** repeat surveys of a landscape, split where sampling stops for more than 30 days | `r deps$multiSeason_deploymentGroup[1]` |
+| `deploymentGroups` | a single-season survey: one landscape, at most 100 days | `r deps$deploymentGroups[1]` |
+| `multiSeason_deploymentGroup` | **WildObs:** long-term surveys of a landscape, split where sampling stops for more than 30 days | `r deps$multiSeason_deploymentGroup[1]` |
 
 ```{r deployments}
 # how many of each grouping the project has
 c(deployments = nrow(deps),
-  stations = length(unique(deps$locationID)),
+  locations = length(unique(deps$locationID)),
   landscapes = length(unique(deps$locationName)),
   surveys = length(unique(deps$deploymentGroups)),
   multi_season_groups = length(unique(deps$multiSeason_deploymentGroup)))
 ```
 
-WildObs splits long camera deployments into pieces of at most 100 days, so a station that
-ran all year appears as several deployments. `recombine_deployment_groups()` joins them
-back into one deployment per camera within each `multiSeason_deploymentGroup`, for
-long-term and multi-season analyses:
+WildObs splits long camera deployments into pieces of at most 100 days, so a location that
+ran all year appears as several single-season deployments. `recombine_deployment_groups()`
+joins them back into one deployment per camera within each `multiSeason_deploymentGroup`, 
+which facilitates long-term and multi-season analyses:
 
 ```{r recombine, message = FALSE}
-# one deployment per camera per multi-season group
+# recombine to one deployment per camera per multi-season group
 long <- recombine_deployment_groups(dp)
+# count how many rows are in the recombined deployments 
 nrow(frictionless::read_resource(long, "deployments"))
 ```
 
-`deploymentTags` holds `key: value` pairs, such as the lure used. `extract_tags()` turns
-each key into a column:
+`deploymentTags` holds additional information that does not fit in the Camtrap
+DP standard, formatted as `key: value` pairs. WildObs ensures consistent
+keys are used for `lure` and `predatorManagement` across all projects. The function
+`extract_tags()` turns each key into a new column:
 
 ```{r tags, warning = FALSE}
 # each tag key as its own column
-head(extract_tags(deps)[, c("deploymentID", "lure", "predatorManagement")], 3)
+deps_tags <- extract_tags(deps)
+# view the new columns from deploymentTags
+head(deps_tags[, c("deploymentID", "lure", "predatorManagement")], 3)
 ```
 
 ## Observations, events and media: three linked identifiers
@@ -138,22 +152,24 @@ head(extract_tags(deps)[, c("deploymentID", "lure", "predatorManagement")], 3)
 Camtrap DP records detections at two levels, and WildObs uses both:
 
 - An **observation** (`observationID`) is one taxon at one deployment within a five-minute
-  window. Its `mediaID` points to one representative image.
-- An **event** (`eventID`) is a 30-minute window that groups the observations of a
+  window. Its `mediaID` points to one representative image. Each row of the observations 
+  table represents one unique observation, so `observationID` is the primary key. 
+- An **event** (`eventID`) is a 30-minute window that groups consecutive observations in a
   sequence. Counting distinct events per taxon is a common definition of independent
   detections.
 - Each **media** row (`mediaID`) is one image. WildObs adds `observationID` to the media
-  table, so every image links back to the observation it belongs to; Camtrap DP has no
-  field for that direction.
+  table, so every image links back to the observation it belongs to; Camtrap DP currently
+  has no field for that direction. 
 
 ```{r ids}
+# grab both the observations and media tables, ensuring schema conformance w/ frictionless
 obs <- frictionless::read_resource(dp, "observations")
 med <- frictionless::read_resource(dp, "media")
 
-# observations of animals that can be placed on a camera
+# subset to observations of animals and remove obscured records of threatened species 
 animal <- obs[obs$observationType == "animal" & !grepl("^obscured_for_", obs$deploymentID), ]
 
-# how many observations each event groups
+# Inspect how many observations each event groups
 summary(as.vector(table(animal$eventID)))
 
 # how many images each observation has, through the WildObs link in media
@@ -165,63 +181,80 @@ same deployment, which helps choose an independence threshold for your own analy
 `reclassify_eventID()` regroups events at any threshold you choose.
 
 ```{r deltatime}
-# minutes since the previous event, for animal observations
+# view a summary of the minutes since the previous event, for animal observations
 summary(animal$deltaTime_event / 60)
+
+# count how many 30-min events there are for brush turkeys
+bt_30 <- length(unique(animal$eventID[which(animal$scientificName == "Alectura lathami")]))
+bt_30
+
+# recalculate independence period to be 120 minutes (2 hours)
+animal_120 <- reclassify_eventID(animal, 120)
+# count how many brush turkey detections with the new independence window
+bt_120 <- length(unique(animal_120$eventID[which(animal_120$scientificName == "Alectura lathami")]))
+bt_120
+
+# how many detections are lost when we increase our independence threshold?
+bt_30 - bt_120
 ```
 
 ### Observation types and obscured records
 
-Most observations are not animals: blanks (a trigger with nothing in view), people and
-vehicles are kept, because they record that a camera was working. Filter by
-`observationType` before counting detections.
+Most observations are not animals: blanks (a trigger with nothing in view), people,
+vehicles, unknown, and unclassified observations are kept, because they record that 
+a camera was working. Filter by `observationType` before counting detections.
 
 ```{r types}
+# how many observation types in this dataset?
 table(obs$observationType)
 ```
 
 Records of species listed as threatened under the *Environment Protection and Biodiversity
 Conservation Act 1999* are obscured in the states where they are listed. In this project
 that includes the koala and the black-breasted button-quail. The species, date and count
-are kept, but the four
-identifiers read `obscured_for_<category>_species`, so the record cannot be joined to a
-camera:
+are kept, but the four key identifiers for linking observations to other data tables all read `obscured_for_<category>_species`, so the record cannot be joined to a camera:
 
 ```{r obscured}
-# obscured records, by listing category and species
+# subset observations for obscured records,
 obscured <- obs[grepl("^obscured_for_", obs$deploymentID), ]
+# view which species and listings were obscured 
 table(obscured$deploymentID, obscured$scientificName)
 ```
 
-Detection histories built from public data therefore under-count listed species where
-they are listed. Do not model a threatened species from public data without accounting
+Detection histories built from public data therefore under-count EPBC-listed species
+where they are listed. Do not model a threatened species from public data without accounting
 for this.
 
 ## Media: where the images are
 
-`filePath` gives the address of each image. Images hosted openly by WildObs have
-`filePublic = TRUE` and can be downloaded with `wildobs_media_download()`; the rest stay
-with their contributors, and their `filePath` reads `not_publicly_accessible`. File names
-are withheld from public users. `TIR` marks images in the WildObs Tagged Image Repository.
+`filePath` gives the address of each media file (*i.e.*, image or video). Images 
+hosted openly by WildObs and the ALA have `filePublic = TRUE` and can be 
+downloaded with `wildobs_media_download()`. The remaining media stay with their 
+contributors, and their `filePath` reads `not_publicly_accessible`. File names
+are withheld from public users. `TIR` is a boolean WildObs addition that denotes 
+(true or false) which images are eligible for inclusion in the WildObs Tagged 
+Image Repository.
 
 ```{r media}
 # images that can be downloaded
 table(med$filePublic)
-# images in the Tagged Image Repository
+# images eligible for the Tagged Image Repository
 table(med$TIR)
 ```
 
 ## Covariates: the environment around each camera
 
 The `covariates` table is entirely a WildObs addition: one row per deployment, with
-environmental and human-pressure values extracted around each camera. Most come at five
-scales, named by the **area** of the buffer: the camera's own cell (`_point`) and circles
-of 1, 3, 5 and 10 km².
+spatio-temporal environmental and human-pressure values extracted around each camera. 
+Most come at five scales, named by the **area** of the buffer: the camera's own coordinates 
+(`_point`) and circles of 1, 3, 5 and 10 km².
 
 ```{r covariates}
+# grab the covariates data table 
 covs <- frictionless::read_resource(dp, "covariates")
-# the forest integrity index at each buffer scale
+# view field names for the forest integrity index at each buffer scale
 grep("^FLII_", names(covs), value = TRUE)
-# its values around this project's cameras
+# inspect values around this project's cameras
 summary(covs$FLII_3km2)
 ```
 
@@ -230,8 +263,9 @@ The source of every covariate, with its resolution, buffer and citation, is in t
 those citations.
 
 ```{r covariate-source}
-# where the 3 km2 forest integrity index comes from
+# grab the covariates schema 
 fields <- frictionless::schema(dp, "covariates")$fields
+# inspect a subset for where the 3 km2 forest integrity index comes from
 str(Filter(function(f) f$name == "FLII_3km2", fields)[[1]]$custom)
 ```
 
@@ -251,7 +285,7 @@ constraint still applies.
 | descriptor | `WildObsMetadata` | sharing preference, embargo, funding and survey practice |
 | descriptor | `versionControlWildObs` | the WildObs database release, distinct from the Camtrap DP `version` |
 | descriptor | `temporal` survey blocks and `timeZone` | the dates of each survey, beside the package-wide extent |
-| descriptor | `contributors[].ROR` | each contributor's organisation |
+| descriptor | `contributors[].ROR` | each contributor's organisation persistent identifier |
 | descriptor | `taxonomic[].vernacularNamesEnglish` | English common names as one string, rather than a language-keyed object |
 | vocabulary | `relatedIdentifierType` `RAiD` | the persistent identifier of the research activity |
 | vocabulary | intermediate `taxonRank` values | ranks such as `subclass` and `suborder`, which the standard's list lacks |

@@ -16,8 +16,8 @@ representative images for each known species. WildObs records the species in eve
 of an observation, so its openly hosted images come labelled. This vignette finds those 
 images, joins them to their labels, and downloads a small batch. It uses a 2023 
 University of Queensland teaching survey at Dwyers Scrub Conservation Park, Queensland, where
-a curated selection of images are hosted by WildObs's and the Atlas of Living Australia's
-([ALA](https://collections.ala.org.au/public/show/dr31594)) Tagged Image Repostiory. 
+a curated selection of images is hosted by the Tagged Image Repository of WildObs and the Atlas
+of Living Australia ([ALA](https://collections.ala.org.au/public/show/dr31594)). 
 
 
 ``` r
@@ -27,7 +27,7 @@ library(WildObsR)
 # your personal API key, read from .Renviron (see the Get started vignette)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
-# specify the specific project to access 
+# specify the project to access 
 id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
 # download the data package, while including the media resource, and take the first value in the list
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[id]]
@@ -70,7 +70,7 @@ obs <- frictionless::read_resource(dp, "observations")
 # specify the label columns of each observation
 labels <- obs[, c("observationID", "observationType", "scientificName", "count")]
 
-# merge the relevent observations fields to each public image with its label
+# merge the relevant observation fields to each public image with its label
 public <- merge(media[media$filePublic, c("mediaID", "deploymentID", "observationID",
                                           "timestamp", "filePath")],
                 labels, by = "observationID")
@@ -198,13 +198,14 @@ sessionInfo()
 #> [37] nlme_3.1-168       tidyselect_1.2.1   stringi_1.8.9      sf_1.1-3          
 #> [41] dplyr_1.2.1        purrr_1.2.2        splines_4.5.1      rprojroot_2.1.1   
 #> [45] fastmap_1.2.0      grid_4.5.1         cli_3.6.6          magrittr_2.0.5    
-#> [49] pkgbuild_1.4.8     e1071_1.7-17       readr_2.2.0        lubridate_1.9.5   
-#> [53] timechange_0.4.0   httr_1.4.9         ozmaps_0.4.5       otel_0.2.0        
-#> [57] lutz_0.3.2         hms_1.1.4          memoise_2.0.1      evaluate_1.0.5    
-#> [61] knitr_1.52         mgcv_1.9-3         frictionless_1.3.0 rlang_1.3.0       
-#> [65] Rcpp_1.1.2         glue_1.8.1         DBI_1.3.0          geojsonsf_2.0.5   
-#> [69] pkgload_1.4.1      rstudioapi_0.17.1  jsonlite_2.0.0     R6_2.6.1          
-#> [73] plyr_1.8.9         oz_1.0-22          fs_1.6.6           units_1.0-1
+#> [49] utf8_1.2.6         pkgbuild_1.4.8     e1071_1.7-17       withr_3.0.3       
+#> [53] readr_2.2.0        lubridate_1.9.5    timechange_0.4.0   httr_1.4.9        
+#> [57] ozmaps_0.4.5       otel_0.2.0         lutz_0.3.2         hms_1.1.4         
+#> [61] memoise_2.0.1      evaluate_1.0.5     knitr_1.52         mgcv_1.9-3        
+#> [65] frictionless_1.3.0 rlang_1.3.0        Rcpp_1.1.2         glue_1.8.1        
+#> [69] DBI_1.3.0          geojsonsf_2.0.5    pkgload_1.4.1      rstudioapi_0.17.1 
+#> [73] jsonlite_2.0.0     R6_2.6.1           plyr_1.8.9         oz_1.0-22         
+#> [77] fs_1.6.6           units_1.0-1
 ```
 
 </details>

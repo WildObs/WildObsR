@@ -13,7 +13,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 Where a camera is deployed shapes what it can detect and how its data can be pooled with 
 others. WildObsR places camera coordinates in their Australian context by describing a 
-spatial hierarchy, beginning with the the state or territory, then to the IBRA bioregion 
+spatial hierarchy, beginning with the state or territory, then to the IBRA bioregion 
 and subregion, then to the nearest protected area. WildObsR also offers tools to help with
 metric map projection, and quickly determining the spacing between neighbouring cameras. 
 The state, bioregion and protected-area layers ship with the package, so everything here 
@@ -68,7 +68,7 @@ common unit for pooling surveys and for reporting.
 ```{r ibra}
 # calculate the bioregion and subregion of every station
 stations <- ibra_classification(stations, lat_col = "latitude", long_col = "longitude")
-# view bio region
+# view bioregion
 table(stations$IBRAbioRegionName)
 # and subregions
 table(stations$IBRAsubRegionName)
@@ -102,12 +102,12 @@ buffered[, c("locationID", "CAPADlocationNameBuffer")]
 
 A recorded `locationName` can differ from the CAPAD name for good reasons. WildObs data 
 curation, along with data provider input, inspects each clustering to ensure `locationName`
-represents a clear landscape one name, even when it spans several reserves. For example, 
+represents one clear landscape name, even when it spans several reserves. For example, 
 the two Wet Tropics cameras above sit in Crater Lakes and Curtain Fig National Parks, and 
-their landscape is recorded as `Eacham_Curtain_Fig_NPs` since both national parks neighbor 
+their landscape is recorded as `Eacham_Curtain_Fig_NPs` since both national parks neighbour 
 each other. A camera can also sit outside every reserve: Woomargama station 33 is about 2.6 
 km from the nearest protected area, Woomargama State Conservation Area, while its landscape 
-is recorded as the national park better group several nearby cameras in a homogenous protected 
+is recorded as the national park to better group several nearby cameras in a homogeneous protected 
 area. Its 1 km buffer touches no reserve, so `locationName_buffer_CAPAD()` names that 
 landscape after the nearest one it finds instead. Treat a difference as a prompt to look and 
 potentially correct the output, not as an error.
@@ -133,7 +133,7 @@ independent sites for a species with a given home range, and which grid cell siz
 pooled analysis.
 
 ```{r spacing}
-# claculate the nearest other station to each station, and how far it is
+# calculate the nearest other station to each station, and how far it is
 nn <- find_nearest_neighbor_distance(deps)
 # inspect summary stats of spacing (in metres)
 summary(nn$distance)

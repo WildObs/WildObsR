@@ -14,33 +14,41 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 <!-- This file is the source. Edit it, then run vignettes/precompute.R with a WildObs API
 key to rebuild images.Rmd, which ships with its results already in place. -->
 
-Classifying camera trap images with machine learning needs many images of known species.
-WildObs records the species in every image of an observation, so its openly hosted images
-come labelled. This vignette finds those images, joins them to their labels, and downloads a
-small batch. It uses a 2023 University of Queensland teaching survey at Dwyers Scrub,
-Queensland, most of whose images are hosted by WildObs.
+Classifying camera trap images with machine learning requires balanced datasets of 
+representative images for each known species. WildObs records the species in every image
+of an observation, so its openly hosted images come labelled. This vignette finds those 
+images, joins them to their labels, and downloads a small batch. It uses a 2023 
+University of Queensland teaching survey at Dwyers Scrub Conservation Park, Queensland, where
+a curated selection of images is hosted by the Tagged Image Repository of WildObs and the Atlas
+of Living Australia ([ALA](https://collections.ala.org.au/public/show/dr31594)). 
 
 ```{r download, message = FALSE}
+# load the R package 
 library(WildObsR)
 
 # your personal API key, read from .Renviron (see the Get started vignette)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
-# the project, with its media table
+# specify the project to access 
 id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
+# download the data package, while including the media resource, and take the first value in the list
 dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[id]]
+# extract the media table from the data package 
 media <- frictionless::read_resource(dp, "media")
 ```
 
 ## Which images can be downloaded
 
-Most WildObs images stay with the people who collected them, or with Wildlife Insights.
-Only images with `filePublic = TRUE` are openly hosted by WildObs, and only those can be
-downloaded. The rest are listed, with their timestamps and labels, but their `filePath`
-reads `not_publicly_accessible`, and file names are withheld from public users.
+Most WildObs images stay with the people who collected them. However, WildObs curates 
+a selection of images from openly shared projects based on the number of detections
+within a project (*e.g.*, species with few detections retain all images, while species
+with many detections retain an image per detection). Only images with `filePublic = TRUE`
+are openly hosted by WildObs or the ALA, and only those can be downloaded. The rest are
+listed, with their timestamps and labels, but their `filePath` reads 
+`not_publicly_accessible`, and file names are withheld from public users.
 
 ```{r public}
-# images in this project that WildObs hosts openly
+# inspect how many images in this project are hosted openly
 table(media$filePublic)
 ```
 
@@ -54,29 +62,31 @@ Joining on it gives every image the species, count and observation type recorded
 observation:
 
 ```{r labels}
-# the observations, read with their schema types
+# extract the observations table, read with their schema types
 obs <- frictionless::read_resource(dp, "observations")
-# the label columns of each observation
+# specify the label columns of each observation
 labels <- obs[, c("observationID", "observationType", "scientificName", "count")]
 
-# each public image with its label
+# merge the relevant observation fields to each public image with its label
 public <- merge(media[media$filePublic, c("mediaID", "deploymentID", "observationID",
                                           "timestamp", "filePath")],
                 labels, by = "observationID")
 
-# the species with the most openly hosted images
+# view the species with the most openly hosted images
 head(sort(table(public$scientificName[public$observationType == "animal"]),
           decreasing = TRUE), 8)
 ```
 
-Subset to the species you need straight away. A project's openly hosted images can
-include records that do not belong in a training set, such as images of people, and
-working from one species keeps them out. Here, the Australian brush-turkey:
+Subset to the species you need straight away. A project's openly hosted images may
+occasionally include records that do not belong in a training set, such as misidentified
+blanks or images of people, and working with one species keeps them out. Here, the 
+Australian brush-turkey (*Alectura lathami*):
 
 ```{r species}
 # the openly hosted images of brush-turkeys only
 turkey <- public[public$observationType == "animal" &
                    public$scientificName %in% "Alectura lathami", ]
+# how many images do we have?
 nrow(turkey)
 ```
 
@@ -86,20 +96,22 @@ nothing is there.
 
 ## Download a batch
 
-`wildobs_media_download()` saves each file into a folder per project and deployment, skips
-files already on disk, and reports what happened to each one. Start with a few files to
-check the setup before downloading thousands:
+The function `wildobs_media_download()` saves each file into a folder per project and 
+deployment, skips files already on disk, and reports what happened to each one. Start 
+with a few files to check the setup before downloading thousands:
 
 ```{r batch}
-# six brush-turkey images, as a test batch
+# start with six brush-turkey images, as a test batch
 batch <- utils::head(turkey, 6)
 
-# download them into a temporary folder
+# specify the folder where the images will be saved (temporary directory)
 out_dir <- file.path(tempdir(), "wildobs_images")
+# and download them into that folder
 result <- wildobs_media_download(batch, out_dir = out_dir)
 
-# what happened to each file, and where it went
+# check what happened to each file, and where it went
 table(result$downloadStatus)
+# what are the file names of the images saved to your computer
 basename(result$localPath)
 ```
 
@@ -109,9 +121,9 @@ the images, for example as `labels.csv`, and the batch is ready for training.
 
 ## Cite and credit
 
-Images are licensed with their project, usually under a Creative Commons licence that
-requires attribution. Check the media licence, and cite the project in any model or
-dataset you publish:
+Images are licensed with their project by a Creative Commons licence that requires
+attribution. Check the media licence, and cite the project in any model or dataset
+you publish:
 
 ```{r licence}
 # the licence that applies to this project's images

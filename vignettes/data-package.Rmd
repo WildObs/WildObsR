@@ -61,13 +61,13 @@ dp$version
 dp$versionControlWildObs
 #> [1] "1.0.1"
 
-# inspect the data package class, recognized by camtrapDP, frictionless, and base R
+# inspect the data package class, recognised by the camtrapdp and frictionless packages, and base R
 class(dp)
-#>  "camtrapdp" "datapackage" "list" 
+#> [1] "camtrapdp"   "datapackage" "list"
 ```
 
-`WildObsMetadata` is a WildObs extension that includes information about what data sharing 
-conditions data providers set, in addition to several fields describing how the data was 
+`WildObsMetadata` is a WildObs extension that includes information about the data sharing 
+conditions data providers set, and several fields describing how the data were 
 supplied:
 
 
@@ -122,7 +122,7 @@ vapply(tables, function(r) nrow(frictionless::read_resource(dp, r)), integer(1))
 
 Each table carries its schema, with a description, type and allowed values for every field. 
 [Frictionless data packages](https://specs.frictionlessdata.io/), which Camtrap DP relies
-upon, ensures that the documentation travels with the data:
+upon, ensure that the documentation travels with the data:
 
 
 ``` r
@@ -175,7 +175,7 @@ c(deployments = nrow(deps),
   landscapes = length(unique(deps$locationName)),
   surveys = length(unique(deps$deploymentGroups)),
   multi_season_groups = length(unique(deps$multiSeason_deploymentGroup)))
-#>         deployments            locations          landscapes             surveys 
+#>         deployments           locations          landscapes             surveys 
 #>                  32                  32                   1                   1 
 #> multi_season_groups 
 #>                   1
@@ -188,7 +188,7 @@ which facilitates long-term and multi-season analyses:
 
 
 ``` r
-# convert one deployment per camera per multi-season group
+# recombine to one deployment per camera per multi-season group
 long <- recombine_deployment_groups(dp)
 # count how many rows are in the recombined deployments 
 nrow(frictionless::read_resource(long, "deployments"))
@@ -196,7 +196,7 @@ nrow(frictionless::read_resource(long, "deployments"))
 ```
 
 `deploymentTags` holds additional information that does not fit in the Camtrap
-DP standard, and are formatted as `key: value` pairs. WildObs ensures consistent
+DP standard, formatted as `key: value` pairs. WildObs ensures consistent
 keys are used for `lure` and `predatorManagement` across all projects. The function
 `extract_tags()` turns each key into a new column:
 
@@ -234,7 +234,7 @@ Camtrap DP records detections at two levels, and WildObs uses both:
 obs <- frictionless::read_resource(dp, "observations")
 med <- frictionless::read_resource(dp, "media")
 
-# subset to observations of animals and removed obscured records of threatend species 
+# subset to observations of animals and remove obscured records of threatened species 
 animal <- obs[obs$observationType == "animal" & !grepl("^obscured_for_", obs$deploymentID), ]
 
 # Inspect how many observations each event groups
@@ -262,7 +262,7 @@ summary(animal$deltaTime_event / 60)
 # count how many 30-min events there are for brush turkeys
 bt_30 <- length(unique(animal$eventID[which(animal$scientificName == "Alectura lathami")]))
 bt_30
-#> 531
+#> [1] 531
 
 # recalculate independence period to be 120 minutes (2 hours)
 animal_120 <- reclassify_eventID(animal, 120)
@@ -308,15 +308,15 @@ table(obscured$deploymentID, obscured$scientificName)
 #>   obscured_for_vulnerable_species                      0                   8
 ```
 
-Detection histories built from public data therefore under-count EPBC listed species
+Detection histories built from public data therefore under-count EPBC-listed species
 where they are listed. Do not model a threatened species from public data without accounting
 for this.
 
 ## Media: where the images are
 
-`filePath` gives the address of each media (i.e., images and/or videos). Images 
-hosted openly by WildObs and the ALA  have `filePublic = TRUE` and can be 
-downloaded with `wildobs_media_download()`. The remaining media stays with their 
+`filePath` gives the address of each media file (*i.e.*, image or video). Images 
+hosted openly by WildObs and the ALA have `filePublic = TRUE` and can be 
+downloaded with `wildobs_media_download()`. The remaining media stay with their 
 contributors, and their `filePath` reads `not_publicly_accessible`. File names
 are withheld from public users. `TIR` is a boolean WildObs addition that denotes 
 (true or false) which images are eligible for inclusion in the WildObs Tagged 
@@ -345,7 +345,7 @@ Most come at five scales, named by the **area** of the buffer: the camera's own 
 
 
 ``` r
-# grab the covarites data table 
+# grab the covariates data table 
 covs <- frictionless::read_resource(dp, "covariates")
 # view field names for the forest integrity index at each buffer scale
 grep("^FLII_", names(covs), value = TRUE)
@@ -364,7 +364,7 @@ those citations.
 ``` r
 # grab the covariates schema 
 fields <- frictionless::schema(dp, "covariates")$fields
-# inspect a susbet for where the 3 km2 forest integrity index comes from
+# inspect a subset for where the 3 km2 forest integrity index comes from
 str(Filter(function(f) f$name == "FLII_3km2", fields)[[1]]$custom)
 #> List of 2
 #>  $ spatial:List of 2
@@ -435,21 +435,20 @@ sessionInfo()
 #> [13] proxy_0.4-29       cluster_2.1.8.1    chron_2.3-63       pkgconfig_2.0.3   
 #> [17] Matrix_1.7-3       KernSmooth_2.23-26 desc_1.4.3         lifecycle_1.0.5   
 #> [21] compiler_4.5.1     stringr_1.6.0      terra_1.9-50       codetools_0.2-20  
-#> [25] permute_0.9-10     usethis_3.2.1      class_7.3-23       crayon_1.5.3      
-#> [29] pillar_1.11.1      tidyr_1.3.2        MASS_7.3-65        ellipsis_0.3.2    
-#> [33] classInt_0.4-11    mongolite_4.1.0    cachem_1.1.0       vegan_2.7-6       
-#> [37] sessioninfo_1.2.3  nlme_3.1-168       tidyselect_1.2.1   stringi_1.8.9     
-#> [41] sf_1.1-3           dplyr_1.2.1        purrr_1.2.2        splines_4.5.1     
-#> [45] rprojroot_2.1.1    fastmap_1.2.0      grid_4.5.1         cli_3.6.6         
-#> [49] magrittr_2.0.5     utf8_1.2.6         pkgbuild_1.4.8     e1071_1.7-17      
-#> [53] withr_3.0.3        readr_2.2.0        bit64_4.8.6        lubridate_1.9.5   
-#> [57] timechange_0.4.0   httr_1.4.9         ozmaps_0.4.5       bit_4.6.0         
-#> [61] otel_0.2.0         lutz_0.3.2         hms_1.1.4          memoise_2.0.1     
-#> [65] evaluate_1.0.5     knitr_1.52         mgcv_1.9-3         frictionless_1.3.0
-#> [69] rlang_1.3.0        Rcpp_1.1.2         glue_1.8.1         DBI_1.3.0         
-#> [73] geojsonsf_2.0.5    pkgload_1.4.1      vroom_1.7.1        rstudioapi_0.17.1 
-#> [77] jsonlite_2.0.0     R6_2.6.1           plyr_1.8.9         oz_1.0-22         
-#> [81] fs_1.6.6           units_1.0-1
+#> [25] permute_0.9-10     usethis_3.2.1      class_7.3-23       pillar_1.11.1     
+#> [29] tidyr_1.3.2        MASS_7.3-65        ellipsis_0.3.2     classInt_0.4-11   
+#> [33] mongolite_4.1.0    cachem_1.1.0       vegan_2.7-6        sessioninfo_1.2.3 
+#> [37] nlme_3.1-168       tidyselect_1.2.1   stringi_1.8.9      sf_1.1-3          
+#> [41] dplyr_1.2.1        purrr_1.2.2        splines_4.5.1      rprojroot_2.1.1   
+#> [45] fastmap_1.2.0      grid_4.5.1         cli_3.6.6          magrittr_2.0.5    
+#> [49] utf8_1.2.6         pkgbuild_1.4.8     e1071_1.7-17       withr_3.0.3       
+#> [53] readr_2.2.0        lubridate_1.9.5    timechange_0.4.0   httr_1.4.9        
+#> [57] ozmaps_0.4.5       otel_0.2.0         lutz_0.3.2         hms_1.1.4         
+#> [61] memoise_2.0.1      evaluate_1.0.5     knitr_1.52         mgcv_1.9-3        
+#> [65] frictionless_1.3.0 rlang_1.3.0        Rcpp_1.1.2         glue_1.8.1        
+#> [69] DBI_1.3.0          geojsonsf_2.0.5    pkgload_1.4.1      rstudioapi_0.17.1 
+#> [73] jsonlite_2.0.0     R6_2.6.1           plyr_1.8.9         oz_1.0-22         
+#> [77] fs_1.6.6           units_1.0-1
 ```
 
 </details>

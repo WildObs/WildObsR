@@ -92,7 +92,7 @@ Zachary Amir as a contributor:
 
 
 ``` r
-# a box around the Wet Tropics, in latitude and lognitude (i.e., decimal degrees)
+# a box around the Wet Tropics, in latitude and longitude (i.e., decimal degrees)
 wet_tropics <- list(xmin = 144.9, xmax = 146.5, ymin = -19.6, ymax = -15.3)
 
 # find every project with cameras inside the box and Zachary Amir among its contributors
@@ -108,7 +108,7 @@ Leave out `contributors` to see every project in the box.
 By default the search returns two kinds of projects: 
 
 - **Open** projects, which have no remaining embargo period, contain
-  all availible data tables. 
+  all available data tables. 
     - Include `tabularSharingPreference = "open"` in `wildobs_mongo_query()` to 
       find only projects you can download in full.
 - **Partial** projects have a remaining embargo period, and only contain 
@@ -175,7 +175,7 @@ sort(table(observations$observationType))
 
 Records of threatened species are obscured where the species is listed under the
 *Environment Protection and Biodiversity Conservation Act 1999*. They keep the species,
-date and count, but the foregin keys that link back to both the deployments, media, and 
+date and count, but the foreign keys that link back to both the deployments, media, and 
 covariates tables read `obscured_for_<category>_species`, so they cannot be joined. Count
 them, then set them aside before any spatial analysis:
 
@@ -197,7 +197,7 @@ observations <- observations[!obscured, ]
 `extract_metadata()` turns the metadata of one or many packages into tables, such as
 who collected the data, under which licence, and with what sampling design.
 `cite_datapackages()` provides citations formatted by WildObs, including each dataset's
-Research Activity Identifier ([RAiD](https://ardc.edu.au/services/ardc-identifier-services/raid-research-activity-identifier-service/)), which provides a persitent identifier to reference data used in research. 
+Research Activity Identifier ([RAiD](https://ardc.edu.au/services/ardc-identifier-services/raid-research-activity-identifier-service/)), which provides a persistent identifier to reference data used in research. 
 Additional parameters allow you to include the data package version you downloaded and citations
 for the WildObs-generated covariates table. 
 

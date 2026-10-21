@@ -28,32 +28,36 @@ package*). Most tools ignore what they do not know, but some check the standard 
 result, so the package is canonical Camtrap DP.
 
 ```{r download, message = FALSE}
+# load the R library 
 library(WildObsR)
 
 # your personal API key, read from .Renviron (see the Get started vignette)
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
 
-# a small teaching survey at Dwyers Scrub, Queensland, with its media table, which Camtrap DP requires
+# specify the project to access 
 id <- "QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005"
-dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[1]]
+# download the data package, while including the media resource, and take the first value in the list
+dp <- wildobs_dp_download(api_key = api_key, project_ids = id, media = TRUE)[[id]]
 ```
 
 ## Convert to canonical Camtrap DP
 
 ```{r convert}
-# remove the WildObs additions and check the result
+# remove the WildObs additions to become canonical Camtrap DP 
 out <- as_camtrapdp(dp, warn = "none")
 
-# what was changed: how many fields, values and tables, by the kind of change
+# check the result to see what was changed: how many fields, values and tables, by the kind of change
 as.data.frame(table(where = out$report$level, change = out$report$action), responseName = "n") |>
   subset(n > 0)
 
-# the converted package passes the Camtrap DP profile and the camtrapdp package's checks
+# Check if the converted package passes the Camtrap DP profile and the camtrapdp package's checks
 c(profile = out$validation$descriptor$valid, camtrapdp = out$validation$camtrapdp$valid)
 ```
 
-`out$report` lists every change, one row per field or value, with where it came from. The
-`covariates` table is removed by default, because Camtrap DP has no place for it; use
+The output of `as_camtrapdp()` is a list that stores not only the reformatted data package,
+but also includes information describing how the data was reformatted. `out$report` lists 
+every change, one row per field or value, with where it came from. The `covariates` table 
+is removed by default, because Camtrap DP has no place for it. Instead, you can use 
 `keep_covariates = TRUE` to keep it as an extra table, which the standard allows.
 
 ## Use it with camtrapdp, and export to GBIF
@@ -62,27 +66,33 @@ c(profile = out$validation$descriptor$valid, camtrapdp = out$validation$camtrapd
 example, its taxonomy, and a Darwin Core Archive ready to publish on GBIF:
 
 ```{r camtrapdp}
-# the taxa, in camtrapdp's own format
+# view the taxa, in camtrapdp's own format
 head(camtrapdp::taxa(out$camtrapdp)[, c("scientificName", "taxonRank")])
 
-# write the Darwin Core files GBIF reads
+# specify a temporary directory to save results 
 dwc_dir <- file.path(tempdir(), "dwc")
+# and save the data package formatted in the Darwin Core Standard
 suppressMessages(camtrapdp::write_dwc(out$camtrapdp, dwc_dir))
+# view which files were saved 
 list.files(dwc_dir)
 ```
 
 ## Use it with camtrapR
 
-camtrapR reads Camtrap DP from disk. Write the converted package, then read it back with
-`camtrapR::readcamtrapDP()`, which returns camtrapR's camera table (one row per station) and
-record table (one row per detection):
+[camtrapR](https://jniedballa.github.io/camtrapR/) is a popular R package for camera trap
+data management. While this package offers a number of useful tools, we focus on a few. 
+camtrapR reads Camtrap DP from disk. Therefore, we must first write the converted package,
+then read it back with `camtrapR::readcamtrapDP()`, which returns camtrapR's camera table
+(one row per sampling location `locationID`) and record table (one row per 5-min observation 
+`observationID`):
 
 ```{r camtrapr-read}
-# save the converted package as CSV files and a datapackage.json
+# specify a temporary folder to save the WildObs data package
 pkg_dir <- file.path(tempdir(), "dwyers_scrub_camtrapdp")
+# and use frictionless to write it to disk
 frictionless::write_package(out$package, pkg_dir)
 
-# read it the way camtrapR does
+# read the recently written files using camtrapR functions
 ct <- camtrapR::readcamtrapDP(
   deployments_file = file.path(pkg_dir, "deployments.csv"),
   media_file = file.path(pkg_dir, "media.csv"),
@@ -90,40 +100,44 @@ ct <- camtrapR::readcamtrapDP(
   datapackage_file = file.path(pkg_dir, "datapackage.json")
 )
 
-# stations, and detection records
+# view number of rows and columns in the stations table
 dim(ct$CTtable)
+# repeat for the record table 
 dim(ct$recordTable)
 ```
 
-camtrapR joins every deployment at a station into one row and records the gaps between them
-as `Problem` periods, so its camera operation matrix counts only the days a camera was
-running. A station with a single deployment has no gaps, so camtrapR adds no `Problem`
-columns; tell it whether there are any. From there, camtrapR builds detection histories
-with effort:
+camtrapR joins every deployment at a sampling location `locationID` into one row 
+identified by the `Station` field. Gaps between individual deployments at a `Station`
+are recorded as `Problem` periods, so the camera operation matrix generated by camtrapR 
+counts only the days a camera was running. A station with a single deployment has no gaps,
+so camtrapR adds no `Problem` columns; tell it whether there are any. From there, 
+camtrapR builds detection histories with effort:
 
 ```{r camtrapr-dh}
-# whether any station has gaps between its deployments
+# were there stations with gaps between its deployments?
 has_gaps <- any(grepl("^Problem", names(ct$CTtable)))
 
-# days each station was operating
+# create a matrix describing how many days each station was operating
 camop <- camtrapR::cameraOperation(CTtable = ct$CTtable, stationCol = "Station",
                                    setupCol = "Setup_date", retrievalCol = "Retrieval_date",
                                    hasProblems = has_gaps, dateFormat = "ymd HMS",
                                    writecsv = FALSE)
 
-# animal detections that can be placed on a station
+# gather animal detections that can be placed on a station
 rec <- ct$recordTable[ct$recordTable$observationType == "animal" &
+                        # making sure to remove obscured records to link to specific deployments
                         !grepl("^obscured_for_", ct$recordTable$deploymentID), ]
+# and create a new column called station for a clean match to CT table 
 rec$Station <- rec$locationID
 
-# weekly detection history of Australian brush-turkeys, with the camera-days behind each cell
+# Create a weekly detection history of Australian brush-turkeys, with the camera-days behind each cell
 dh <- camtrapR::detectionHistory(recordTable = rec, camOp = camop, stationCol = "Station",
                                  speciesCol = "scientificName",
                                  recordDateTimeCol = "DateTimeOriginal",
                                  recordDateTimeFormat = "ymd HMS", species = "Alectura lathami",
                                  occasionLength = 7, day1 = "station", includeEffort = TRUE,
                                  scaleEffort = FALSE, timeZone = "UTC")
-# the first five stations, every week
+# view the first five stations, every week
 head(dh$detection_history, 5)
 ```
 
@@ -133,17 +147,24 @@ activity times matter.
 
 ## Explore it in the camtrapR survey dashboard
 
-`camtrapR::surveyDashboard()` opens an interactive app for exploring and analysing a survey:
-summaries, maps, activity patterns, species accumulation, and occupancy models. Pass it the
-two tables read above:
+A key function of the camtrapR package is `camtrapR::surveyDashboard()`, which opens an 
+interactive app for exploring and analysing a survey. It provides summaries, maps, 
+activity patterns, species accumulation, and occupancy models. Pass it the two tables read by `camtrapR::readcamtrapDP()` above:
 
 ```{r dashboard, eval = FALSE}
+# load the interactive dashboard
 camtrapR::surveyDashboard(
+  # specify camera trap vs records table
   CTtable = ct$CTtable, recordTable = rec,
+  # specify which columns record sampling locations and start/end dates
   stationCol = "Station", setupCol = "Setup_date", retrievalCol = "Retrieval_date",
+  # describe any sampling gaps and date-time formats
   hasProblems = has_gaps, CTdateFormat = "ymd HMS",
+  # describe the spatial context 
   xcol = "longitude", ycol = "latitude", crs = "epsg:4326",
+  # specify columns for species and date-time of detections
   speciesCol = "scientificName", recordDateTimeCol = "DateTimeOriginal",
+  # specify the date-time format of detections
   recordDateTimeFormat = "ymd HMS", timeZone = "Australia/Brisbane"
 )
 ```
