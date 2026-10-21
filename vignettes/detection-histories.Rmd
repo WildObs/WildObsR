@@ -322,7 +322,7 @@ The difference is in effort. `matrix_generator()` has no camera-days: it treats 
 sampled continuously from its first deployment start to its last end, including gaps
 between deployments, and its `numberDeploymentsActiveAtDate` counts only the cameras that
 recorded something that day. `?matrix_generator` lists these limits. The legacy function
-will be deprecated in a future release.
+may be deprecated in a future release.
 
 ## Choices to make
 
