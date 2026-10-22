@@ -19,8 +19,8 @@ WildObs data package, first with camera stations as sites and then across spatia
 resampled hexagonal grid cells. It uses project 0001, a systematic survey of six Wet Tropics
 landscapes shipped with WildObsR, so everything runs offline.
 
-The next vignette, *Fitting occupancy and abundance models*, takes these matrices into
-unmarked, spOccupancy, spAbundance and NIMBLE.
+The next vignettes, *Fit single-season models* and *Fit multi-season models*, take these
+matrices into unmarked, spOccupancy, spAbundance and NIMBLE.
 
 ## Which function should I use?
 
@@ -337,3 +337,9 @@ may be deprecated in a future release.
 - **Time zone.** Days run in the package's time zone (`dp$temporal$timeZone`). When pooled
   cameras span time zones with different clocks, both functions use UTC days instead, with
   a message, so effort and detections still share the same day boundaries.
+
+## Next steps
+
+*Fit single-season models* fits these matrices in unmarked, spOccupancy, spAbundance and
+NIMBLE, including how site and observation covariates enter each model. *Fit multi-season
+models* follows sites across seasons with `align = "calendar"`.

@@ -89,6 +89,9 @@ dp_list <- example_datapackages()
 | [Images for computer vision](https://wildobs.github.io/WildObsR/articles/images.html) | Downloading labelled images |
 | [Camtrap DP interoperability](https://wildobs.github.io/WildObsR/articles/interoperability.html) | camtrapdp, GBIF, camtrapR and its survey dashboard |
 | [Spatial context](https://wildobs.github.io/WildObsR/articles/spatial-context.html) | States, bioregions, protected areas and camera spacing |
+| [Detection histories and sampling effort](https://wildobs.github.io/WildObsR/articles/detection-histories.html) | Effort and detection matrices for occupancy and abundance models |
+| [Fit single-season models](https://wildobs.github.io/WildObsR/articles/fitting-models.html) | unmarked, spOccupancy, spAbundance and NIMBLE on one survey |
+| [Fit multi-season models](https://wildobs.github.io/WildObsR/articles/long-term.html) | Long-term deployments, colonisation and extinction, and trends |
 | [Working with Claude](https://wildobs.github.io/WildObsR/articles/claude-skill.html) | A guide to the data for AI coding assistants |
 
 ## Keeping WildObsR up to date

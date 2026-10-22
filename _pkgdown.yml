@@ -31,6 +31,8 @@ articles:
   navbar: Model the data
   contents:
   - detection-histories
+  - fitting-models
+  - long-term
 - title: About
   navbar: About
   contents:

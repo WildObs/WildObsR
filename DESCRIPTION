@@ -54,6 +54,7 @@ Suggests:
     galah,
     ggplot2,
     jsonvalidate,
+    nimble,
     rmarkdown,
     spAbundance,
     spOccupancy,
