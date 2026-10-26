@@ -19,9 +19,9 @@ with WildObsR.
 | Model | Package | `model_matrix_input(output = )` |
 |---|---|---|
 | Occupancy, abundance and community occupancy, by maximum likelihood | [unmarked](https://rbchan.github.io/unmarked/) | `"unmarked"` |
-| Bayesian occupancy, with or without space | [spOccupancy](https://doserlab.com/files/spoccupancy-web/) | `"spOccupancy"` |
+| Bayesian occupancy, with or without spatial autocorrelation | [spOccupancy](https://doserlab.com/files/spoccupancy-web/) | `"spOccupancy"` |
 | Bayesian N-mixture abundance | [spAbundance](https://doserlab.com/files/spabundance-web/) | `"spAbundance"` |
-| Any model you write yourself | [NIMBLE](https://r-nimble.org/), JAGS or Stan | `"array"` |
+| Any custom model you write yourself | [NIMBLE](https://r-nimble.org/), [JAGS](https://github.com/kenkellner/jagsui) or [brms](https://cran.r-project.org/web/packages/specr/vignettes/parallel-bayesian-models.html) for Stan | `"array"` |
 
 The models here are deliberately small, and the Bayesian chains are short so the page builds
 in minutes. Before publishing, follow each package's guidance on covariates, priors and
@@ -35,53 +35,70 @@ cameras in each cell:
 
 
 ``` r
-# load the R package
-library(WildObsR)
+# load R packages
+library(WildObsR)     # for example data and data prep functions
+library(sf)           # for spatial data wrangling 
+library(unmarked)     # for running frequentist occu, abund, and community models
+library(spOccupancy)  # for running spatial occupancy models
+library(spAbundance)  # for running spatial abundance models
+library(nimble)       # for running Bayes occu models 
+
 
 # grab the Wet Tropics survey shipped with WildObsR
 dp <- example_datapackages("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")[[1]]
+
 # extract the three tables, read with their schema types
 deps <- frictionless::read_resource(dp, "deployments")
 covs <- frictionless::read_resource(dp, "covariates")
 obs <- frictionless::read_resource(dp, "observations")
+
 # merge deployments and their environmental covariates as one table
 deps <- merge(deps, covs, by = intersect(names(deps), names(covs)))
 
-# create a two-level trail status: any road or trail, or none
+# create a two-level trail status. If featureType is na, its offTrail, otherwise its onTrail
 deps$trailStatus <- ifelse(is.na(deps$featureType), "offTrail", "onTrail")
-# assign every deployment to a 3 km2 hexagonal cell
-deps <- spatial_hexagon_generator(deps, scales = 3e6)
 
-# camera-days per cell and 7-day occasion over each cell's first 70 days, split by trail status
-eff <- effort_matrix(deps, site_col = "cellID_3km2", w = 7, dur = 70,
+# assign every deployment to a 3 km2 hexagonal cell
+deps <- spatial_hexagon_generator(data = deps, scales = 3e6)
+
+## generate the effort matrix formatted as trap-nights per cell and occasion
+# where a cell is the 3 km2 hexagonal cell, an occasion is 7-days, and the maximum duration is 70 days
+eff <- effort_matrix(deps = deps, site_col = "cellID_3km2", w = 7, dur = 70,
+                     # split the matrix by on vs off trail, and specify the timezone 
                      split_by = "trailStatus", time_zone = dp$temporal$timeZone)
 
-# average the covariates over each cell's cameras, weighting each by its camera-days
-cell <- resample_covariates_and_observations(deps, mode_cols_covs = "trailStatus")
+# spatially resample covariates to average each value over the cell's cameras, weighted by effort. 
+# and take modal value of on vs off trail
+cell <- resample_covariates_and_observations(covs = deps, mode_cols_covs = "trailStatus")
 #> resample_covariates_and_observations(): featureType (e.g. "roadDirt - roadPaved - trailHiking") kept as text, because some cells hold more than one value.
 #> For one value per cell, add the column to mode_cols_covs; to model detection by it, use effort_matrix(split_by = ...).
+
+# grab the spatially resampled covariates as a dataframe at the key scale 
 cell_covs <- cell$spatially_resampled_covariates$cellID_3km2
 ```
 
-Site covariates need one value per cell. Here they are forest integrity and altitude in the
-3 km² around each cell, and the landscape the cell sits in, coded as a whole number because
-spOccupancy and spAbundance read random effects only from numbers:
+Site covariates requre one value per cell. Here we will use are forest integrity and altitude 
+averaged across all cameras in the 3 km² cell, and the landscape the cell sits in, coded as a 
+whole number because spOccupancy and spAbundance read random effects only from numbers:
 
 
 ``` r
-# keep the cell ID and the covariates the models use
+# subset covariates for the site covs for the model, cell name, and landscape column 
 site_covs <- cell_covs[, c("cellID_3km2", "Avg_FLII_3km2", "Avg_altitude_3km2", "locationName")]
-# code each landscape as a number, for random effects
+# re-code each landscape as a number, for random effects
 site_covs$landscape <- as.integer(factor(site_covs$locationName))
-# view how many cells each landscape holds
-table(site_covs$locationName)
+
+# view how many cells each landscape holds, matched by coded number
+table(site_covs$locationName, site_covs$landscape)
 #> 
-#>                  Daintree_NP                  Danbulla_NP 
-#>                           23                           13 
-#>       Eacham_Curtain_Fig_NPs               Mount_Lewis_NP 
-#>                            8                           14 
-#> Wooroonooran_Goldfield_Track              Wooroonooran_NP 
-#>                           19                           19
+#>                                1  2  3  4  5  6
+#>  Daintree_NP                  23  0  0  0  0  0
+#>  Danbulla_NP                   0 13  0  0  0  0
+#>  Eacham_Curtain_Fig_NPs        0  0  8  0  0  0
+#>  Mount_Lewis_NP                0  0  0 14  0  0
+#>  Wooroonooran_Goldfield_Track  0  0  0  0 19  0
+#>  Wooroonooran_NP               0  0  0  0  0 19
+
 # and drop the names, since the models read only numbers
 site_covs$locationName <- NULL
 ```
@@ -91,117 +108,176 @@ Australian Albers projection (EPSG:3577), which covers the whole continent:
 
 
 ``` r
-# turn each cell's average longitude and latitude into points, in decimal degrees
+# turn each hexagonal cell's average longitude and latitude into spatial points, in decimal degrees
 pts <- sf::st_as_sf(cell_covs, coords = c("Avg_longitude", "Avg_latitude"), crs = 4326)
-# project them to metres
+# project them to Albers projection (metres)
 xy <- sf::st_coordinates(sf::st_transform(pts, 3577))
-# keep the cell ID beside its X and Y, so cells are matched by name
+
+# create a dataframe with the transformed spatial points, 
+# but keep the cell ID so we match them by name
 coords <- data.frame(cellID_3km2 = cell_covs$cellID_3km2, X = xy[, "X"], Y = xy[, "Y"])
 ```
 
-**Site or observation covariates?** A site covariate has one value per cell and goes in the
-occupancy or abundance part of a model. It can also go in the detection part, as
-`total_effort` does. An observation covariate has one value per cell and occasion, and can
-go only in the detection part. `model_matrix_input()` always adds the observation covariates
-`effort` (camera-days) and `trailStatus_onTrail` (the share of those camera-days on a trail),
-and the site covariate `total_effort`. Covariates you build yourself, such as rainfall per
-occasion, go in its `obs_covs` argument as site x occasion matrices.
+**Site or observation covariates?** A site covariate has one value per cell (*i.e.*, a row in the
+detection matrix) and can be included in the occupancy or abundance formula of a model. It can 
+be included in the detection formula, as `total_effort` does below. An observation covariate has 
+one value per cell and occasion (*i.e.*, a row and a column in the detection matrix), so it can
+only be included in the detection formula. `model_matrix_input()` always adds the observation 
+covariates `effort` (camera-days) and the value specified by the `split_by` parameter in 
+`effort_matrix()`, which means `trailStatus_onTrail` in this example and represents the share of 
+camera-days on a trail. `model_matrix_input()` also always adds the site covariate `total_effort`.
+Additional observation ovariates you build yourself, such as rainfall per occasion, can be included
+in `model_matrix_input()` through its `obs_covs` argument as site x occasion matrices.
 
 ## Occupancy in unmarked
 
-The feral cat (*Felis catus*) was detected in about a third of the cells, which leaves
-occupancy something to explain:
+Feral cats (*Felis catus*) were detected in about a third of the 3 km2 cells, which 
+leaves enough variation for occupancy to explain its distribution:
 
 
 ``` r
-# create the detection history of feral cats in each cell and occasion
-y_cat <- detection_matrix(obs, eff, "Felis catus")
+# create the detection history to quantify occupancy of feral cats in each cell and occasion
+y_cat <- detection_matrix(obs = obs, effort = eff, scientificNames = "Felis catus", type = "occupancy")
 #> detection_matrix(): set aside 452 obscured observation(s), which carry no camera.
 #> Detection histories from public data under-count those species where they are listed.
 #> detection_matrix(): left out 19 detection(s) after the first 70 days (dur).
-# format it for unmarked, with covariates matched to cells by name
-umf <- model_matrix_input(y_cat, eff, site_covs = site_covs, output = "unmarked")
 
-# view the site covariates and the observation covariates in the frame
-names(unmarked::siteCovs(umf))
-#> [1] "Avg_FLII_3km2"     "Avg_altitude_3km2" "landscape"        
-#> [4] "total_effort"
-names(unmarked::obsCovs(umf))
-#> [1] "effort"               "trailStatus_offTrail" "trailStatus_onTrail"
+# produce the input required for modelling, formatted for unmarked, with covariates matched to cells by name
+umf <- model_matrix_input(detections = y_cat, effort = eff, site_covs = site_covs, output = "unmarked")
+
+# view values feeding into site covariates
+summary(unmarked::siteCovs(umf))
+#> Avg_FLII_3km2    Avg_altitude_3km2                       locationName   landscape      total_effort  
+#> Min.   :0.8705   Min.   :  10.07   Daintree_NP                 :23    Min.   :1.000   Min.   : 15.5  
+#> 1st Qu.:7.0491   1st Qu.: 124.79   Danbulla_NP                 :13    1st Qu.:2.000   1st Qu.:102.1  
+#> Median :7.8273   Median : 617.97   Eacham_Curtain_Fig_NPs      : 8    Median :4.000   Median :138.4  
+#> Mean   :7.3980   Mean   : 503.78   Mount_Lewis_NP              :14    Mean   :3.521   Mean   :164.7  
+#> 3rd Qu.:8.9015   3rd Qu.: 763.35   Wooroonooran_Goldfield_Track:19    3rd Qu.:5.000   3rd Qu.:211.8  
+#> Max.   :9.5900   Max.   :1192.69   Wooroonooran_NP             :19    Max.   :6.000   Max.   :625.7  
+
+# and repeat for observation covaraites, where NA's are allowed as long as they match 
+summary(unmarked::obsCovs(umf))
+#>     effort        trailStatus_offTrail trailStatus_onTrail
+#> Min.   : 0.3639   Min.   :0.0000       Min.   :0.0000     
+#> 1st Qu.:10.2681   1st Qu.:0.4995       1st Qu.:0.4384     
+#> Median :14.0000   Median :0.5000       Median :0.5000     
+#> Mean   :16.9694   Mean   :0.5051       Mean   :0.4949     
+#> 3rd Qu.:21.0000   3rd Qu.:0.5616       3rd Qu.:0.5005     
+#> Max.   :63.0000   Max.   :1.0000       Max.   :1.0000     
+#> NA's   :28        NA's   :28           NA's   :28         
+
 ```
 
-unmarked formulas have two sides, `~ detection ~ occupancy`. Scaling continuous covariates
-with `scale()` helps the optimiser. The first three models compare the two measures of
-effort: `total_effort`, one value per cell, and `effort`, which changes with each occasion:
+unmarked formulas have two sides, `~ detection ~ occupancy`, where the formula after the first 
+tilda `~` includes detection covariates, and the formula after the second tilda `~` includes
+occupancy covariates. Scaling continuous covariates with `scale()` helps the model optimiser and
+ensures model coefficents can be compared against the same scales. 
+
+Generally speaking, a good approach is to determine the best detection formula as ranked by 
+the Akaike Information Criterion (AIC), where lower AIC scores indicate a better fitting model, 
+generally indicated by a difference of at least 2 AIC points. After the best detection formula 
+is settled, we repeat the process for the occupancy formula. 
+
+The first four models compare the three detection covariates: `total_effort`, one value per cell,
+`effort`, which varies per cell and occasion, and `trailStatus_onTrail`, sampling effort of cameras
+on trail per cell and occasion. We also include a null model with no covariates as the base of comparison: 
 
 
 ``` r
-# load the unmarked package
-library(unmarked)
-
-# fit four models, from no covariates to covariates on both parts
-fits <- fitList(
+# fit four models, from no covariates to multiple covariates on detection
+det_fits <- fitList(
   # constant detection and occupancy
   null = occu(~ 1 ~ 1, umf),
   # detection rises with the cell's total camera-days
   total_effort = occu(~ scale(total_effort) ~ 1, umf),
   # detection rises with the camera-days in each occasion
   effort = occu(~ scale(effort) ~ 1, umf),
-  # add trail cameras to detection, and forest integrity and altitude to occupancy
-  full = occu(~ scale(effort) + trailStatus_onTrail ~
-                scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2), umf)
+  # test the effect of cameras placed on trail
+  trail = occu(~ trailStatus_onTrail ~ 1, umf)
 )
 # rank them by AIC
-modSel(fits)
-#>              nPars    AIC delta   AICwt cumltvWt
-#> full             6 471.32  0.00 1.0e+00     1.00
-#> effort           3 491.69 20.37 3.8e-05     1.00
-#> null             2 492.19 20.88 2.9e-05     1.00
-#> total_effort     3 493.75 22.43 1.3e-05     1.00
+modSel(det_fits)
+#>              nPars    AIC delta AICwt cumltvWt
+#> effort           3 491.69  0.00  0.40     0.40
+#> null             2 492.19  0.51  0.31     0.71
+#> total_effort     3 493.75  2.06  0.14     0.86
+#> trail            3 493.77  2.08  0.14     1.00
 ```
 
-The landscapes differ in ways the covariates may not capture. A random intercept for each
-landscape, in lme4 syntax, lets occupancy vary among them:
+In this case, we could test multiple addative covariates in the detection formula due to
+competing AIC scores where the delta is <2, but for the sake of the example, we will take
+the model with the lowest AIC as our detection formula. 
+
+For the occupancy formula, we repeat the process while holding the detection formula 
+constant. We will run three models that test both `Avg_FLII_3km2` and `Avg_altitude_3km2`
+in isolation, and then one model that combines them together with an addative effect. 
+
+``` r
+# fit the three models for occupancy, with the best detection model held constant
+occu_fits <- fitList(
+  # forest integrity, alone
+  fi = occu(~ scale(effort) ~ scale(Avg_FLII_3km2), umf),
+  # altitude, alone
+  alt = occu(~ scale(effort) ~ scale(Avg_altitude_3km2), umf),
+  # altitude and forest integrity together 
+  fi_alt = occu(~ scale(effort) ~ scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2), umf)
+)
+# rank them by AIC 
+modSel(occu_fits)
+#>        nPars    AIC delta   AICwt cumltvWt
+#> fi_alt     5 470.34  0.00 6.9e-01     0.69
+#> alt        4 471.92  1.58 3.1e-01     1.00
+#> fi         4 488.54 18.20 7.7e-05     1.00
+```
+
+The combination of forest integrity and altitude created the best fitting model, though it
+is within 2 AIC points of the next best fitting model, altitude in isolation. While this 
+could motivate additional testing with more covariates, we will take the combination of 
+forest integrity and altitude for our occupancy formula. 
+
+When datasets span multiple landscapes, each one may differ in ways the covariates may 
+not capture, sometimes due to unmeasured effects (*e.g.*, variable park management). A 
+random intercept for each landscape, in lme4 syntax, lets occupancy vary among each one:
 
 
 ``` r
 # the full model, with a random intercept for each landscape
-cat_occ <- occu(~ scale(effort) + trailStatus_onTrail ~
-                  scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2) + (1 | landscape), umf)
+cat_occ <- occu(~ scale(effort) 
+                ~  scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2) + (1 | landscape), umf)
 cat_occ
 #> 
 #> Call:
-#> occu(formula = ~scale(effort) + trailStatus_onTrail ~ scale(Avg_FLII_3km2) + 
-#>     scale(Avg_altitude_3km2) + (1 | landscape), data = umf)
+#> occu(formula = ~scale(effort) ~ scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2) + 
+#>     (1 | landscape), data = umf)
 #> 
 #> Occupancy (logit-scale):
 #> Random effects:
 #>     Groups        Name Variance Std.Dev.
-#>  landscape (Intercept)    1.973    1.405
+#>  landscape (Intercept)    2.011    1.418
 #> 
 #> Fixed effects:
 #>                          Estimate    SE     z P(>|z|)
-#> (Intercept)                -1.516 0.773 -1.96  0.0498
-#> scale(Avg_FLII_3km2)       -0.629 0.502 -1.26  0.2095
-#> scale(Avg_altitude_3km2)    1.657 0.650  2.55  0.0108
+#> (Intercept)                -1.544 0.778 -1.98  0.0471
+#> scale(Avg_FLII_3km2)       -0.627 0.497 -1.26  0.2068
+#> scale(Avg_altitude_3km2)    1.669 0.652  2.56  0.0104
 #> 
 #> Detection (logit-scale):
-#>                     Estimate    SE      z P(>|z|)
-#> (Intercept)           -1.249 0.431 -2.902 0.00371
-#> scale(effort)          0.176 0.105  1.671 0.09464
-#> trailStatus_onTrail    0.520 0.705  0.737 0.46084
+#>               Estimate    SE     z  P(>|z|)
+#> (Intercept)     -0.953 0.146 -6.51 7.34e-11
+#> scale(effort)    0.161 0.103  1.57 1.18e-01
 #> 
-#> AIC: 458.5018 
+#> AIC: 457.0426 
 #> Number of sites: 96
 ```
 
-Check the fit before reading the estimates. `parboot()` simulates new data from the model and
-compares a fit statistic with the one from the real data. A value of `Pr(t_B > t0)` below
-0.05 suggests the model fits poorly:
+Check the model goodness of fit before reading the estimates with too much faith. 
+The unmakred function `parboot()` simulates new data from the model and compares a fit 
+statistic with the one from the real data. A value of `Pr(t_B > t0)` below 0.05 suggests 
+the model fits poorly:
 
 
 ``` r
-# a chi-squared statistic over every cell and occasion with a detection history
+# Create a simple function to compute chi-squared statistic over every cell and occasion with a detection history
 chisq <- function(fm) {
   # the observed detections
   o <- getY(fm@data)
@@ -211,21 +287,21 @@ chisq <- function(fm) {
   sum((o - e)^2 / (e * (1 - e)), na.rm = TRUE)
 } # end chisq function
 
-# make the simulations repeatable
+# set the seed to make the simulations repeatable
 set.seed(1)
 # compare the real statistic with 100 simulations from the full model; occasions with no
 # camera simulate as NA, and the warnings that says are expected
-suppressWarnings(parboot(fits@fits$full, statistic = chisq, nsim = 100))
+suppressWarnings(parboot(cat_occ, statistic = chisq, nsim = 100))
 #> 
-#> Call: parboot(object = fits@fits$full, statistic = chisq, nsim = 100)
+#> Call: parboot(object = cat_occ, statistic = chisq, nsim = 100)
 #> 
 #> Parametric Bootstrap Statistics:
 #>    t0 mean(t0 - t_B) StdDev(t0 - t_B) Pr(t_B > t0)
-#> 1 731           -191              129         0.95
+#> 1 519           -154              184        0.713
 #> 
 #> t_B quantiles:
 #>       0% 2.5% 25% 50% 75% 97.5% 100%
-#> [1,] 598  655 857 910 974  1237 1430
+#> [1,] 433  452 518 647 785  1123 1493
 #> 
 #> t0 = Original statistic computed from data
 #> t_B = Vector of bootstrap samples
@@ -234,19 +310,20 @@ suppressWarnings(parboot(fits@fits$full, statistic = chisq, nsim = 100))
 Here 0.95 shows no lack of fit by this statistic, which looks at each occasion separately.
 The check by cell in spOccupancy, below, is stricter and finds a problem this one misses.
 
-`predict()` returns occupancy on the probability scale. Here it is across the altitudes of the
-surveyed cells, holding forest integrity at its average:
+We can use the function `predict()` to return occupancy on the probability scale. Here it 
+is across the altitudes of the surveyed cells, holding forest integrity at its average:
 
 
 ``` r
-# a range of altitudes, with forest integrity at its average
+# create a dataframe using a sequence of altitude values grounding in the observed range
 nd <- data.frame(
   Avg_altitude_3km2 = seq(min(site_covs$Avg_altitude_3km2), max(site_covs$Avg_altitude_3km2),
                           length.out = 50),
+  # and keep forest integrity at its average
   Avg_FLII_3km2 = mean(site_covs$Avg_FLII_3km2)
 )
 # predict occupancy and its 95% interval from the model without the random effect
-pred <- cbind(nd, predict(fits@fits$full, type = "state", newdata = nd))
+pred <- cbind(nd, predict(occu_fits@fits$fi_alt, type = "state", newdata = nd))
 
 # plot occupancy against altitude
 ggplot2::ggplot(pred, ggplot2::aes(Avg_altitude_3km2, Predicted)) +
@@ -276,9 +353,12 @@ dp$WildObsMetadata$groupSizes
 ```
 
 Feral pigs (*Sus scrofa*) often travel in groups. `individuals = "max"` takes the largest
-group seen in each occasion. It is the conservative choice: `"sum"` gives more variation
-between occasions, but can count the same animals twice, which violates the model's
-assumptions:
+group seen in each occasion as the conservative choice. You could instead use `"sum"`, 
+which produces more variation between occasions, but may count the same animals twice, 
+which violates the model's assumption of no double-counting of individuals.
+
+You can create a count history matrix using the `detection_matrix()` function while 
+specifying the `type = "abundnace"` parameter: 
 
 
 ``` r
@@ -287,22 +367,23 @@ n_pig <- detection_matrix(obs, eff, "Sus scrofa", type = "abundance", individual
 #> detection_matrix(): set aside 452 obscured observation(s), which carry no camera.
 #> Detection histories from public data under-count those species where they are listed.
 #> detection_matrix(): left out 158 detection(s) after the first 70 days (dur).
-# format it for unmarked
+
+# format it for unmarked, using the same effort survey and site covariates as cats from same project
 umf_n <- model_matrix_input(n_pig, eff, site_covs = site_covs, output = "unmarked")
 ```
 
-`pcount()` sums over every possible abundance up to `K`, which must be high enough not to
-change the estimates. Fit the Poisson and the negative binomial (`"NB"`), which allows more
-variation in abundance among cells:
+unmarked provides the function `pcount()` to run N-mixture models. The function allows for 
+different distributions through the `mixture` parameter. We will fit and compare the Poisson
+(`"P"`) and the negative binomial (`"NB"`), which allows more variation in abundance among cells:
 
 
 ``` r
 # the same covariates as the cat model, with Poisson and negative binomial abundance
 pig <- fitList(
   P = pcount(~ scale(effort) + trailStatus_onTrail ~
-               scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2), umf_n, K = 60, mixture = "P"),
+               scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2), umf_n, mixture = "P"),
   NB = pcount(~ scale(effort) + trailStatus_onTrail ~
-                scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2), umf_n, K = 60, mixture = "NB")
+                scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2), umf_n, mixture = "NB")
 )
 # rank them by AIC
 modSel(pig)
@@ -311,43 +392,23 @@ modSel(pig)
 #> P      6 2189.54 105.54 1.2e-23     1.00
 ```
 
-The negative binomial fits far better. Now check `K`:
-
-
-``` r
-# refit the negative binomial model with a larger K
-pig_k <- update(pig@fits$NB, K = 200)
-# compare the coefficients at K = 60 and K = 200
-round(cbind(K60 = coef(pig@fits$NB), K200 = coef(pig_k)), 2)
-#>                                 K60  K200
-#> lam(Int)                       2.15  3.11
-#> lam(scale(Avg_FLII_3km2))      0.27  0.28
-#> lam(scale(Avg_altitude_3km2)) -0.27 -0.29
-#> p(Int)                        -2.42 -3.43
-#> p(scale(effort))               0.30  0.35
-#> p(trailStatus_onTrail)         0.32  0.29
-#> alpha(alpha)                   0.34  0.20
-```
-
-The covariate effects hardly move, but the abundance and detection intercepts keep drifting
-apart as `K` grows. The data cannot separate how many pigs there are from how likely each
-one is to be seen, a known weakness of N-mixture models when counts vary a lot. With
-unmarked animals on cameras, read these models as relative abundance: the direction and
-size of covariate effects, not the number of pigs. The same thing happens in spAbundance
-below.
+Unlike the occupancy models where we had competing AIC scores, the N-mixture model with 
+the negative binomial distribution far out performs the model using the Poisson distribution. 
+We can apply the same predictive and data visualisations as the occupancy model with this 
+abundance model. 
 
 ## Community occupancy in unmarked
 
-`occuComm()` fits every species at once. Each species has its own intercepts and slopes,
-drawn from a shared distribution, so rare species borrow strength from common ones. Keep
-species identified to species rank, leave out obscured records, and require enough
-independent detections. There is no established minimum, so here a species needs at least
-20 detections an hour apart: `reclassify_eventID()` regroups the observations into 60-minute
-events first.
+`occuComm()` fits an occupancy model for all species at once. Each species has its own 
+intercepts and slopes, drawn from a shared distribution, so rare species borrow strength
+from common ones. For this analysis, we will keep species identified to species rank, 
+leave out obscured records, and require enough independent detections. There is no 
+established minimum, so here a species needs at least 20 detections an hour apart: 
+`reclassify_eventID()` regroups the observations into 60-minute events first.
 
 
 ``` r
-# animal observations identified to species that can be placed on a camera
+# First, subset for animal observations identified to species, and remove obscured records
 animals <- obs[obs$observationType == "animal" & obs$taxonRank %in% "species" &
                  !grepl("^obscured_for_", obs$deploymentID), ]
 # regroup them into independent 60-minute events
@@ -357,6 +418,7 @@ n_events <- tapply(animals_60$eventID, animals_60$scientificName,
                    function(x) length(unique(x)))
 # keep species with at least 20
 community <- names(n_events)[n_events >= 20]
+# how many species are included?
 length(community)
 #> [1] 26
 ```
@@ -364,14 +426,22 @@ length(community)
 
 ``` r
 # create a detection history for every kept species
-y_comm <- detection_matrix(obs, eff, community)
+y_comm <- detection_matrix(obs = obs, effort = eff, scientificNames = community, type = "occupancy")
 #> detection_matrix(): set aside 452 obscured observation(s), which carry no camera.
 #> Detection histories from public data under-count those species where they are listed.
 #> detection_matrix(): left out 1610 detection(s) after the first 70 days (dur).
+
 # format them for unmarked as one community frame
-umf_comm <- model_matrix_input(y_comm, eff, site_covs = site_covs, output = "unmarked")
+umf_comm <- model_matrix_input(detections = y_comm, effort = eff, site_covs = site_covs, output = "unmarked")
+# check the class is appropriate
+class(umf_comm)
+#> [1] "unmarkedFrameOccuComm"
+#> attr(,"package")
+#> [1] "unmarked"
+
 # fit the community model, with species-level intercepts and slopes
 comm <- occuComm(~ scale(effort) + trailStatus_onTrail ~ scale(Avg_FLII_3km2), umf_comm)
+# view the results 
 comm
 #> 
 #> Call:
@@ -412,13 +482,14 @@ species differ around them.
 
 ## Bayesian occupancy in spOccupancy
 
-spOccupancy fits the same occupancy model by MCMC. Its `data` list holds `y`, `occ.covs`,
-`det.covs` and `coords`, and random effects take lme4 syntax:
+spOccupancy fits the same occupancy model as unmarked, but solves the model via 
+Bayesian MCMC and the `PGOcc()` function. Its `data` list holds `y` (the detection
+matrix), `occ.covs` (the site-level covariates), `det.covs` (the observation covaraites),
+and `coords` (the coordinates for spatial autocorrelation), and random effects take
+lme4 syntax:
 
 
 ``` r
-# load the spOccupancy package
-library(spOccupancy)
 # format the cat detections for spOccupancy, with coordinates for the spatial model
 cat_sp <- model_matrix_input(y_cat, eff, site_covs = site_covs, coords = coords,
                              output = "spOccupancy")
@@ -429,13 +500,18 @@ names(cat_sp)
 
 
 ``` r
-# make the chains repeatable
+# Set the seed to make the chains repeatable
 set.seed(1)
-# the unmarked model with the landscape random effect, as a Bayesian model with three chains
+# run the unmarked model with the landscape random effect, as a Bayesian model with three chains
+
+# run the spatial occupancy model for cats, where we specify the occupancy formula, 
 cat_pg <- PGOcc(occ.formula = ~ scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2) + (1 | landscape),
+                # and the detection formula independently
                 det.formula = ~ scale(effort) + trailStatus_onTrail,
+                # specify the data and the MCMC settings
                 data = cat_sp, n.samples = 10000, n.burn = 5000, n.thin = 5,
                 n.chains = 3, verbose = FALSE)
+# view what the model returned 
 summary(cat_pg)
 #> 
 #> Call:
@@ -468,15 +544,17 @@ summary(cat_pg)
 #> trailStatus_onTrail  0.3995 0.6279 -0.8214  0.3967  1.6226 1.0000 3000
 ```
 
-Every `Rhat` should be below 1.1, which shows the chains agree, and `ESS` should be in the
-hundreds or more. Then check the fit with a posterior predictive check: `ppcOcc()` compares
-the real data with data simulated from the model, summed by cell (`group = 1`) and by
-occasion (`group = 2`). A Bayesian p-value near 0.5 means a good fit. Here we treat 0.25 to
-0.75 as adequate, which is stricter than the 0.1 to 0.9 often used:
+The `Rhat` value denotes parameter convergence, where each `Rhat` should be below 1.1, 
+indicating that the chains agree. The effective sample size `ESS` should be in the
+hundreds or more. Then we can check the model's goodness of fit with a posterior 
+predictive check: `ppcOcc()` compares the real data with data simulated from the 
+model, summed by cell (`group = 1`) and by occasion (`group = 2`). A Bayesian p-value
+near 0.5 means a good fit. Here we treat 0.25 to 0.75 as adequate, which is stricter
+than the 0.1 to 0.9 often used:
 
 
 ``` r
-# compare real and simulated detections, summed by cell, then by occasion
+# run the PPC to compare real and simulated detections, summed by cell
 summary(ppcOcc(cat_pg, fit.stat = "freeman-tukey", group = 1))
 #> 
 #> Call:
@@ -490,6 +568,8 @@ summary(ppcOcc(cat_pg, fit.stat = "freeman-tukey", group = 1))
 #> 
 #> Bayesian p-value:  0.0127 
 #> Fit statistic:  freeman-tukey
+
+# repeat the PPC, but now summarise per cell (group = 2)
 summary(ppcOcc(cat_pg, fit.stat = "freeman-tukey", group = 2))
 #> 
 #> Call:
@@ -507,19 +587,23 @@ summary(ppcOcc(cat_pg, fit.stat = "freeman-tukey", group = 2))
 
 The occasions fit, but the cells do not: a few cells detected cats on many occasions, more
 than the model expects. That points to detection differing among cells for reasons the
-covariates miss. A random intercept for each cell in the detection part allows for it:
+covariates miss. A random intercept for each cell in the detection formula allows for it:
 
 
 ``` r
-# give each cell its own number, as a detection covariate
+# create a random effect per cell by giving each cell its own number
 cat_sp$det.covs$cell <- seq_len(nrow(cat_sp$y))
 # make the chains repeatable
 set.seed(1)
-# add a random intercept for each cell to detection
+
+# re-make the spatial occupancy model with the same occupancy formula
 cat_pg2 <- PGOcc(occ.formula = ~ scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2) + (1 | landscape),
+                 # but we add the random intercept to each cell in detection
                  det.formula = ~ scale(effort) + trailStatus_onTrail + (1 | cell),
+                 # and keep the data and MCMC settings the same
                  data = cat_sp, n.samples = 10000, n.burn = 5000, n.thin = 5,
                  n.chains = 3, verbose = FALSE)
+# view a summary of the results. 
 summary(cat_pg2)
 #> 
 #> Call:
@@ -554,7 +638,8 @@ summary(cat_pg2)
 #> Detection Random Effect Variances (logit scale): 
 #>        Mean     SD   2.5%    50% 97.5%   Rhat ESS
 #> cell 4.5181 2.0155 1.6826 4.1264 9.621 1.0232 483
-# check the fit again, by cell and by occasion
+
+# check the goodness of fit again, first by cell
 summary(ppcOcc(cat_pg2, fit.stat = "freeman-tukey", group = 1))
 #> 
 #> Call:
@@ -568,6 +653,8 @@ summary(ppcOcc(cat_pg2, fit.stat = "freeman-tukey", group = 1))
 #> 
 #> Bayesian p-value:  0.661 
 #> Fit statistic:  freeman-tukey
+
+# and repeat it for occasion
 summary(ppcOcc(cat_pg2, fit.stat = "freeman-tukey", group = 2))
 #> 
 #> Call:
@@ -583,11 +670,12 @@ summary(ppcOcc(cat_pg2, fit.stat = "freeman-tukey", group = 2))
 #> Fit statistic:  freeman-tukey
 ```
 
-WAIC compares Bayesian models, and lower is better. DIC is not suited to these models:
+Similar to AIC used in frequentist unmarked models, we can use the widely applicable
+infromation criterion (WAIC) to compare Bayesian models, and lower is better:
 
 
 ``` r
-# compare the two models
+# calculate WAIC for both models and compare side-by-side
 rbind(landscape = waicOcc(cat_pg), landscape_and_cell = waicOcc(cat_pg2))
 #>                         elpd       pD     WAIC
 #> landscape          -214.3369 13.48580 455.6455
@@ -597,18 +685,22 @@ rbind(landscape = waicOcc(cat_pg), landscape_and_cell = waicOcc(cat_pg2))
 `spPGOcc()` adds a spatial random effect, so nearby cells can share unexplained occupancy.
 It uses a nearest-neighbour Gaussian process (`NNGP = TRUE`) with 15 neighbours, the
 package's recommended start, and an exponential covariance. The spatial effect does the work
-of the landscape effect here, so that is left out:
+of the landscape random-intercept effect here, so that is left out:
 
 
 ``` r
 # make the chains repeatable
 set.seed(1)
-# the spatial model, with the cell random effect on detection
+# fit the spatial model, where we removed landscape random effect from occu formula
 cat_sp_fit <- spPGOcc(occ.formula = ~ scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2),
+                      # included the cell-level random effect in detection
                       det.formula = ~ scale(effort) + trailStatus_onTrail + (1 | cell),
+                      # specify the data and the spatial-autocorrelation params
                       data = cat_sp, NNGP = TRUE, n.neighbors = 15,
+                      # set the MCMC settings 
                       cov.model = "exponential", n.batch = 400, batch.length = 25,
                       n.burn = 2000, n.thin = 20, n.chains = 3, verbose = FALSE)
+# view the results 
 summary(cat_sp_fit)
 #> 
 #> Call:
@@ -645,7 +737,8 @@ summary(cat_sp_fit)
 #>            Mean     SD   2.5%    50%  97.5%   Rhat ESS
 #> sigma.sq 0.7787 0.8416 0.1804 0.5294 2.8000 1.0116 416
 #> phi      0.0026 0.0016 0.0001 0.0025 0.0054 1.0845 266
-# check the fit by cell
+
+# check the model goodness-of-fit by cell
 summary(ppcOcc(cat_sp_fit, fit.stat = "freeman-tukey", group = 1))
 #> 
 #> Call:
@@ -659,10 +752,12 @@ summary(ppcOcc(cat_sp_fit, fit.stat = "freeman-tukey", group = 1))
 #> 
 #> Bayesian p-value:  0.6092 
 #> Fit statistic:  freeman-tukey
-# and compare it with the non-spatial model
-waicOcc(cat_sp_fit)
-#>       elpd         pD       WAIC 
-#> -153.09997   27.39968  360.99931
+
+# and compare WAIC with the non-spatial model
+rbind(spatial = waicOcc(cat_sp_fit), non_spatial = waicOcc(cat_pg2))
+#>                  elpd       pD     WAIC
+#> spatial     -153.1000 27.39968 360.9993
+#> non_spatial -154.6944 25.66821 360.7252
 ```
 
 The spatial parameters `sigma.sq` and `phi` mix slowly, so they need longer chains than this
@@ -674,18 +769,21 @@ example before their estimates can be trusted.
 
 
 ``` r
-# load the spAbundance package
-library(spAbundance)
 # format the pig counts for spAbundance
-pig_sp <- model_matrix_input(n_pig, eff, site_covs = site_covs, coords = coords,
-                             output = "spAbundance")
+pig_sp <- model_matrix_input(detections = n_pig, effort = eff, site_covs = site_covs, 
+                             # add the key spAbundance paramaters
+                             coords = coords, output = "spAbundance")
 # make the chains repeatable
 set.seed(1)
 # the negative binomial model, with a random intercept for each landscape
+
+# fit a N-mixture model for pigs, specifying the abundance and detection formula separetly 
 pig_nb <- NMix(abund.formula = ~ scale(Avg_FLII_3km2) + scale(Avg_altitude_3km2) + (1 | landscape),
                det.formula = ~ scale(effort) + trailStatus_onTrail,
+               # specify the distribution as negative binomial (NB) and add MCMC settings 
                data = pig_sp, family = "NB", n.batch = 1600, batch.length = 25,
                n.burn = 20000, n.thin = 20, n.chains = 3, verbose = FALSE)
+# view the results 
 summary(pig_nb)
 #> 
 #> Call:
@@ -720,7 +818,8 @@ summary(pig_nb)
 #> NB overdispersion: 
 #>         Mean     SD   2.5%    50%  97.5%   Rhat  ESS
 #> kappa 1.4394 0.2869 0.9555 1.4113 2.0936 1.0077 1139
-# check the fit, by cell and by occasion
+
+# check the model's goodness-of-fit, by cell
 summary(ppcAbund(pig_nb, fit.stat = "freeman-tukey", group = 1))
 #> 
 #> Call:
@@ -734,6 +833,8 @@ summary(ppcAbund(pig_nb, fit.stat = "freeman-tukey", group = 1))
 #> 
 #> Bayesian p-value:  0.4537 
 #> Fit statistic:  freeman-tukey
+
+# repeat the GOF by occasion
 summary(ppcAbund(pig_nb, fit.stat = "freeman-tukey", group = 2))
 #> 
 #> Call:
@@ -750,48 +851,32 @@ summary(ppcAbund(pig_nb, fit.stat = "freeman-tukey", group = 2))
 ```
 
 The model fits, and the covariate effects converge, but the abundance and detection
-intercepts have `Rhat` above 1.1 and effective sample sizes in the tens. It is the problem `K` showed in unmarked: these data
-cannot tell many hard-to-see pigs from fewer easy-to-see ones. Longer chains will not fix it.
-Report the covariate effects as relative abundance, or find data that separate abundance from
-detection, such as counts of marked animals.
+intercepts have `Rhat` above 1.1 and effective sample sizes in the tens. This is likely
+due to the data failing to distinguish many hard-to-see pigs from fewer easy-to-see ones.
+Longer chains will not fix it. Report the covariate effects as relative abundance affecting
+relative abundance rather than true abundance. 
 
 ## Write your own model in NIMBLE
 
-`output = "array"` returns plain arrays for a model you write yourself. `observed` is `TRUE`
+Finally, the last accepted value in the `output` parameter of `model_matrix_input()` is 
+`"array"`, which returns plain arrays for a model you write yourself. `observed` is `TRUE`
 where a camera ran, so the model can skip the occasions that have no effort. This is the cat
 occupancy model, with altitude on occupancy and effort on detection:
 
 
 ``` r
-# plain arrays of the cat detections, effort and site covariates
+# create plain arrays of the cat detections, effort and site covariates
 arr <- model_matrix_input(y_cat, eff, site_covs = site_covs, output = "array")
-# the cell and occasion of every observed occasion, one row each
+# find the cell and occasion of every observed occasion, one row each
 idx <- which(arr$observed, arr.ind = TRUE)
-# view how many occasions had a camera running
+# how many occasions had a camera running?
 nrow(idx)
 #> [1] 932
 ```
 
 
 ``` r
-# load the nimble package
-library(nimble)
-#> nimble version 1.4.2 is loaded.
-#> For more information on NIMBLE and a User Manual,
-#> please visit https://R-nimble.org.
-#> 
-#> Attaching package: 'nimble'
-#> The following object is masked from 'package:unmarked':
-#> 
-#>     simulate
-#> The following object is masked from 'package:stats':
-#> 
-#>     simulate
-#> The following object is masked from 'package:base':
-#> 
-#>     declare
-
-# occupancy per cell, and detection per observed occasion
+# write the occupancy model per cell, and detection per observed occasion
 code <- nimbleCode({
   # for every cell
   for (i in 1:n_site) {
@@ -807,14 +892,14 @@ code <- nimbleCode({
     # a detection is possible only in an occupied cell
     y[k] ~ dbern(z[cell[k]] * p[k])
   } # end per occasion
-  # vague priors on the intercepts (logistic) and the slopes (normal)
+  # vague priors on the intercepts (logistic) and the covaraites (normal)
   b0 ~ dlogis(0, 1)
   b1 ~ dnorm(0, sd = 2)
   a0 ~ dlogis(0, 1)
   a1 ~ dnorm(0, sd = 2)
 })
 
-# the sizes, indices and scaled covariates the model reads
+## store all the sizes, indices and scaled covariates the model reads
 constants <- list(n_site = arr$n_site, n_obs = nrow(idx), cell = idx[, 1],
                   altitude = as.numeric(scale(arr$site_covs$Avg_altitude_3km2)),
                   effort = as.numeric(scale(arr$effort[idx])))
@@ -823,9 +908,10 @@ constants <- list(n_site = arr$n_site, n_obs = nrow(idx), cell = idx[, 1],
 set.seed(1)
 # compile the model and run three chains
 cat_nimble <- nimbleMCMC(code, constants = constants, data = list(y = arr$y[1, , ][idx]),
-                         # start every cell occupied, and every coefficient at 0
+                         # start inital values with every cell occupied, and every coefficient at 0
                          inits = function() list(z = rep(1, arr$n_site), b0 = 0, b1 = 0,
                                                  a0 = 0, a1 = 0),
+                         # specify exactly which parameters we want to inspect, and MCMC settings
                          monitors = c("b0", "b1", "a0", "a1"), niter = 6000, nburnin = 2000,
                          nchains = 3, samplesAsCodaMCMC = TRUE, progressBar = FALSE)
 #> Defining model
