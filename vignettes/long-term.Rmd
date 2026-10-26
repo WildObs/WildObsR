@@ -343,19 +343,22 @@ rat_sp$det.covs$station <- seq_len(n_station)
 
 Note that unlike unmarked, `tPGOcc()` has no colonisation or extinction parameters. Instead,
 it models occupancy in each season directly, though you can link neighbouring seasons through
-a temporal random effect by specifying the parameter `ar1 = TRUE`. For our model, we include
-each occupancy covariate from the unmarked model in the `occ.formula` parameter in `tPGOcc()`.
-We assume detection differs among stations and among seasons, so we have added a random intercept term
-to the detection formula for each station and a fixed effect for each season:
+a temporal random effect by specifying the parameter `ar1 = TRUE`. Here occupancy follows a
+trend across the seasons (`season`), with the altitude and rainfall covariates from the unmarked
+model. Temperature is left out: it rose with the seasons (a correlation of 0.97 with `season`
+here), so the model cannot tell a temperature effect from the trend. `colext()` had no such
+problem, because temperature acted on extinction there and no other term followed the seasons.
+
+To compare like with like, the first model uses the same detection formula as `colext()`:
 
 
 ``` r
 # make the chains repeatable
 set.seed(1)
-# fit the multi-season model, with the covariates affecting occupancy,
-rat_t <- tPGOcc(occ.formula = ~  scale(altitude_point) + scale(rain) + scale(temp),
-                # covariates and random effect affecting detection
-                det.formula = ~ scale(effort) + factor(season) + (1 | station),
+# fit the multi-season model, with a trend across seasons plus altitude and rainfall on occupancy,
+rat_t <- tPGOcc(occ.formula = ~ scale(altitude_point) + scale(rain) + season,
+                # detection changing with effort, as in colext()
+                det.formula = ~ scale(effort),
                 # and specify the data source and MCMC settings
                 data = rat_sp, n.batch = 600, batch.length = 25, n.burn = 5000,
                 n.thin = 10, n.chains = 3, verbose = FALSE)
@@ -363,36 +366,49 @@ rat_t <- tPGOcc(occ.formula = ~  scale(altitude_point) + scale(rain) + scale(tem
 summary(rat_t)
 #> 
 #> Call:
-#> tPGOcc(occ.formula = ~scale(altitude_point) + scale(rain) + scale(temp), 
-#>     det.formula = ~scale(effort) + factor(season) + (1 | station), 
-#>     data = rat_sp, n.batch = 600, batch.length = 25, verbose = FALSE, 
-#>     n.burn = 5000, n.thin = 10, n.chains = 3)
+#> tPGOcc(occ.formula = ~scale(altitude_point) + scale(rain) + season, 
+#>     det.formula = ~scale(effort), data = rat_sp, n.batch = 600, 
+#>     batch.length = 25, verbose = FALSE, n.burn = 5000, n.thin = 10, 
+#>     n.chains = 3)
 #> 
 #> Samples per Chain: 15000
 #> Burn-in: 5000
 #> Thinning Rate: 10
 #> Number of Chains: 3
 #> Total Posterior Samples: 3000
-#> Run Time (min): 0.1754
+#> Run Time (min): 0.1155
 #> 
 #> Occurrence (logit scale): 
 #>                          Mean     SD    2.5%     50%  97.5%   Rhat  ESS
-#> (Intercept)            3.1207 0.8968  1.6785  3.0308 5.1186 1.0005 1317
-#> scale(altitude_point) -0.0888 0.5753 -1.2378 -0.0838 1.0665 0.9999 2604
-#> scale(rain)            0.0294 0.9585 -2.0601  0.0914 1.7606 1.0048 1624
-#> scale(temp)            0.4805 0.9185 -1.4564  0.5315 2.2042 1.0051 1769
+#> (Intercept)           -0.3092 0.6164 -1.5272 -0.3057 0.9187 0.9998 3000
+#> scale(altitude_point) -0.0717 0.2549 -0.5824 -0.0710 0.4212 1.0037 3000
+#> scale(rain)            0.2421 0.2708 -0.2798  0.2435 0.7852 1.0056 3000
+#> season                 0.6269 0.3199  0.0115  0.6252 1.2759 1.0008 3000
 #> 
 #> Detection (logit scale): 
-#>                    Mean     SD    2.5%     50%   97.5%   Rhat  ESS
-#> (Intercept)     -1.4963 0.4764 -2.3979 -1.5046 -0.5294 1.0185  601
-#> scale(effort)   -0.0168 0.0978 -0.2071 -0.0152  0.1721 1.0071 3000
-#> factor(season)2  0.2327 0.2945 -0.3559  0.2388  0.7925 1.0009 2163
-#> factor(season)3  1.4657 0.2913  0.9059  1.4654  2.0486 1.0038 2579
-#> 
-#> Detection Random Effect Variances (logit scale): 
-#>           Mean     SD   2.5%    50%  97.5%   Rhat  ESS
-#> station 4.9384 1.9091 2.2847 4.5806 9.6691 1.0124 2249
+#>                  Mean     SD    2.5%     50%  97.5%   Rhat  ESS
+#> (Intercept)   -0.0942 0.0818 -0.2525 -0.0940 0.0661 1.0003 3168
+#> scale(effort) -0.0759 0.0810 -0.2395 -0.0771 0.0844 1.0006 3000
 ```
+
+`psi.samples` holds the occupancy probability of every station in every season, for every
+posterior sample. Averaged over stations and samples, it gives the expected share of stations
+occupied in each season, which `colext()` also estimates:
+
+
+``` r
+# the share of stations occupied in each season, from each approach
+rbind(colext = rat_colext@projected.mean["occupied", ],
+      tPGOcc = apply(rat_t$psi.samples, 3, mean))
+#>                1         2         3
+#> colext 0.5723465 0.6403239 0.8626964
+#> tPGOcc 0.5825169 0.6466030 0.8487620
+```
+
+Both approaches give almost the same answer: about 57% of stations occupied in the first
+season, rising to about 85% in the third. In `tPGOcc()` the rise shows as a positive `season`
+effect (0.63, with a 95% credible interval of 0.01 to 1.28). As in unmarked, altitude and
+rainfall have no clear effect (*i.e.*, their 95% credible intervals overlap zero).
 
 Like our single-season models, spOccupancy offers model goodness-of-fit tests
 through the `ppcOcc()` function that computes a posterior predictive check. We
@@ -418,14 +434,14 @@ summary(ppcOcc(rat_t, fit.stat = "freeman-tukey", group = 1))
 #> ----------------------------------------
 #> 	All time periods combined
 #> ----------------------------------------
-#> Bayesian p-value:  0.1862 
+#> Bayesian p-value:  2e-04 
 #> 
 #> ----------------------------------------
 #> 	Individual time periods
 #> ----------------------------------------
-#> Time Period 1 Bayesian p-value: 0.0917
-#> Time Period 2 Bayesian p-value: 0.174
-#> Time Period 3 Bayesian p-value: 0.293
+#> Time Period 1 Bayesian p-value: 3e-04
+#> Time Period 2 Bayesian p-value: 0
+#> Time Period 3 Bayesian p-value: 3e-04
 #> Fit statistic:  freeman-tukey
 
 # then summed by occasion
@@ -446,23 +462,141 @@ summary(ppcOcc(rat_t, fit.stat = "freeman-tukey", group = 2))
 #> ----------------------------------------
 #> 	All time periods combined
 #> ----------------------------------------
-#> Bayesian p-value:  0.2089 
+#> Bayesian p-value:  0.324 
 #> 
 #> ----------------------------------------
 #> 	Individual time periods
 #> ----------------------------------------
-#> Time Period 1 Bayesian p-value: 0.285
-#> Time Period 2 Bayesian p-value: 0.307
-#> Time Period 3 Bayesian p-value: 0.0347
+#> Time Period 1 Bayesian p-value: 0.3927
+#> Time Period 2 Bayesian p-value: 0.4343
+#> Time Period 3 Bayesian p-value: 0.145
 #> Fit statistic:  freeman-tukey
 ```
 
-The chains converge, with every `Rhat` below 1.1. The model reports no clear (*i.e.*, every 95% credible interval overlaps zero) effects from
-any covariate, mirroring the results from unmarked. The Bayesian p-values, though, fall below
-the 0.25 to 0.75 we treat as an adequate fit, so this model still misses some of the variation
-in detection. Before trusting its estimates, try detection covariates that change within a
-season, or a random effect for each station in each season. With 28 stations, simpler models
-may also suit the data better.
+The occasions fit (0.32), but the stations do not (a Bayesian p-value near 0): some stations
+detected rats on many more occasions than others, which one detection formula shared by every
+station cannot reproduce. `colext()` uses the same detection formula, so it likely misses this
+too. A random intercept for each station in detection, and an effect for each season, allow for
+it:
+
+
+``` r
+# make the chains repeatable
+set.seed(1)
+# the same occupancy formula,
+rat_t2 <- tPGOcc(occ.formula = ~ scale(altitude_point) + scale(rain) + season,
+                 # with detection now differing by season and among stations
+                 det.formula = ~ scale(effort) + factor(season) + (1 | station),
+                 # and the same data and MCMC settings
+                 data = rat_sp, n.batch = 600, batch.length = 25, n.burn = 5000,
+                 n.thin = 10, n.chains = 3, verbose = FALSE)
+# view the results
+summary(rat_t2)
+#> 
+#> Call:
+#> tPGOcc(occ.formula = ~scale(altitude_point) + scale(rain) + season, 
+#>     det.formula = ~scale(effort) + factor(season) + (1 | station), 
+#>     data = rat_sp, n.batch = 600, batch.length = 25, verbose = FALSE, 
+#>     n.burn = 5000, n.thin = 10, n.chains = 3)
+#> 
+#> Samples per Chain: 15000
+#> Burn-in: 5000
+#> Thinning Rate: 10
+#> Number of Chains: 3
+#> Total Posterior Samples: 3000
+#> Run Time (min): 0.1845
+#> 
+#> Occurrence (logit scale): 
+#>                          Mean     SD    2.5%     50%  97.5%   Rhat  ESS
+#> (Intercept)            0.9768 1.3632 -1.5764  0.9221 3.7532 1.0019 2295
+#> scale(altitude_point) -0.1750 0.7969 -1.8329 -0.1635 1.4002 1.0036 1959
+#> scale(rain)           -0.0862 1.2922 -2.6933 -0.0114 2.3615 1.0105 1146
+#> season                 1.9340 1.0239  0.2267  1.8155 4.1527 1.0025  719
+#> 
+#> Detection (logit scale): 
+#>                    Mean     SD    2.5%     50%   97.5%   Rhat  ESS
+#> (Intercept)     -1.5302 0.4778 -2.4911 -1.5256 -0.5820 1.0261  658
+#> scale(effort)   -0.0152 0.1006 -0.2076 -0.0154  0.1878 1.0010 3000
+#> factor(season)2  0.2102 0.2806 -0.3563  0.2077  0.7359 0.9997 2667
+#> factor(season)3  1.4767 0.2768  0.9268  1.4765  2.0122 1.0018 1929
+#> 
+#> Detection Random Effect Variances (logit scale): 
+#>           Mean    SD   2.5%    50%  97.5%   Rhat  ESS
+#> station 5.0942 1.911 2.5374 4.7395 9.7398 1.0061 2494
+
+# check the goodness of fit again, by station and then by occasion
+summary(ppcOcc(rat_t2, fit.stat = "freeman-tukey", group = 1))
+#> Currently on time period 1 out of 3
+#> Currently on time period 2 out of 3
+#> Currently on time period 3 out of 3
+#> 
+#> Call:
+#> ppcOcc(object = rat_t2, fit.stat = "freeman-tukey", group = 1)
+#> 
+#> Samples per Chain: 15000
+#> Burn-in: 5000
+#> Thinning Rate: 10
+#> Number of Chains: 3
+#> Total Posterior Samples: 3000
+#> 
+#> ----------------------------------------
+#> 	All time periods combined
+#> ----------------------------------------
+#> Bayesian p-value:  0.1417 
+#> 
+#> ----------------------------------------
+#> 	Individual time periods
+#> ----------------------------------------
+#> Time Period 1 Bayesian p-value: 0.084
+#> Time Period 2 Bayesian p-value: 0.109
+#> Time Period 3 Bayesian p-value: 0.232
+#> Fit statistic:  freeman-tukey
+summary(ppcOcc(rat_t2, fit.stat = "freeman-tukey", group = 2))
+#> Currently on time period 1 out of 3
+#> Currently on time period 2 out of 3
+#> Currently on time period 3 out of 3
+#> 
+#> Call:
+#> ppcOcc(object = rat_t2, fit.stat = "freeman-tukey", group = 2)
+#> 
+#> Samples per Chain: 15000
+#> Burn-in: 5000
+#> Thinning Rate: 10
+#> Number of Chains: 3
+#> Total Posterior Samples: 3000
+#> 
+#> ----------------------------------------
+#> 	All time periods combined
+#> ----------------------------------------
+#> Bayesian p-value:  0.2192 
+#> 
+#> ----------------------------------------
+#> 	Individual time periods
+#> ----------------------------------------
+#> Time Period 1 Bayesian p-value: 0.283
+#> Time Period 2 Bayesian p-value: 0.3343
+#> Time Period 3 Bayesian p-value: 0.0403
+#> Fit statistic:  freeman-tukey
+
+# and compare the share of stations occupied in each season across all three models
+rbind(colext = rat_colext@projected.mean["occupied", ],
+      tPGOcc = apply(rat_t$psi.samples, 3, mean),
+      tPGOcc_station = apply(rat_t2$psi.samples, 3, mean))
+#>                        1         2         3
+#> colext         0.5723465 0.6403239 0.8626964
+#> tPGOcc         0.5825169 0.6466030 0.8487620
+#> tPGOcc_station 0.9022285 0.9576629 0.9844329
+```
+
+The fit by station improves greatly, from near 0 to 0.14, though both Bayesian p-values (0.14
+and 0.22) still fall below the 0.25 to 0.75 we treat as an adequate fit. Occupancy still rises
+across the seasons (`season` is 1.93, with a 95% credible interval of 0.23 to 4.15), but from a
+higher level: 0.90 to 0.98. Once detection can differ among stations, a station with few
+detections may hold rats that are simply hard to detect there, so more stations count as
+occupied. Every model finds the same rise; the level depends on how detection is modelled.
+Before trusting either level, try detection covariates that change within a season, or a
+random effect for each station in each season. With 28 stations, simpler models may also suit
+the data better.
 
 ## Learn more
 

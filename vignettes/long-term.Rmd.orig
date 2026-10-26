@@ -257,24 +257,42 @@ rat_sp$det.covs$station <- seq_len(n_station)
 
 Note that unlike unmarked, `tPGOcc()` has no colonisation or extinction parameters. Instead,
 it models occupancy in each season directly, though you can link neighbouring seasons through
-a temporal random effect by specifying the parameter `ar1 = TRUE`. For our model, we include
-each occupancy covariate from the unmarked model in the `occ.formula` parameter in `tPGOcc()`.
-We assume detection differs among stations and among seasons, so we have added a random intercept term
-to the detection formula for each station and a fixed effect for each season:
+a temporal random effect by specifying the parameter `ar1 = TRUE`. Here occupancy follows a
+trend across the seasons (`season`), with the altitude and rainfall covariates from the unmarked
+model. Temperature is left out: it rose with the seasons (a correlation of 0.97 with `season`
+here), so the model cannot tell a temperature effect from the trend. `colext()` had no such
+problem, because temperature acted on extinction there and no other term followed the seasons.
+
+To compare like with like, the first model uses the same detection formula as `colext()`:
 
 ```{r tpgocc}
 # make the chains repeatable
 set.seed(1)
-# fit the multi-season model, with the covariates affecting occupancy,
-rat_t <- tPGOcc(occ.formula = ~  scale(altitude_point) + scale(rain) + scale(temp),
-                # covariates and random effect affecting detection
-                det.formula = ~ scale(effort) + factor(season) + (1 | station),
+# fit the multi-season model, with a trend across seasons plus altitude and rainfall on occupancy,
+rat_t <- tPGOcc(occ.formula = ~ scale(altitude_point) + scale(rain) + season,
+                # detection changing with effort, as in colext()
+                det.formula = ~ scale(effort),
                 # and specify the data source and MCMC settings
                 data = rat_sp, n.batch = 600, batch.length = 25, n.burn = 5000,
                 n.thin = 10, n.chains = 3, verbose = FALSE)
 # view the results
 summary(rat_t)
 ```
+
+`psi.samples` holds the occupancy probability of every station in every season, for every
+posterior sample. Averaged over stations and samples, it gives the expected share of stations
+occupied in each season, which `colext()` also estimates:
+
+```{r tpgocc-compare}
+# the share of stations occupied in each season, from each approach
+rbind(colext = rat_colext@projected.mean["occupied", ],
+      tPGOcc = apply(rat_t$psi.samples, 3, mean))
+```
+
+Both approaches give almost the same answer: about 57% of stations occupied in the first
+season, rising to about 85% in the third. In `tPGOcc()` the rise shows as a positive `season`
+effect (0.63, with a 95% credible interval of 0.01 to 1.28). As in unmarked, altitude and
+rainfall have no clear effect (*i.e.*, their 95% credible intervals overlap zero).
 
 Like our single-season models, spOccupancy offers model goodness-of-fit tests
 through the `ppcOcc()` function that computes a posterior predictive check. We
@@ -288,12 +306,44 @@ summary(ppcOcc(rat_t, fit.stat = "freeman-tukey", group = 1))
 summary(ppcOcc(rat_t, fit.stat = "freeman-tukey", group = 2))
 ```
 
-The chains converge, with every `Rhat` below 1.1. The model reports no clear (*i.e.*, every 95% credible interval overlaps zero) effects from
-any covariate, mirroring the results from unmarked. The Bayesian p-values, though, fall below
-the 0.25 to 0.75 we treat as an adequate fit, so this model still misses some of the variation
-in detection. Before trusting its estimates, try detection covariates that change within a
-season, or a random effect for each station in each season. With 28 stations, simpler models
-may also suit the data better.
+The occasions fit (0.32), but the stations do not (a Bayesian p-value near 0): some stations
+detected rats on many more occasions than others, which one detection formula shared by every
+station cannot reproduce. `colext()` uses the same detection formula, so it likely misses this
+too. A random intercept for each station in detection, and an effect for each season, allow for
+it:
+
+```{r tpgocc-station}
+# make the chains repeatable
+set.seed(1)
+# the same occupancy formula,
+rat_t2 <- tPGOcc(occ.formula = ~ scale(altitude_point) + scale(rain) + season,
+                 # with detection now differing by season and among stations
+                 det.formula = ~ scale(effort) + factor(season) + (1 | station),
+                 # and the same data and MCMC settings
+                 data = rat_sp, n.batch = 600, batch.length = 25, n.burn = 5000,
+                 n.thin = 10, n.chains = 3, verbose = FALSE)
+# view the results
+summary(rat_t2)
+
+# check the goodness of fit again, by station and then by occasion
+summary(ppcOcc(rat_t2, fit.stat = "freeman-tukey", group = 1))
+summary(ppcOcc(rat_t2, fit.stat = "freeman-tukey", group = 2))
+
+# and compare the share of stations occupied in each season across all three models
+rbind(colext = rat_colext@projected.mean["occupied", ],
+      tPGOcc = apply(rat_t$psi.samples, 3, mean),
+      tPGOcc_station = apply(rat_t2$psi.samples, 3, mean))
+```
+
+The fit by station improves greatly, from near 0 to 0.14, though both Bayesian p-values (0.14
+and 0.22) still fall below the 0.25 to 0.75 we treat as an adequate fit. Occupancy still rises
+across the seasons (`season` is 1.93, with a 95% credible interval of 0.23 to 4.15), but from a
+higher level: 0.90 to 0.98. Once detection can differ among stations, a station with few
+detections may hold rats that are simply hard to detect there, so more stations count as
+occupied. Every model finds the same rise; the level depends on how detection is modelled.
+Before trusting either level, try detection covariates that change within a season, or a
+random effect for each station in each season. With 28 stations, simpler models may also suit
+the data better.
 
 ## Learn more
 
