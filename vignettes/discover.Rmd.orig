@@ -342,7 +342,7 @@ Counts require no ALA account, but downloading the records themselves does: the 
 for an email address registered with it. With one stored in `.Renviron` as `ALA_EMAIL`, the
 records of a dataset come down as one table:
 
-```{r ala-download, eval = nzchar(Sys.getenv("ALA_EMAIL"))}
+```{r ala-download, eval = nzchar(Sys.getenv("ALA_EMAIL")), message = FALSE}
 # the email address registered with the ALA, read from .Renviron
 galah_config(email = Sys.getenv("ALA_EMAIL"))
 

@@ -14,11 +14,11 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 <!-- This file is the source. Edit it, then run vignettes/precompute.R with a WildObs API
 key to rebuild combining-projects.Rmd, which ships with its results already in place. -->
 
-One camera trap project may span one to several landscapes. Combining several lets you ask 
-how a species varies across Australia, but projects also differ in how they placed their 
-cameras, and those sampling artifacts can look like real differences. This vignette combines 
-four open projects to ask where feral pigs (*Sus scrofa*) occur, and how much of the 
-difference between projects comes from where the cameras were placed. It builds on 
+One camera trap project may span one to several landscapes. Combining projects lets you ask
+how a species varies across Australia, but projects also differ in how they placed their
+cameras, and those sampling artifacts can look like real differences. This vignette combines
+four open projects to ask where feral pigs (*Sus scrofa*) occur, and how much of the
+difference between projects comes from where the cameras were placed. It builds on
 *Detection histories and sampling effort* and *Fit single-season models*.
 
 ## Download the projects
@@ -34,7 +34,7 @@ library(unmarked)   # for running occupancy models
 
 # read your API key from your .Renviron file
 api_key <- Sys.getenv("WILDOBSR_API_KEY")
-# specify the four projects to combine by ID exactly 
+# specify the four projects to combine by ID exactly
 ids <- c("ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001",
          "NSW-VIC_Upper_Murray_fire_landscapes_Linley_2021-22_WildObsID_0009",
          "NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010",
@@ -67,8 +67,8 @@ table(deps$project, as.character(deps$featureType), useNA = "ifany")
 
 No camera was baited, but placement differs a lot. Every camera in 0025 faced a game trail,
 none in 0009 faced a feature, and 0010 placed just over half its cameras at wombat burrows.
-Cameras on roads and trails often detect more animals, so placement goes into the detection 
-model. Here a camera counts as on trail when it faced a road or a trail; burrows and unrecorded 
+Cameras on roads and trails often detect more animals, so placement goes into the detection
+model. Here a camera counts as on trail when it faced a road or a trail; burrows and unrecorded
 features count as off trail:
 
 ```{r trail}
@@ -81,8 +81,8 @@ round(prop.table(table(deps$project, deps$trailStatus), 1), 2)
 ## One effort matrix for every station
 
 The observations and covariates stack the same way as the deployments. Every station (*i.e.*,
-a `locationID`, which may contain several `deploymentID`'s) from every project then goes into
-one effort matrix with the same occasions: 10 days long, over each station's first 100 days, 
+a `locationID`, which may contain several `deploymentID`s) from every project then goes into
+one effort matrix with the same occasions: 10 days long, over each station's first 100 days,
 the length of one single-season survey formatted by WildObs:
 
 ```{r effort}
@@ -90,7 +90,7 @@ the length of one single-season survey formatted by WildObs:
 obs <- do.call(dplyr::bind_rows, lapply(dps, frictionless::read_resource, "observations"))
 covs <- do.call(dplyr::bind_rows, lapply(dps, frictionless::read_resource, "covariates"))
 
-# create the effort matrix, filled with camera-days per locationID and 10-day occasion 
+# create the effort matrix, filled with camera-days per locationID and 10-day occasion
 # over its first 100 days, split by trail status
 eff <- effort_matrix(deps, site_col = "locationID", w = 10, dur = 100, split_by = "trailStatus")
 # create the detection history of feral pigs
@@ -118,9 +118,9 @@ round(naive, 2)
 
 ## Model occupancy with and without the sampling artifacts
 
-Both models let occupancy differ by project and forest integrity, and we assume detection 
-rises with greater sampling effort. Only the second model lets detection differ between 
-cameras  on and off trails:
+Both models let occupancy differ by project and forest integrity, and we assume detection
+rises with greater sampling effort. Only the second model lets detection differ between
+cameras on and off trails:
 
 ```{r fits}
 # without the trail term
@@ -158,8 +158,8 @@ suppressWarnings(parboot(pig_trail, statistic = chisq, nsim = 100))
 
 ## Compare the projects
 
-Predict occupancy for each project at its own average forest integrity, from both models. 
-To begin, we first must simulate new data to predict against, grounded in our observed values:
+Predict occupancy for each project at its own average forest integrity, from both models.
+To begin, build a table of new values to predict from, grounded in the observed values:
 
 ```{r predict}
 # each project at its own average forest integrity
