@@ -154,8 +154,8 @@ activity patterns, species accumulation, and occupancy models. Pass it the two t
 ```{r dashboard, eval = FALSE}
 # load the interactive dashboard
 camtrapR::surveyDashboard(
-  # specify camera trap vs records table
-  CTtable = ct$CTtable, recordTable = rec,
+  # specify camera trap vs records table, filtered to species-level IDs
+  CTtable = ct$CTtable, recordTable = rec[rec$taxonRank %in% c("species"), ],
   # specify which columns record sampling locations and start/end dates
   stationCol = "Station", setupCol = "Setup_date", retrievalCol = "Retrieval_date",
   # describe any sampling gaps and date-time formats
