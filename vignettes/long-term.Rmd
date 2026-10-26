@@ -602,6 +602,8 @@ the data better.
 
 - unmarked: [dynamic occupancy models](https://rbchan.github.io/unmarked/articles/colext.html).
 - spOccupancy: [multi-season (space-time) occupancy models](https://doserlab.com/files/spoccupancy-web/articles/spaceTimeModels.pdf).
+- *Combine projects to ask one question*: one occupancy model across four projects, with
+  their sampling artifacts.
 
 <details>
 <summary>Session information</summary>

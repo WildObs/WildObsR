@@ -92,6 +92,7 @@ dp_list <- example_datapackages()
 | [Detection histories and sampling effort](https://wildobs.github.io/WildObsR/articles/detection-histories.html) | Effort and detection matrices for occupancy and abundance models |
 | [Fit single-season models](https://wildobs.github.io/WildObsR/articles/fitting-models.html) | unmarked, spOccupancy, spAbundance and NIMBLE on one survey |
 | [Fit multi-season models](https://wildobs.github.io/WildObsR/articles/long-term.html) | Long-term deployments, colonisation and extinction, and trends |
+| [Combine projects to ask one question](https://wildobs.github.io/WildObsR/articles/combining-projects.html) | One model across four projects, and their sampling artifacts |
 | [Working with Claude](https://wildobs.github.io/WildObsR/articles/claude-skill.html) | A guide to the data for AI coding assistants |
 
 ## Keeping WildObsR up to date
