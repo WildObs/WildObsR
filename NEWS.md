@@ -73,6 +73,19 @@
   - Obscured threatened-species records (`obscured_for_<category>_species`) are
     kept unchanged, with a message saying how many.
 
+## Documentation
+
+- A pkgdown website, <https://wildobs.github.io/WildObsR/>, with twelve tutorials in
+  three groups. *Get the data*: Get started, Discover what exists, Inside a WildObs data
+  package, For data providers. *Use the data*: Images for computer vision, Camtrap DP
+  interoperability, Spatial context. *Model the data*: Detection histories and sampling
+  effort, Fit single-season models (unmarked, spOccupancy, spAbundance and NIMBLE), Fit
+  multi-season models (colonisation and extinction, and trends), and Combine projects to
+  ask one question. Working with Claude introduces the bundled Claude skill.
+- Tutorials that need the WildObs API are knitted ahead of time by
+  `vignettes/precompute.R`, so the website and R CMD check run without a key.
+- `CITATION.cff` and an updated `citation("WildObsR")`.
+
 ## Bug fixes
 
 These change the matrices `matrix_generator()` returns; regenerate any results built with
