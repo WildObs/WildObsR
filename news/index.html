@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">WildObsR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,13 +52,14 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/WildObs/WildObsR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/WildObs/WildObsR/blob/v0.4.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="development version" id="wildobsr-development-version">WildObsR (development version)<a class="anchor" aria-label="anchor" href="#wildobsr-development-version"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.4.0" id="wildobsr-040">WildObsR 0.4.0<a class="anchor" aria-label="anchor" href="#wildobsr-040"></a></h2>
+<p>WildObsR now builds model-ready inputs for occupancy and abundance models. <code><a href="../reference/effort_matrix.html">effort_matrix()</a></code>, <code><a href="../reference/detection_matrix.html">detection_matrix()</a></code> and <code><a href="../reference/model_matrix_input.html">model_matrix_input()</a></code> turn downloaded data packages into detection histories with camera-day effort, formatted for unmarked, spOccupancy, spAbundance, or JAGS, NIMBLE and Stan. Downloads of many projects at once no longer time out. <strong>Check the breaking changes below:</strong> <code><a href="../reference/wildobs_mongo_query.html">wildobs_mongo_query()</a></code> now returns partial (metadata-only) projects by default, and R 4.1 or later is required.</p>
 <div class="section level3">
-<h3 id="new-development-version">New<a class="anchor" aria-label="anchor" href="#new-development-version"></a></h3>
+<h3 id="new-0-4-0">New<a class="anchor" aria-label="anchor" href="#new-0-4-0"></a></h3>
 <ul><li>
 <code><a href="../reference/effort_matrix.html">effort_matrix()</a></code> and <code><a href="../reference/detection_matrix.html">detection_matrix()</a></code> build detection histories with sampling effort for occupancy and abundance models (<a href="https://github.com/WildObs/WildObsR/issues/140" class="external-link">#140</a>, <a href="https://github.com/WildObs/WildObsR/issues/110" class="external-link">#110</a>). Effort is calculated from the deployments alone, as fractional camera-days per local calendar day, so it never depends on where animals were detected, and every camera in a site counts. Occasions are non-overlapping runs of <code>w</code> days, aligned per site or to the calendar for multi-season models; effort can be split by a deployment column (for example <code>featureType</code>) for use as an observation covariate, and long-term deployments rebuilt with <code><a href="../reference/recombine_deployment_groups.html">recombine_deployment_groups()</a></code> exclude the gaps between their pieces. Detection histories are <code>NA</code> only where no camera ran, and a detection on a day its camera was not running stops with an error. On single-camera stations both agree with <code><a href="https://jniedballa.github.io/camtrapR/reference/detectionHistory.html" class="external-link">camtrapR::detectionHistory()</a></code>. They work on any Camtrap DP package.</li>
 <li>
@@ -83,14 +84,14 @@
 </ul></li>
 </ul></div>
 <div class="section level3">
-<h3 id="documentation-development-version">Documentation<a class="anchor" aria-label="anchor" href="#documentation-development-version"></a></h3>
+<h3 id="documentation-0-4-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-4-0"></a></h3>
 <ul><li>A pkgdown website, <a href="https://wildobs.github.io/WildObsR/" class="uri">https://wildobs.github.io/WildObsR/</a>, with twelve tutorials in three groups. <em>Get the data</em>: Get started, Discover what exists, Inside a WildObs data package, For data providers. <em>Use the data</em>: Images for computer vision, Camtrap DP interoperability, Spatial context. <em>Model the data</em>: Detection histories and sampling effort, Fit single-season models (unmarked, spOccupancy, spAbundance and NIMBLE), Fit multi-season models (colonisation and extinction, and trends), and Combine projects to ask one question. Working with Claude introduces the bundled Claude skill.</li>
 <li>Tutorials that need the WildObs API are knitted ahead of time by <code>vignettes/precompute.R</code>, so the website and R CMD check run without a key.</li>
 <li>
 <code>CITATION.cff</code> and an updated <code>citation("WildObsR")</code>.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<h3 id="bug-fixes-0-4-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-4-0"></a></h3>
 <p>These change the matrices <code><a href="../reference/matrix_generator.html">matrix_generator()</a></code> returns; regenerate any results built with it.</p>
 <ul><li>
 <code><a href="../reference/matrix_generator.html">matrix_generator()</a></code> uses non-overlapping sampling occasions and retains the final day and partial occasion. Detection and observation covariate matrices use the same windows (<a href="https://github.com/WildObs/WildObsR/issues/140" class="external-link">#140</a>). This changes results previously affected by duplicated boundary days or omitted final days; regenerate downstream effort matrices that mirrored the old windows.</li>
@@ -126,13 +127,13 @@
 <code>detection_matrix(by_camera = TRUE)</code> now stops, with an explanation, when the effort matrix was built with <code>split_by</code>. It used to place detections by camera number in a dimension that holds the split levels, misplacing them or failing with “subscript out of bounds”. <code><a href="../reference/detection_matrix.html">?detection_matrix</a></code> now spells out how abundance counts are combined (the largest count per event, then summed or maximised over events), and <code><a href="../reference/resample_covariates_and_observations.html">?resample_covariates_and_observations</a></code> what its <code>individuals = "sum"</code> does and does not count.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="breaking-changes-development-version">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-development-version"></a></h3>
+<h3 id="breaking-changes-0-4-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-4-0"></a></h3>
 <ul><li>WildObsR now requires R 4.1 or later, which the native pipe <code>|&gt;</code> used in the package already needed.</li>
 <li>
 <code><a href="../reference/wildobs_mongo_query.html">wildobs_mongo_query()</a></code> now returns open <strong>and</strong> partial projects by default (<code>tabularSharingPreference = c("open", "partial")</code>), so a search shows every project a public key can see, including embargoed ones whose data exist but are not yet released. Partial projects download as metadata only: their data package has no resources, so code that calls <code><a href="https://docs.ropensci.org/frictionless/reference/read_resource.html" class="external-link">frictionless::read_resource()</a></code> on every downloaded package stops on them. Either ask for open projects only, <code>wildobs_mongo_query(..., tabularSharingPreference = "open")</code>, or skip the metadata-only packages before reading their tables: <code>dp_list &lt;- Filter(function(dp) length(dp$resources) &gt; 0, dp_list)</code>.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="fixed-development-version">Fixed<a class="anchor" aria-label="anchor" href="#fixed-development-version"></a></h3>
+<h3 id="fixed-0-4-0">Fixed<a class="anchor" aria-label="anchor" href="#fixed-0-4-0"></a></h3>
 <ul><li>
 <code><a href="../reference/resample_covariates_and_observations.html">resample_covariates_and_observations()</a></code> no longer stops when a column named in <code>mode_cols_covs</code> or <code>obs_covs</code> is entirely empty (for example <code>habitat</code> in a project that never recorded it). Such columns are left out with a warning naming them.</li>
 <li>

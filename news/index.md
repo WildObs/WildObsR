@@ -1,6 +1,20 @@
 # Changelog
 
-## WildObsR (development version)
+## WildObsR 0.4.0
+
+WildObsR now builds model-ready inputs for occupancy and abundance
+models.
+[`effort_matrix()`](https://wildobs.github.io/WildObsR/reference/effort_matrix.md),
+[`detection_matrix()`](https://wildobs.github.io/WildObsR/reference/detection_matrix.md)
+and
+[`model_matrix_input()`](https://wildobs.github.io/WildObsR/reference/model_matrix_input.md)
+turn downloaded data packages into detection histories with camera-day
+effort, formatted for unmarked, spOccupancy, spAbundance, or JAGS,
+NIMBLE and Stan. Downloads of many projects at once no longer time out.
+**Check the breaking changes below:**
+[`wildobs_mongo_query()`](https://wildobs.github.io/WildObsR/reference/wildobs_mongo_query.md)
+now returns partial (metadata-only) projects by default, and R 4.1 or
+later is required.
 
 ### New
 

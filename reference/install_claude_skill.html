@@ -9,7 +9,7 @@ Claude (for example Claude Code) understands WildObs data when you work with it.
 
     <a class="navbar-brand me-2" href="../index.html">WildObsR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,7 +54,7 @@ Claude (for example Claude Code) understands WildObs data when you work with it.
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Install a WildObsR Skill for Claude</h1>
-      <small class="dont-index">Source: <a href="https://github.com/WildObs/WildObsR/blob/main/R/install_claude_skill.R" class="external-link"><code>R/install_claude_skill.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/WildObs/WildObsR/blob/v0.4.0/R/install_claude_skill.R" class="external-link"><code>R/install_claude_skill.R</code></a></small>
       <div class="d-none name"><code>install_claude_skill.Rd</code></div>
     </div>
 
@@ -127,7 +127,7 @@ the skill that matches the new version.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Install into a temporary folder to see what gets copied</span></span></span>
 <span class="r-in"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu">install_claude_skill</span><span class="op">(</span>dest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Installed the wildobsr-data skill to /tmp/RtmpWQjC1M/wildobsr-data</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Installed the wildobsr-data skill to /tmp/RtmptbKrvx/wildobsr-data</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Start a new Claude Code session for Claude to pick it up.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">path</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "SKILL.md"              "reference/metadata.md" "reference/tables.md"  </span>

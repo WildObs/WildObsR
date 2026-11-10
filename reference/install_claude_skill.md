@@ -78,7 +78,7 @@ Zachary Amir & Claude Opus 5.5
 ``` r
 # Install into a temporary folder to see what gets copied
 path <- install_claude_skill(dest = tempdir())
-#> Installed the wildobsr-data skill to /tmp/RtmpWQjC1M/wildobsr-data
+#> Installed the wildobsr-data skill to /tmp/RtmptbKrvx/wildobsr-data
 #> Start a new Claude Code session for Claude to pick it up.
 list.files(path, recursive = TRUE)
 #> [1] "SKILL.md"              "reference/metadata.md" "reference/tables.md"  
