@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">WildObsR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,9 +52,12 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/WildObs/WildObsR/blob/v0.4.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/WildObs/WildObsR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="wildobsr-development-version">WildObsR (development version)<a class="anchor" aria-label="anchor" href="#wildobsr-development-version"></a></h2>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.0" id="wildobsr-040">WildObsR 0.4.0<a class="anchor" aria-label="anchor" href="#wildobsr-040"></a></h2>
 <p>WildObsR now builds model-ready inputs for occupancy and abundance models. <code><a href="../reference/effort_matrix.html">effort_matrix()</a></code>, <code><a href="../reference/detection_matrix.html">detection_matrix()</a></code> and <code><a href="../reference/model_matrix_input.html">model_matrix_input()</a></code> turn downloaded data packages into detection histories with camera-day effort, formatted for unmarked, spOccupancy, spAbundance, or JAGS, NIMBLE and Stan. Downloads of many projects at once no longer time out. <strong>Check the breaking changes below:</strong> <code><a href="../reference/wildobs_mongo_query.html">wildobs_mongo_query()</a></code> now returns partial (metadata-only) projects by default, and R 4.1 or later is required.</p>
