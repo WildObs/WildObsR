@@ -1,13 +1,53 @@
 # WildObsR (development version)
 
-
 ## New
-- `matrix_generator()` uses non-overlapping sampling occasions and retains the
-  final day and partial occasion. Detection and observation covariate matrices
-  use the same windows (#140). This changes results previously affected by
-  duplicated boundary days or omitted final days; regenerate downstream effort
-  matrices that mirrored the old windows.
 
+- `effort_matrix()` and `detection_matrix()` build detection histories with sampling
+  effort for occupancy and abundance models (#140, #110). Effort is calculated from the
+  deployments alone, as fractional camera-days per local calendar day, so it never depends
+  on where animals were detected, and every camera in a site counts. Occasions are
+  non-overlapping runs of `w` days, aligned per site or to the calendar for multi-season
+  models; effort can be split by a deployment column (for example `featureType`) for use
+  as an observation covariate, and long-term deployments rebuilt with
+  `recombine_deployment_groups()` exclude the gaps between their pieces. Detection
+  histories are `NA` only where no camera ran, and a detection on a day its camera was not
+  running stops with an error. On single-camera stations both agree with
+  `camtrapR::detectionHistory()`. They work on any Camtrap DP package.
+- `effort_matrix()` uses UTC days, with a message, when the deployments span several
+  time zones, given as several `time_zone` values or found from the cameras' coordinates.
+  Zone names that keep the same clock over the survey count as one. To split effort by two
+  columns, combine them into one first (see `?effort_matrix`).
+- `model_matrix_input()` adds `total_effort`, each site's camera-days over the modelled
+  occasions, as a site covariate (and to `det.covs` for single-season spOccupancy and
+  spAbundance output). `?model_matrix_input` explains when to use it rather than the
+  per-occasion `effort`, and how it differs from the resample's `cellEffort`.
+- `model_matrix_input()` formats those detection histories, with site and observation
+  covariates matched to sites by name, for unmarked (`occu()`, `pcount()`, `occuComm()`,
+  and `colext()` with `seasons`), spOccupancy (`PGOcc()`, `msPGOcc()`, `tMsPGOcc()` and
+  their spatial versions), spAbundance (`NMix()`, `msNMix()`), or as plain arrays for
+  JAGS, NIMBLE or Stan. Camera-days of effort, and the share of effort under each level
+  of an `effort_matrix()` `split_by` column, are added as observation covariates.
+- `example_datapackages()` reads two open projects shipped with the package
+  (`ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001`, systematic and unbaited cameras in
+  the Queensland Wet Tropics; `NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010`,
+  wombat burrows and controls in New South Wales over four surveys in 2021-22), in
+  the same shape `wildobs_dp_download()` returns. Examples, tests and tutorials now
+  run offline on real data. The copies hold animal observations only, no
+  media and no email addresses, and are rebuilt from the public API by `dev/make_example_data.R`. The
+  examples of `extract_metadata()`, `extract_tags()`,
+  `recombine_deployment_groups()`, `locationName_buffer_CAPAD()` and
+  `locationName_verification_CAPAD()` now run on them.
+- `cite_datapackages()` turns a list of downloaded data packages into a reference
+  list: formatted text, BibTeX (`utils::bibentry`) or a table. It uses each
+  package's own `bibliographicCitation` word for word (WildObs citations end with
+  the project's RAiD) and adds the project's WildObs data package version, which
+  rises whenever WildObs corrects that project's data, so a reader can tell which
+  version was analysed. Packages
+  without a citation, such as other Camtrap DP datasets, get one built from their
+  contributors, year, title and link. `covariates = TRUE` also cites, once each, the
+  products behind the covariates table (forest integrity, human footprint, climate
+  and so on), each named by the covariates it is behind (e.g. `FLII`), and `accessed`
+  adds the download date.
 - `recombine_deployment_groups()` rebuilds long-term deployments from the 100-day
   pieces the curation pipeline cuts them into, for multi-season occupancy, trend
   indices and other long-term analyses (#109). A data package goes in and a data
@@ -33,10 +73,145 @@
   - Obscured threatened-species records (`obscured_for_<category>_species`) are
     kept unchanged, with a message saying how many.
 
+## Documentation
+
+- A pkgdown website, <https://wildobs.github.io/WildObsR/>, with twelve tutorials in
+  three groups. *Get the data*: Get started, Discover what exists, Inside a WildObs data
+  package, For data providers. *Use the data*: Images for computer vision, Camtrap DP
+  interoperability, Spatial context. *Model the data*: Detection histories and sampling
+  effort, Fit single-season models (unmarked, spOccupancy, spAbundance and NIMBLE), Fit
+  multi-season models (colonisation and extinction, and trends), and Combine projects to
+  ask one question. Working with Claude introduces the bundled Claude skill.
+- Tutorials that need the WildObs API are knitted ahead of time by
+  `vignettes/precompute.R`, so the website and R CMD check run without a key.
+- `CITATION.cff` and an updated `citation("WildObsR")`.
+
+## Bug fixes
+
+These change the matrices `matrix_generator()` returns; regenerate any results built with
+it.
+
+- `matrix_generator()` uses non-overlapping sampling occasions and retains the
+  final day and partial occasion. Detection and observation covariate matrices
+  use the same windows (#140). This changes results previously affected by
+  duplicated boundary days or omitted final days; regenerate downstream effort
+  matrices that mirrored the old windows.
+- `matrix_generator()` with `all_locationNames = FALSE` now drops the landscapes where a
+  species was not detected from the site covariates as well as the detections (#105).
+- `matrix_generator()` counts a sampling unit as sampled until its sampling ends, not
+  until its last record, so a camera that kept running gives zeros rather than `NA`.
+- `matrix_generator()` places records on their local day rather than their UTC day,
+  which moved morning records in eastern Australia to the day before.
+- `matrix_generator()` returns site covariates in the same order as the matrix rows, keeps
+  sampling units with no observations as zeros (with a message), no longer carries a
+  shortened `dur` from one species to the next, and no longer drops a species whose
+  observation covariates do not vary.
+- `matrix_generator()`'s input checks now run; they used to pass any input. Observation
+  covariates that are not columns, and sampling units in `obs` without covariates, stop
+  the function. `NA` values in site or observation covariates are kept, with a warning,
+  since unmarked drops the affected units or occasions itself. Text date columns are
+  converted to date-times, with a message, and a value that cannot be read stops the
+  function.
+- `resample_covariates_and_observations()` groups observations by their local day, in
+  the time zone their `eventStart` is stored in, rather than the UTC day. Records between
+  midnight and 10 am AEST used to be merged into the previous day, which moved some
+  detections into the previous occasion in `matrix_generator()`. On project 0001, the
+  legacy and new detection histories now agree exactly.
+- `matrix_generator()` uses UTC days, with a message, when the sampling units span time
+  zones with different clocks; otherwise records fall on their local day, as before.
+- `matrix_generator()` no longer drops site covariates: one with the same value everywhere
+  is kept (standardised to 0 if numeric), and logical and factor covariates, such as the
+  resample's `mode_baitUse`, are kept too.
+- `matrix_generator()` warns when `numberDeploymentsActiveAtDate` is used as an
+  observation covariate. It counts only the deployments with a record that day, so it
+  understates effort and depends on detections. Use `effort_matrix()` for effort.
+- `resample_covariates_and_observations()` keeps logical and factor columns in both tables
+  (for example `baitUse` and `featureType` from `frictionless::read_resource()`). They used
+  to be dropped silently. A column keeps its class and factor levels when every cell holds
+  one value, and modal columns always do; a column where some cell holds several values is
+  pasted as text (for example `"FALSE - TRUE"`), with a message naming it.
+- `spatial_hexagon_generator()` now warns when several projects sample one cell at
+  overlapping times, listing the cells at each scale by their `polygon_<scale>` value and
+  the projects involved. The check used to group by project as well, so it could never
+  fire. Each project keeps its own `cellID`, as before.
+- `resample_covariates_and_observations()` warns, rather than stops, when a sampled cell
+  has no observations, for example after filtering `obs` to a few species. The cell stays
+  in the resampled covariates as sampled with no detections. Observations in a cell with
+  no covariates still stop with an error.
+- `resample_covariates_and_observations()` now weights each deployment by its camera-days
+  when averaging covariates (`Avg_*`) and taking modes (`mode_*`) within a cell, so a
+  camera that failed after 2 days no longer counts as much as one that ran 90, and a
+  redeployed station no longer counts once per redeployment. Coordinates stay plain means.
+  On typical projects values move by a few percent of the spread between cameras in a
+  cell; regenerate resampled covariates to pick this up, or pass `weights = "none"` for
+  the previous plain means.
+- `resample_covariates_and_observations(obs = NULL)` resamples the covariates only, which
+  is all `model_matrix_input()` needs for site covariates and takes seconds rather than
+  minutes. Its tables are tagged with their scale, and `effort_matrix()` and
+  `detection_matrix()` now stop with a message naming the right table when given resampled
+  covariates or observations: effort needs the deployments with their cellIDs, and
+  detections the observations themselves.
+- `detection_matrix(by_camera = TRUE)` now stops, with an explanation, when the effort
+  matrix was built with `split_by`. It used to place detections by camera number in a
+  dimension that holds the split levels, misplacing them or failing with "subscript out of
+  bounds". `?detection_matrix` now spells out how abundance counts are combined (the
+  largest count per event, then summed or maximised over events), and
+  `?resample_covariates_and_observations` what its `individuals = "sum"` does and does not
+  count.
+
 ## Breaking changes
 
 - WildObsR now requires R 4.1 or later, which the native pipe `|>` used in the
   package already needed.
+- `wildobs_mongo_query()` now returns open **and** partial projects by default
+  (`tabularSharingPreference = c("open", "partial")`), so a search shows every
+  project a public key can see, including embargoed ones whose data exist but are
+  not yet released. Partial projects download as metadata only: their data
+  package has no resources, so code that calls `frictionless::read_resource()` on
+  every downloaded package stops on them. Either ask for open projects only,
+  `wildobs_mongo_query(..., tabularSharingPreference = "open")`, or skip the
+  metadata-only packages before reading their tables:
+  `dp_list <- Filter(function(dp) length(dp$resources) > 0, dp_list)`.
+
+## Fixed
+
+- `resample_covariates_and_observations()` no longer stops when a column named in
+  `mode_cols_covs` or `obs_covs` is entirely empty (for example `habitat` in a project
+  that never recorded it). Such columns are left out with a warning naming them.
+- `resample_covariates_and_observations()` no longer stops when a cell's cameras
+  recorded no observations, which happens whenever observations are filtered (to
+  animals, or after setting obscured records aside). Those cells are kept in the
+  resampled covariates as effort without detections, and a message names them.
+  Observations in a cell with no camera still stop the function.
+- Date-times downloaded over the API could be shifted by the computer's offset
+  from UTC (ten hours in Queensland). The API sends dates as MongoDB
+  `{"$date": ...}` objects, and when an optional date field held both dates and
+  empty values in one response, jsonlite read the dates in local time rather than
+  UTC. Required fields (`deploymentStart`, `eventStart`, media `timestamp`) are
+  never empty and were not affected; `classificationTimestamp` was, depending on
+  where you were and which projects were downloaded together. WildObsR now reads
+  every API date as UTC before applying the project's time zone.
+- Ready for frictionless 2.0.0 (#136). From that version `frictionless::add_resource()`
+  writes Data Package v2 tables, which lack the `profile = "tabular-data-resource"`
+  that Camtrap DP 1.0.x requires, so `as_camtrapdp()` exports would have failed the
+  Camtrap DP profile. `wildobs_dp_download()`, `recombine_deployment_groups()` and
+  `as_camtrapdp()` now keep every table in the v1 form with either frictionless
+  version. The full test suite passes against both frictionless 1.3.0 and 2.0.1. WildObsR now requires frictionless 1.3.0 or later, the first version with
+  `resource_names()` and `schema()`.
+- The `wildobs_mongo_query()` help no longer says the function filters out
+  projects still under embargo. Embargoed projects are stored as `partial` until
+  the embargo ends, and the help now says so. Its example uses `api_key` rather
+  than an undefined `db_url`.
+- `wildobs_dp_download()` over the API now downloads any number of projects in one
+  call. Previously each table came back in a single request, and asking for many
+  projects at once failed with `HTTP 504` because the response was too large to
+  arrive before the API timed out. Each table is now fetched in pages: 10,000
+  deployments, 50,000 observations or 5,000 covariate rows at a time. All 23 open
+  projects now download in one call in about three minutes.
+- After the pages are in, the number of rows in each table is checked against the
+  server's own count, and `wildobs_dp_download()` stops with an error rather than
+  return part of a table. Obscured threatened-species observations, which share one
+  placeholder `observationID`, are fetched separately so paging cannot skip them.
 
 # WildObsR 0.3.0
 

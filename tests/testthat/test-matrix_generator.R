@@ -52,7 +52,7 @@ test_that("matrix_generator detects mismatched cellID/deploymentID", {
                      scientificNames = "Species A",
                      type = "occupancy",
                      individuals = "sum"),
-    "mis-matched.*values"
+    "in obs that are not in covs"
   )
 })
 
@@ -72,7 +72,7 @@ test_that("matrix_generator warns about missing site_covs", {
   )
 })
 
-test_that("matrix_generator requires POSIXct datetime columns in obs", {
+test_that("matrix_generator converts text datetime columns in obs", {
   obs <- create_test_obs_matrix()
   obs$eventStart <- as.character(obs$eventStart)
   obs$eventEnd <- as.character(obs$eventEnd)
@@ -80,7 +80,7 @@ test_that("matrix_generator requires POSIXct datetime columns in obs", {
   obs$observationEnd <- as.character(obs$observationEnd)
   covs <- create_test_covs_matrix()
 
-  expect_error(
+  expect_message(
     matrix_generator(obs, covs, dur = 10, w = 2,
                      site_covs = c("mode_habitat"),
                      obs_covs = character(0),
@@ -88,17 +88,17 @@ test_that("matrix_generator requires POSIXct datetime columns in obs", {
                      scientificNames = "Species A",
                      type = "occupancy",
                      individuals = "sum"),
-    "does not have date-time columns.*formatted in POSIXct class"
+    "converted eventStart in obs from text to date-times"
   )
 })
 
-test_that("matrix_generator requires POSIXct datetime columns in covs", {
+test_that("matrix_generator converts text datetime columns in covs", {
   obs <- create_test_obs_matrix()
   covs <- create_test_covs_matrix()
   covs$samplingStart <- as.character(covs$samplingStart)
   covs$samplingEnd <- as.character(covs$samplingEnd)
 
-  expect_error(
+  expect_message(
     matrix_generator(obs, covs, dur = 10, w = 2,
                      site_covs = c("mode_habitat"),
                      obs_covs = character(0),
@@ -106,7 +106,7 @@ test_that("matrix_generator requires POSIXct datetime columns in covs", {
                      scientificNames = "Species A",
                      type = "occupancy",
                      individuals = "sum"),
-    "does not have date-time columns.*formatted in POSIXct class"
+    "converted samplingStart in covs from text to date-times"
   )
 })
 
@@ -446,13 +446,14 @@ test_that("matrix_generator creates observation covariate matrices", {
   obs <- create_test_obs_matrix()
   covs <- create_test_covs_matrix()
 
-  result <- matrix_generator(obs, covs, dur = 10, w = 10,
+  # numberDeploymentsActiveAtDate is not effort, and says so
+  expect_warning(result <- matrix_generator(obs, covs, dur = 10, w = 10,
                               site_covs = c("mode_habitat"),
                               obs_covs = c("numberDeploymentsActiveAtDate"),
                               all_locationNames = TRUE,
                               scientificNames = "Species A",
                               type = "occupancy",
-                              individuals = "sum") # come here!
+                              individuals = "sum"), "counts only the deployments with a record")
 
   obs_covs <- result$Species_A$observation_level_covariates
   expect_true("numberDeploymentsActiveAtDate" %in% names(obs_covs))
@@ -463,13 +464,14 @@ test_that("matrix_generator observation covariate matrices match detection matri
   obs <- create_test_obs_matrix()
   covs <- create_test_covs_matrix()
 
-  result <- matrix_generator(obs, covs, dur = 10, w = 2,
+  # numberDeploymentsActiveAtDate is not effort, and says so
+  expect_warning(result <- matrix_generator(obs, covs, dur = 10, w = 2,
                               site_covs = c("mode_habitat"),
                               obs_covs = c("numberDeploymentsActiveAtDate"),
                               all_locationNames = TRUE,
                               scientificNames = "Species A",
                               type = "occupancy",
-                              individuals = "sum")
+                              individuals = "sum"), "counts only the deployments with a record")
 
   det_mat <- result$Species_A$detection_matrix
   obs_mat <- result$Species_A$observation_level_covariates$numberDeploymentsActiveAtDate

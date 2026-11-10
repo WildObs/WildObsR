@@ -8,7 +8,7 @@ spatial_hexagon_generator(data, scales)
 }
 \arguments{
 \item{data}{A dataframe of covariates that includes, at minimum, the following columns:
-\code{deploymentID}, \code{locationName}, \code{deploymentGroups}, \code{source}, \code{latitude}, and \code{longitude}.
+\code{deploymentID}, \code{locationName}, \code{deploymentGroups}, \code{projectName}, \code{latitude}, and \code{longitude}.
 These fields are part of WildObs camtrapDP-formatted Frictionless Data Packages.}
 
 \item{scales}{A numeric vector specifying the \strong{areas of hexagonal grid cells in square meters (m²)}.
@@ -52,8 +52,12 @@ Each deployment is assigned two identifiers per scale:
 \item{\verb{cellID_<scale>}}{Spatially and temporally distinct hexagon cell ID, incorporating survey year and data source}
 }
 
-If multiple data sources sample the same hexagon in overlapping time windows, their
-deployments are grouped and flagged with a combined contributor code.
+If several projects sample the same hexagon in overlapping time windows, each project
+keeps its own \code{cellID}, so their detections and effort stay separate, and one warning
+lists the overlapping cells at each scale by their \verb{polygon_<scale>} value, with the
+projects involved. Filter the result on those polygons to inspect them. To model the
+projects as one site, give their deployments a shared cellID before building the
+effort matrix.
 }
 \examples{
 # Create example camera-trap metadata
@@ -64,7 +68,7 @@ set.seed(42)
 data <- tibble::tibble(
   deploymentID = paste0("cam_", 1:12),
   locationName = rep(c("Site_A", "Site_B", "Site_C"), each = 4),
-  source = rep(c("UQ_team", "CSIRO_team"), length.out = 12),
+  projectName = rep(c("UQ_team", "CSIRO_team"), length.out = 12),
 
   # Cluster each site around distinct centers (approx Wet Tropics, QLD)
   latitude = c(

@@ -1,0 +1,29 @@
+# Citation metadata for GitHub's "Cite this repository" button and for Zenodo.
+# Keep the authors, title and version in step with DESCRIPTION and inst/CITATION.
+cff-version: 1.2.0
+message: "If you use WildObsR, please cite it as below, and cite each data package you use."
+type: software
+title: "WildObsR: Discover, Access and Harmonise WildObs Camera Trap Data"
+abstract: >-
+  An R package to find, download and prepare camera trap data from WildObs, the
+  Australian national wildlife camera database. Projects are downloaded as Camera
+  Trap Data Packages (Camtrap DP) with their licences and citations, then harmonised
+  to a shared spatial and temporal scale for occupancy and abundance models.
+authors:
+  - given-names: Zachary
+    family-names: Amir
+    email: z.amir@uq.edu.au
+    affiliation: The University of Queensland
+    orcid: "https://orcid.org/0000-0002-8398-2059"
+  - given-names: Tom
+    family-names: Bruce
+version: 0.3.0.9000
+license: MIT
+repository-code: "https://github.com/WildObs/WildObsR"
+url: "https://github.com/WildObs/WildObsR"
+keywords:
+  - camera traps
+  - Camtrap DP
+  - biodiversity data
+  - occupancy
+  - R

@@ -1,8 +1,8 @@
 # The four data tables
 
-Field reference for `dp$data$deployments`, `$observations`, `$media` and `$covariates` as
-returned by `wildobs_dp_download()`. "Filled" is the approximate share of rows with a value
-across the open projects through the public API (census of 2026-10-05; see SKILL.md,
+Field reference for the `deployments`, `observations`, `media` and `covariates` tables of a
+package returned by `wildobs_dp_download()`, read with `frictionless::read_resource()`. "Filled" is the approximate share of rows with a value
+across the open projects through the public API (census of 2026-11-10; see SKILL.md,
 "Scale"); individual projects vary widely. Fields marked **WildObs** are additions to Camtrap DP. Every table also has `projectName`, the
 package `id`.
 
@@ -19,23 +19,23 @@ data: `dp$resources[[i]]$schema$fields`.
 | `latitude`, `longitude` | numeric | 100% | WGS84 decimal degrees. |
 | `coordinateUncertainty` | integer | 100% | Metres. |
 | `deploymentStart`, `deploymentEnd` | POSIXct | 100% | In the project's local time zone (`dp$temporal$timeZone`). |
-| `setupBy` | character | ~44% | Who deployed the camera. |
-| `cameraID` | character | ~58% | Camera serial or ID. |
-| `cameraModel` | character | ~93% | Free text, **not standardised** — clean before grouping. |
-| `cameraDelay` | integer | ~51% | Seconds between triggers. |
-| `cameraHeight` | numeric | ~66% | Metres above ground. |
+| `setupBy` | character | ~36% | Who deployed the camera. |
+| `cameraID` | character | ~62% | Camera serial or ID. |
+| `cameraModel` | character | ~82% | Free text, **not standardised** — clean before grouping. |
+| `cameraDelay` | integer | ~56% | Seconds between triggers. |
+| `cameraHeight` | numeric | ~58% | Metres above ground. |
 | `cameraDepth` | numeric | 0% | Underwater only; never used. |
-| `cameraTilt` | integer | ~72% | Degrees; −90 down, 0 horizontal, 90 up. |
+| `cameraTilt` | integer | ~62% | Degrees; −90 down, 0 horizontal, 90 up. |
 | `cameraHeading` | integer | 0% | Degrees clockwise from north. |
-| `detectionDistance` | numeric | 0% | Metres. Too sparse for REM or distance sampling. |
+| `detectionDistance` | numeric | ~4% | Metres. Too sparse for REM or distance sampling. |
 | `timestampIssues` | logical | 100% | `TRUE` if media timestamps are known to be wrong. Rare. |
 | `baitUse` | logical | 100% | Bait or lure used. Roughly half of deployments. |
-| `featureType` | character | ~32% | Targeted feature: `roadDirt`, `trailGame`, `waterSource`, `trailHiking`, `burrow`, `roadPaved`, `nestSite`, `roadUnderpass`; empty otherwise. |
-| `habitat` | character | ~62% | Free-text habitat description. |
+| `featureType` | character | ~29% | Targeted feature: `roadDirt`, `trailGame`, `waterSource`, `trailHiking`, `burrow`, `roadPaved`, `nestSite`, `roadUnderpass`; empty otherwise. |
+| `habitat` | character | ~55% | Free-text habitat description. |
 | `deploymentGroups` | character | 100% | Survey: one `locationName`, at most 100 days. |
 | `multiSeason_deploymentGroup` | character | 100% | **WildObs.** Parent of `deploymentGroups`; split at a 30-day sampling gap across the `locationName`, so one station can be idle longer within a group. `recombine_deployment_groups()` uses it to rebuild long-term deployments. |
 | `deploymentTags` | character | 100% | `key: value \| key: value` pairs (e.g. predator management, lure type). Keys differ between projects. |
-| `deploymentComments` | character | ~66% | Free-text notes. |
+| `deploymentComments` | character | ~59% | Free-text notes. |
 
 ## `observations` — one taxon at one deployment in a 5-minute window
 
@@ -48,23 +48,23 @@ data: `dp$resources[[i]]$schema$fields`.
 | `eventStart`, `eventEnd` | POSIXct | 100% | First and last image of the observation, in local time. |
 | `deltaTime_event` | integer | ~97% | **WildObs.** Seconds since the previous event at this deployment. |
 | `observationLevel` | character | 100% | Always `event`. |
-| `observationType` | character | 100% | `blank` (~52%), `animal` (~32%), `vehicle` (~7%), `unknown` (~6%), `human` (~3%). |
+| `observationType` | character | 100% | `blank` (~55%), `animal` (~33%), `unknown` (~6%), `vehicle` (~3%), `human` (~3%). |
 | `cameraSetupType` | character | 0% | `setup` on a handful of rows. |
 | `scientificName` | character | 100% | Taxon, at the rank in `taxonRank`. |
-| `taxonID` | character | animal rows | Added from metadata: verified taxon URI. |
-| `taxonRank` | character | animal rows | Added from metadata: `species`, `genus`, `family`, … |
-| `vernacularNamesEnglish` | character | animal rows | **WildObs.** Added from metadata: English common name. |
+| `taxonID` | character | ~36%; animal and human rows (see SKILL.md) | Added from metadata: verified taxon URI. |
+| `taxonRank` | character | as `taxonID` | Added from metadata: `species`, `genus`, `family`, … |
+| `vernacularNamesEnglish` | character | as `taxonID` | **WildObs.** Added from metadata: English common name. |
 | `count` | integer | ~89% | Individuals; `NA` on blanks, unknowns and ~13% of animal records. |
 | `lifeStage`, `sex`, `behavior` | character | ~0% | Essentially empty. |
 | `individualID` | character | 0% | Empty. |
 | `individualPositionRadius`, `individualPositionAngle`, `individualSpeed` | numeric | 0% | Empty. |
-| `bboxX`, `bboxY`, `bboxWidth`, `bboxHeight` | numeric | 0% | Bounding box, relative to image size (0–1). Machine classifications only. |
+| `bboxX`, `bboxY`, `bboxWidth`, `bboxHeight` | numeric | ~3% | Bounding box, relative to image size (0–1). Machine classifications only. |
 | `classificationMethod` | character | 100% | `human` (~88% of animal records) or `machine`. |
 | `classifiedBy` | character | ~90% | Person or model. |
 | `classificationTimestamp` | POSIXct | ~6% | When classified. |
 | `classificationProbability` | numeric | ~25% | 0–1; mostly machine classifications. |
-| `observationTags` | character | ~1% | `key: value \| …` tags. |
-| `observationComments` | character | ~0% | Free-text notes. |
+| `observationTags` | character | ~2% | `key: value \| …` tags. |
+| `observationComments` | character | <1% | Free-text notes. |
 
 ## `media` — one image or video (only with `media = TRUE`)
 
@@ -73,15 +73,15 @@ data: `dp$resources[[i]]$schema$fields`.
 | `mediaID` | character | 100% | Primary key. |
 | `deploymentID` | character | 100% | Links to `deployments`. |
 | `observationID` | character | 100% | **WildObs.** The observation this image belongs to (Camtrap DP has no such link). |
-| `captureMethod` | character | 100% | `activityDetection` (motion-triggered); `timeLapse` has not been observed. |
+| `captureMethod` | character | ~93% | `activityDetection` (motion-triggered); `timeLapse` has not been observed. |
 | `timestamp` | POSIXct | 100% | Capture time, local. |
-| `filePath` | character | 100% | A public WildObs URL, or `not_publicly_accessible` for files not shared publicly. See "Getting the image files" in SKILL.md. |
-| `filePublic` | logical | 100% | `TRUE` (~3%) exactly for files hosted at `data.wildobs.org.au`, which `wildobs_media_download()` can fetch. |
+| `filePath` | character | 100% | A public URL at WildObs (`data.wildobs.org.au`) or the ALA (`images.ala.org.au`), or `not_publicly_accessible` for files not shared publicly. See "Getting the image files" in SKILL.md. |
+| `filePublic` | logical | 100% | `TRUE` (~3%) for files hosted publicly by WildObs or the ALA, which `wildobs_media_download()` can fetch. |
 | `fileName` | character | — | Withheld (`NA`) for public users. |
 | `fileMediatype` | character | 100% | `image/jpeg` (~94%; reads `image/JPG` until the next database release), `video/mp4` (rare), or a `…not_provided` placeholder (~6%). |
 | `exifData` | character | 0% | EXIF metadata as text. |
 | `favorite` | logical | 100% | Exemplar image flag; rare. |
-| `mediaComments` | character | ~4% | Free-text notes. |
+| `mediaComments` | character | ~3% | Free-text notes. |
 | `TIR` | logical | 100% | **WildObs.** In the WildObs Tagged Image Repository (~7%). |
 
 ## `covariates` — environmental predictors, one row per deployment (all **WildObs**)
@@ -94,7 +94,7 @@ Each family below comes in five buffer sizes: `_point`, `_1km2`, `_3km2`, `_5km2
 
 | Family | Range | Meaning |
 |---|---|---|
-| `FLII_*` | 0–10 | Forest Landscape Integrity Index; higher = more intact. ~33% `NA`. |
+| `FLII_*` | 0–10 | Forest Landscape Integrity Index; higher = more intact. ~30% `NA`. |
 | `human_footprint_*` | 0–50 | Cumulative human pressure; higher = more pressure. |
 | `altitude_*` | m | Elevation (SRTM-derived DEM). |
 | `terrain_ruggedness_index_*` | — | Local elevation heterogeneity. |
@@ -109,7 +109,7 @@ Each family below comes in five buffer sizes: `_point`, `_1km2`, `_3km2`, `_5km2
 | `NDVI_*` | 0–1 | Vegetation greenness. |
 | `HIF_*`, `EII_*` | — | Human Influence Factor and Ecosystem Integrity Index. |
 | `fire_events_count_*` | ≥ 0 | Number of distinct mapped fires in the buffer. |
-| `days_since_recent_fire_*` | days | Days from the deployment back to the most recent mapped fire. ~46–64% `NA`, rising with buffer size. |
+| `days_since_recent_fire_*` | days | Days from the deployment back to the most recent mapped fire. ~42–62% `NA`, rising with buffer size. |
 | `GEEBAM_fire_severity_2020_*` | 0–5 | Most common 2019/20 bushfire severity class (0 unburnt … 5 very high/extreme). |
 
 Also:

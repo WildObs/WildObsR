@@ -44,19 +44,19 @@
 #' \code{NA} values beyond those already present in the column.
 #'
 #' @examples
-#' \dontrun{
-#' # Expand deployment tag columns onto the deployments dataframe
+#' # deployments of the Woomargama wombat project shipped with WildObsR
+#' dp <- example_datapackages("NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")[[1]]
+#' dep <- frictionless::read_resource(dp, "deployments")
+#'
+#' # deploymentTags holds "key: value" pairs, e.g. the lure used and predator management
+#' head(dep$deploymentTags, 3)
+#'
+#' # expand each key into its own column
 #' dep_expanded <- extract_tags(dep)
+#' head(dep_expanded[, c("deploymentID", "lure", "predatorManagement")], 3)
 #'
-#' # Expand observation tag columns onto the observations dataframe
-#' obs_expanded <- extract_tags(obs)
-#'
-#' # Explicitly name the column to parse
-#' dep_expanded <- extract_tags(dep, col = "deploymentTags")
-#'
-#' # Drop the original tags column from output
-#' dep_expanded <- extract_tags(dep, keep_original = FALSE)
-#' }
+#' # name the column explicitly, and drop the original tags
+#' dep_expanded <- extract_tags(dep, col = "deploymentTags", keep_original = FALSE)
 #'
 #' @author Zachary Amir & Claude Opus 4.5
 #'

@@ -9,3 +9,11 @@
 ^CLAUDE\.md$
 ^\.Rhistory$
 \.DS_Store$
+^docs$
+^manuscript$
+^\.RData$
+^_pkgdown\.yml$
+^pkgdown$
+^CITATION\.cff$
+^vignettes/.*\.Rmd\.orig$
+^vignettes/precompute\.R$

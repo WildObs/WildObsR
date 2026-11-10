@@ -39,6 +39,25 @@ report a dirty tree rather than committing someone else's work in progress.
 - Never amend, rebase or force-push. If something needs undoing, say so.
 - Say explicitly in the phase report if `.gitignore` was touched.
 
+## Where notes go
+
+Both folders below are gitignored, so they stay on this laptop and are the same on every
+branch.
+
+| Folder | What goes there |
+|---|---|
+| `manuscript/notes/` | Only notes that belong to the manuscript itself: draft paragraphs, figure plans, evidence, open questions about the paper. |
+| `.claude/prompts_and_responses/<topic>/` | Everything from the back-and-forth with Zach: review guides, review notes, question lists, drafted issues and replies, planning prompts. Use one subdirectory per topic (for example `manuscript_and_website/`), and add to an existing one before creating another. |
+
+Live vignettes are edited in `vignettes/<name>.Rmd.orig`, never in the knitted `<name>.Rmd`,
+which `vignettes/precompute.R` rewrites. Before re-knitting, check
+`git log -- vignettes/<name>.Rmd` for commits that changed the `.Rmd` without its `.orig`, and
+carry those edits into the `.orig` first.
+
+In review notes, Zach writes feedback under a heading for the commit, file or vignette.
+Claude replies directly under it, starting with **Claude:** and giving the sha of the
+commit that answers it.
+
 ## Package Overview
 
 WildObsR is an R package for accessing, managing, and analyzing camera trap biodiversity data following the **Camera Trap Data Package (Camtrap DP)** standard and **Frictionless Data Package** specifications. It integrates with a WildObs MongoDB backend and provides tools for spatial, temporal, taxonomic, and statistical processing of wildlife observation data.

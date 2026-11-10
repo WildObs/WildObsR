@@ -1,0 +1,86 @@
+---
+title: "Working with Claude"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Working with Claude}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+AI coding assistants write R code quickly, but they do not know how a WildObs data package
+is built. Left to guess, an assistant may count every row of `observations` as a detection
+(blanks and people included), join tables on the wrong key, or treat a 100-day deployment
+as a whole survey. WildObsR ships a *skill* for [Claude](https://claude.ai): a short,
+plain-text guide to the data that Claude reads before it writes code for you. This
+vignette shows what the skill contains, how to install it, and how to check it yourself.
+
+## What the skill covers
+
+The skill describes the data a public API key downloads, and nothing else. It covers:
+
+- how the `deployments`, `observations`, `media` and `covariates` tables join, and on
+  which keys;
+- what each field means, including the fields WildObs adds to Camtrap DP, such as
+  `deploymentGroups`, `multiSeason_deploymentGroup` and the covariates measured at five
+  buffer scales;
+- which observations to filter out before counting detections, and why obscured
+  threatened-species records cannot be placed on a camera;
+- what the data can and cannot support: for example, occupancy and abundance models,
+  but not spatial capture-recapture, because individual identities, sex and age are
+  almost never recorded.
+
+The skill is documentation only. It contains no code and no data, and it never sees your
+API key.
+
+## Read it first
+
+The skill ships inside WildObsR, so you can read every file before installing it:
+
+```{r files}
+# view where the skill sits in your installed copy of WildObsR
+skill_dir <- system.file("claude-skills", "wildobsr-data", package = "WildObsR")
+
+# view its files: an overview, and field-by-field reference tables
+list.files(skill_dir, recursive = TRUE)
+```
+
+```{r head}
+# view the first lines of the overview, which tell Claude when to use the skill
+cat(head(readLines(file.path(skill_dir, "SKILL.md")), 14), sep = "\n")
+```
+
+## Install it
+
+`install_claude_skill()` copies the skill into `~/.claude/skills`, where
+[Claude Code](https://docs.claude.com/en/docs/claude-code) finds it in every project.
+Start a new Claude Code session afterwards to use it.
+
+```{r install, eval = FALSE}
+WildObsR::install_claude_skill()
+```
+
+After you update WildObsR, install the matching version of the skill:
+
+```{r update, eval = FALSE}
+WildObsR::install_claude_skill(overwrite = TRUE)
+```
+
+To keep the skill within a single project instead, point `dest` at that project's
+`.claude/skills` folder, for example
+`install_claude_skill(dest = ".claude/skills")`.
+
+## Use it well
+
+Claude uses the skill when a request mentions WildObs data, data packages or their
+fields. It still helps to say what you are doing, for example *"I downloaded three WildObs
+projects with wildobs_dp_download(); count independent detections of feral cats per
+camera"*. Treat the code it writes as you would a colleague's: run it on the bundled
+`example_datapackages()` first, and check the counts against what you expect.
+
+The skill's numbers (how many projects, how complete each field is) describe the public
+database when that version of WildObsR was built, and drift as the database grows. The
+database itself is always the authority.

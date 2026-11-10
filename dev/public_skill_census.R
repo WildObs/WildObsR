@@ -9,7 +9,8 @@
 ## matching _metrics.csv, and prints any metric that moved since the previous census.
 ##
 ## How to refresh the skill after the public database is rebuilt:
-##   1. Rscript dev/public_skill_census.R   (media for every open project; can take an hour)
+##   1. Rscript dev/public_skill_census.R   (media for every open project; can take hours,
+##      and a stopped run resumes from dev/public_skill_census/census_checkpoint.rds)
 ##   2. read the "Changed since" table at the bottom of the new census file
 ##   3. update the "Scale" block and any moved percentages in the skill, then commit both
 ##
@@ -149,6 +150,13 @@ for (el in elements) {
 ## distinct taxa listed across all visible projects
 taxa <- suppressWarnings(extract_metadata(meta_list, "taxonomic"))
 metrics <- add_metric(metrics, "taxa_listed_all_projects", length(unique(taxa$scientificName)))
+
+## publications linked to projects, which sit in relatedIdentifiers as DOIs
+related <- suppressWarnings(extract_metadata(meta_list, "relatedIdentifiers"))
+# keep only the DOI links; RAiD links identify the project itself, not a publication
+dois <- related[related$relatedIdentifierType %in% "DOI", , drop = FALSE]
+metrics <- add_metric(metrics, "doi_links_unique", length(unique(dois$relatedIdentifier)))
+metrics <- add_metric(metrics, "projects_with_doi", length(unique(dois$DPID)))
 # keep the metadata list small from here on
 rm(meta_list)
 
@@ -160,7 +168,7 @@ rm(meta_list)
 ## so each project is summarised and dropped before the next is fetched
 
 ## running totals across projects
-tot <- list(deployments = 0, covariates = 0, observations = 0, media = 0,
+tot <- list(deployments = 0, camera_days = 0, covariates = 0, observations = 0, media = 0,
             animal = 0, blank = 0, human = 0, vehicle = 0, unknown = 0,
             obs_obscured = 0, obs_obscured_animal = 0, projects_with_obscured = 0,
             obs_joined = 0, obs_id_dupes_unobscured = 0,
@@ -196,8 +204,45 @@ failed <- character(0)
 ## the obscured category labels and how often each occurs
 obscured_categories <- integer(0)
 
+### Resume from a checkpoint
+## the media download takes hours, so the running totals are saved after every project;
+## a run that stops (a laptop going to sleep, a dropped connection) picks up where it left off
+checkpoint_file <- file.path(out_dir, "census_checkpoint.rds")
+# the projects already measured, none on a fresh run
+done_ids <- character(0)
+# a checkpoint is only reused when it covers the same open projects as this run
+if (file.exists(checkpoint_file) && !is_pilot) {
+  cp <- readRDS(checkpoint_file)
+  if (identical(sort(cp$open_ids), sort(open_ids))) {
+    # put every running total back
+    tot <- cp$tot
+    sparse_filled <- cp$sparse_filled
+    cov_na <- cp$cov_na
+    fill <- cp$fill
+    failed <- cp$failed
+    obscured_categories <- cp$obscured_categories
+    done_ids <- cp$done_ids
+    message(sprintf("Resuming from checkpoint: %d of %d open projects already measured.",
+                    length(done_ids), length(open_ids)))
+  } else {
+    # the database changed since the checkpoint, so start again
+    message("Checkpoint is for a different set of open projects; starting the census afresh.")
+  } # end matching checkpoint condition
+} # end checkpoint condition
+## a quick helper to save the running totals once a project is finished
+save_checkpoint <- function() {
+  # a pilot run writes nothing
+  if (is_pilot) return(invisible(NULL))
+  saveRDS(list(open_ids = open_ids, done_ids = done_ids, tot = tot,
+               sparse_filled = sparse_filled, cov_na = cov_na, fill = fill,
+               failed = failed, obscured_categories = obscured_categories),
+          checkpoint_file)
+} # end save_checkpoint helper
+
 # for each open project
 for (id in open_ids) {
+  # skip projects a stopped run already measured
+  if (id %in% done_ids) next
   # say which project is running, since the media download is long
   message(sprintf("[%s] downloading %s", format(Sys.time(), "%H:%M"), id))
   # download it exactly as a user would, media included
@@ -206,6 +251,9 @@ for (id in open_ids) {
   # record a failure and move on
   if (is.character(dp)) {
     failed <- c(failed, sprintf("%s: %s", id, dp))
+    # a failure is final for this run, so it is not retried on resume
+    done_ids <- c(done_ids, id)
+    save_checkpoint()
     next
   } # end failed download
 
@@ -220,6 +268,10 @@ for (id in open_ids) {
   tot$covariates   <- tot$covariates + nrow(covs)
   tot$observations <- tot$observations + nrow(obs)
   tot$media        <- tot$media + nrow(med)
+  # sampling effort as camera-days, each deployment's start to end summed
+  tot$camera_days  <- tot$camera_days +
+    sum(as.numeric(difftime(deps$deploymentEnd, deps$deploymentStart, units = "days")),
+        na.rm = TRUE)
 
   ## how filled each column is, table by table
   fill <- add_fill(fill, "deployments", deps)
@@ -308,6 +360,9 @@ for (id in open_ids) {
   # drop this project before fetching the next
   rm(dp, deps, covs, obs, med, animal)
   gc(verbose = FALSE)
+  # and record it as measured, so a stopped run does not repeat it
+  done_ids <- c(done_ids, id)
+  save_checkpoint()
 } # end per open project
 
 ## a share as a percentage with one decimal, for readable metrics
@@ -315,6 +370,7 @@ pct <- function(x, n) sprintf("%.1f", 100 * x / n)
 
 ## record the totals
 metrics <- add_metric(metrics, "rows_deployments", tot$deployments)
+metrics <- add_metric(metrics, "camera_days", round(tot$camera_days))
 metrics <- add_metric(metrics, "rows_covariates", tot$covariates)
 metrics <- add_metric(metrics, "rows_observations", tot$observations)
 metrics <- add_metric(metrics, "rows_media", tot$media)
@@ -460,4 +516,6 @@ if (!is.null(changes)) {
           sprintf("| %s | %s | %s |", changes$metric, changes$value_before, changes$value_now), "")
 } # end changes
 writeLines(md, file.path(out_dir, sprintf("census_%s.md", stamp)))
+# the census is complete, so the checkpoint is no longer needed
+unlink(checkpoint_file)
 message(sprintf("Census written to %s", file.path(out_dir, sprintf("census_%s.md", stamp))))

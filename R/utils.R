@@ -804,9 +804,9 @@ resolve_db_access <- function(api_key = NULL, db_url = NULL, timeout_ms = 10000)
   if (is.null(api_key) && is.null(db_url)) {
     # stop the function and tell them how to get access
     stop("You have not provided an API key or a database URL to access MongoDB.",
-         "\nPlease provide an appropriate API key or URL if you want to access ",
-         "the database. \nIf you require a user-specific API key, please contact ",
-         "the WildObs team at support@wildobs.org.au",
+         "\nPass api_key = Sys.getenv(\"WILDOBSR_API_KEY\"). To get a key, create one ",
+         "on the WildObs Dashboard (https://dashboard.wildobs.org.au/camdb), as set out in ",
+         "vignette(\"WildObsR\").",
          call. = FALSE)
   } # end double null condition
 
@@ -891,7 +891,7 @@ resolve_db_access <- function(api_key = NULL, db_url = NULL, timeout_ms = 10000)
            "provided.\nPlease check the host, username and password in your ",
            "connection string are correct, and that you have an active ",
            "internet connection. \nIf you continue to have trouble, please ",
-           "contact us at support@wildobs.org.au\n",
+           "contact us at data@wildobs.org.au\n",
            "Server message: ", attempt$msg,
            call. = FALSE)
     } # end else network condition
@@ -905,3 +905,41 @@ resolve_db_access <- function(api_key = NULL, db_url = NULL, timeout_ms = 10000)
   ## hand back everything the calling function needs in one object
   list(use_api = use_api, use_admin = use_admin, db = db)
 }
+
+
+#' Keep a package's tables as Data Package v1 tabular resources
+#'
+#' @description Camtrap DP 1.0.x, and the WildObs profile built on it, follow the
+#'   Data Package v1 specification, which requires every table to declare
+#'   `profile = "tabular-data-resource"`. From frictionless 2.0.0,
+#'   `frictionless::add_resource()` writes a Data Package v2 resource instead: it sets
+#'   `$schema` and `type = "table"` and leaves `profile` out, so a Camtrap DP package
+#'   built with it no longer matches its own profile. This helper puts each resource
+#'   that has a table schema back in the v1 form. Resources already in that form, as
+#'   frictionless 1.x writes them, are returned unchanged.
+#' @param dp A Frictionless data package (a list with `resources`).
+#' @return The same data package, with `$schema` and `type` removed from each tabular
+#'   resource and `profile` set to `"tabular-data-resource"`.
+#' @author Zachary Amir
+#' @keywords internal
+.as_v1_tabular_resources <- function(dp) {
+  # a package with no tables has nothing to change
+  if (length(dp$resources) == 0) return(dp)
+  # for each resource in the package
+  for (i in seq_along(dp$resources)) {
+    # grab it
+    r <- dp$resources[[i]]
+    # only tables carry a schema, so leave anything else alone
+    if (is.null(r$schema)) next
+    # drop the v2 marker of which specification the resource follows
+    r[["$schema"]] <- NULL
+    # and the v2 resource type, which v1 expresses through the profile
+    r[["type"]] <- NULL
+    # then declare it a v1 tabular resource, as Camtrap DP 1.0.x requires
+    r[["profile"]] <- "tabular-data-resource"
+    # and put it back
+    dp$resources[[i]] <- r
+  } # end per resource
+  # return the package with v1 tables
+  return(dp)
+} # end .as_v1_tabular_resources

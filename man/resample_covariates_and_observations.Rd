@@ -7,32 +7,43 @@ Spatially Resample Covariates and Observations Across Spatial Scales}
 \usage{
 resample_covariates_and_observations(
   covs,
-  obs,
+  obs = NULL,
   individuals,
   mode_cols_covs,
-  obs_covs
+  obs_covs,
+  weights = c("camera_days", "none")
 )
 }
 \arguments{
 \item{covs}{A data frame or tibble of covariate data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include columns defining spatial cells (with names starting with "cellID"), and date-time columns (e.g., \code{deploymentStart} and \code{deploymentEnd}) formatted as POSIXct.}
 
-\item{obs}{A data frame or tibble of observation data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include a \code{deploymentID} column and several date-time columns (e.g., \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp} formatted as POSIXct.}
+\item{obs}{A data frame or tibble of observation data from a camtrapDP formatted frictionless data package, which can be accessed from the \code{WildObsR::wildobs_dp_download()} function. It must include a \code{deploymentID} column and several date-time columns (e.g., \code{eventStart}, \code{eventEnd}, \code{classificationTimestamp} formatted as POSIXct. Or \code{NULL} (default) to resample the covariates only; \code{individuals} and \code{obs_covs} are then not used.}
 
-\item{individuals}{A character string specifying how to aggregate the number of individuals counted per spatially re sampled cell per day. Options are \code{"sum"} to take the sum total number of counts or  \code{"max"} to use the maximum count.}
+\item{individuals}{A character string specifying how to aggregate the number of individuals counted per spatially re sampled cell per day. Options are \code{"sum"} to take the sum total number of counts or  \code{"max"} to use the maximum count. \code{"sum"} adds the count of every observation of the species in the cell that day, across all its cameras and repeat triggers, so one cat triggering a camera three times in 10 minutes counts 3, and a cat passing two cameras counts 2: an index of animal detections, not a number of individuals. \code{"max"} is the most individuals in a single observation, a conservative minimum present. This only affects the resampled observations; \code{\link[=detection_matrix]{detection_matrix()}} counts from the observations themselves, with its own \code{individuals}.}
 
-\item{mode_cols_covs}{(Optional) A character vector specifying the names of covariate columns for which the mode should be computed rather than concatenating all unique values. (Example: \code{c("habitat")}).}
+\item{mode_cols_covs}{(Optional) A character vector specifying the names of covariate columns for which the mode should be computed rather than concatenating all unique values. (Example: \code{c("habitat")}). With \code{weights = "camera_days"}, the mode is the value covering the most camera-days in the cell.}
 
-\item{obs_covs}{(Optional) A character vector specifying observation-level covariate column names that may vary in space and time and will be combined with the resampled observations. (Example: \code{c("baitUse", "featureType")}).}
+\item{obs_covs}{(Optional) A character vector specifying observation-level covariate column names that may vary in space and time and will be combined with the resampled observations. (Example: \code{c("baitUse", "featureType")}). These are used only by \code{\link[=matrix_generator]{matrix_generator()}}; for detection covariates with \code{\link[=effort_matrix]{effort_matrix()}}, use its \code{split_by} instead.}
+
+\item{weights}{How each deployment counts towards its cell's averaged (\verb{Avg_*}) and modal
+(\verb{mode_*}) covariates. \code{"camera_days"} (default) weights each deployment by how long it
+ran, \code{deploymentEnd - deploymentStart} in days; \code{"none"} counts every deployment once,
+the plain mean and most frequent value. See "Weighting by camera-days".}
 }
 \value{
 A nested list with two elements:
 \describe{
-\item{\code{spatially_resampled_observations}}{A list of data frames corresponding to different spatial scales (e.g., "cellID_1km", "cellID_10km") containing all resampled observation data.}
-\item{\code{spatially_resampled_covariates}}{A list of data frames corresponding to different spatial scales containing all resampled covariate data.}
+\item{\code{spatially_resampled_observations}}{A list of data frames corresponding to different spatial scales (e.g., "cellID_1km", "cellID_10km") containing all resampled observation data. Left out when \code{obs = NULL}.}
+\item{\code{spatially_resampled_covariates}}{A list of data frames corresponding to different spatial scales containing all resampled covariate data, one row per cell.}
 }
+Each table carries a \code{wildobs_resampled} attribute naming its scale, so \code{\link[=effort_matrix]{effort_matrix()}}
+and \code{\link[=detection_matrix]{detection_matrix()}} can recognise them and say what to pass instead.
 }
 \description{
-This function resamples covariate and observation data across spatial scales generated from the \code{WildObsR::spatial_hexagon_generator()} function. It validates the input data by ensuring that all necessary spatial, temporal, and deployment identifiers are present and correctly formatted. Numeric covariates are aggregated using means, while categorical covariates are combined by concatenating unique values.
+This function resamples covariate and observation data across spatial scales generated from the \code{WildObsR::spatial_hexagon_generator()} function. It validates the input data by ensuring that all necessary spatial, temporal, and deployment identifiers are present and correctly formatted. Numeric covariates are aggregated using means weighted by each deployment's camera-days (see \code{weights}), while categorical covariates are combined by concatenating unique values. Logical and factor columns in either table, such as \code{baitUse} and \code{featureType} from \code{\link[frictionless:read_resource]{frictionless::read_resource()}}, keep their class (and factor levels) when every cell holds one value; where some cell holds several, the column is pasted as text, for example \code{"FALSE - TRUE"}, with a message naming it. Modal columns always keep their class.
+
+With \code{obs = NULL}, only the covariates are resampled, which is all the occupancy and
+abundance workflow needs, and is much faster (see "How the tables connect").
 
 In addition, the function computes several key metrics:
 \itemize{
@@ -87,8 +98,8 @@ The function performs the following steps to resample the covariate and observat
 }
 \item \strong{Resampling by Deployment Group and Spatial Scale}:
 \itemize{
-\item The function loops over each unique deployment group present in the covariates data. This speeds up the process.
-\item For each deployment group:
+\item The function loops over each unique \code{deploymentGroup} present in the covariates data. This speeds up the process.
+\item For each \code{deploymentGroup}:
 \itemize{
 \item Subsets the covariates and observations to include only the relevant deployments.
 \item Merges spatial cell information (i.e., the \code{cellID} columns) from the covariates into the observations based on the \code{deploymentID}.
@@ -96,15 +107,15 @@ The function performs the following steps to resample the covariate and observat
 }
 \item \strong{Resampling of Covariates}:
 \itemize{
-\item Within each deployment group, the function iterates over each spatial scale (columns containing "cellID_").
+\item Within each \code{deploymentGroup}, the function iterates over each spatial scale (columns containing "cellID_").
 \item For each spatial scale, it loops through each unique sampling unit (i.e., each unique cell value):
 \itemize{
 \item A new row is created for each sampling unit, starting as an empty data frame with the same structure as the covariates data.
-\item Numeric covariate values are aggregated by computing the mean (or left as \code{NA} if all values are missing). The column names are updated to indicate that these are averaged values (e.g., \code{"Avg_<column>"}).
+\item Numeric covariate values are aggregated by computing the mean, weighted by camera-days unless \code{weights = "none"} (or left as \code{NA} if all values are missing). The column names are updated to indicate that these are averaged values (e.g., \code{"Avg_<column>"}).
 \item Sampling effort is calculated as the total active duration (in days) summed over all unique deployments in the cell.
 \item The sampling period is defined by the minimum \code{deploymentStart} (as \code{samplingStart}) and maximum \code{deploymentEnd} (as \code{samplingEnd}) for the cell.
 \item Character variables are processed by pasting together sorted unique values.
-\item For any covariate specified in \code{mode_cols_covs}, the function calculates the mode (i.e., the most frequent value) instead of concatenating all values.
+\item For any covariate specified in \code{mode_cols_covs}, the function calculates the mode (the value covering the most camera-days, or the most frequent value with \code{weights = "none"}) instead of concatenating all values.
 \item Spatial information is preserved by keeping the cell identifier and any associated polygon geometry.
 }
 }
@@ -124,7 +135,7 @@ The function performs the following steps to resample the covariate and observat
 }
 \item \strong{Compilation of Resampled Data}:
 \itemize{
-\item After processing all deployment groups and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
+\item After processing all \code{deploymentGroups} and spatial scales, a final verification is implemented to ensure all cellID values are present and matching in the resampled covariates and observations.
 \item Finally, the function assembles the resampled data into two nested lists:
 \itemize{
 \item One list contains the resampled covariates, organized by spatial scale.
@@ -141,51 +152,76 @@ The function performs the following steps to resample the covariate and observat
 }
 }
 }
-\examples{
-\dontrun{
-# Example usage with pre-processed camera trap data, accessed from WildObs:
+\section{How the tables connect}{
 
-# Load the general use WildObs API key
-api_key <- Sys.getenv("WILDOBSR_API_KEY")
-
-# use WildObsR function to access data
-dp <- WildObsR::wildobs_dp_download(api_key = api_key, project_ids = "ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001")
-# extract first DP from the list
-dp <- dp[[1]]
-
-# Extract resources from the data package
-covs <- frictionless::read_resource(dp, "covariates")
-obs  <- frictionless::read_resource(dp, "observations")
-deps <- frictionless::read_resource(dp, "deployments")
-
-# Assign spatial scales
-# 'scales' defines the area (in square meters) covered by the hexagonal cell
-scales <- c(1000000, 3000000)
-
-# Add data source to the covariates
-covs$source <- dp$contributors[[1]]$tag
-
-# Generate spatial hexagons based on the provided scales
-covs <- WildObsR::spatial_hexagon_generator(covs, scales)
-# Identify matching columns between deployments and covariates
-cols <- names(deps)[names(deps) \%in\% names(covs)]
-# Merge deployment information to the covariates
-covs <- merge(deps, covs, by = cols)  # Note: This overwrites the original covs data
-# Define columns for mode aggregation (example: 'source' and 'habitat')
-mode_cols_covs <- names(covs)[grepl("source|habitat", names(covs))]
-# Set the method for aggregating the total number of individuals detected:
-individuals <- "sum"  # Alternative: "max"
-# Specify observation-level covariate variables derived from deployments.
-# These variables capture information that varies in space and time.
-obs_covs <- c("baitUse", "featureType", "setupBy", "cameraModel", "cameraDelay","cameraHeight", "cameraDepth", "cameraTilt", "cameraHeading", "detectionDistance", "deploymentTags")
-
-# now spatially resample the data, noting that this function may take a few minutes to run
-resamp_data = WildObsR::resample_covariates_and_observations(covs, obs, individuals = "sum", mode_cols_covs, obs_covs)
-
-# Select the resampled observations and covs at the 1 km scale
-resamp_obs = resamp_data$spatially_resampled_observations$cellID_1km
-resamp_covs = resamp_data$spatially_resampled_covariates$cellID_1km
+The occupancy and abundance workflow uses three tables, each at the level its function
+needs, joined by two keys: \code{deploymentID} links observations to deployments, and the
+cellID column (for example \code{cellID_3km2}) links deployments to cells.\tabular{llll}{
+   Table \tab One row per \tab Made by \tab Goes into \cr
+   Deployments with cellIDs (\code{covs_cellID}) \tab deployment \tab \code{\link[=spatial_hexagon_generator]{spatial_hexagon_generator()}} \tab \code{\link[=effort_matrix]{effort_matrix()}} with \code{site_col = "cellID_3km2"} \cr
+   Observations \tab observation \tab \code{\link[frictionless:read_resource]{frictionless::read_resource()}} \tab \code{\link[=detection_matrix]{detection_matrix()}}, which places each one in its cell through the effort matrix \cr
+   Cell covariates \tab cell \tab this function, with \code{obs = NULL} \tab \code{\link[=model_matrix_input]{model_matrix_input()}} as \code{site_covs} \cr
 }
+
+
+Effort needs each camera's own start and end, which only the deployment table keeps, so
+the resampled covariates are used for site covariates only. The resampled observations
+are for \code{\link[=matrix_generator]{matrix_generator()}} and for summaries per cell and day.
+}
+
+\section{Weighting by camera-days}{
+
+A covariate that does not change over time, such as elevation, still differs between
+the cameras in a cell, and the cell's value is an average over them. Weighting by
+camera-days makes that average describe the habitat the cameras actually sampled, the
+same camera-days the effort and detections come from. Two examples:
+\itemize{
+\item Camera A at 200 m ran 90 days; camera B at 800 m failed after 2 days. The plain
+mean is 500 m; the weighted mean is (200 x 90 + 800 x 2) / 92 = 213 m, where nearly
+all the detections came from.
+\item Station X at 200 m was redeployed four times for 25 days each; station Y at
+800 m ran once for 100 days. The plain mean over the five rows is 320 m, counting X
+four times only because its cards were changed more often; the weighted mean is
+500 m, treating both stations' equal effort equally.
+}
+When the cameras in a cell ran for similar lengths the two agree closely: on three
+public WildObs projects at 3 km² cells, weighting moved values by a median of under 5\%
+of the spread between cameras in the same cell. The difference matters for failed
+cameras, redeployed stations and large cells.
+
+Coordinates (\code{latitude}, \code{longitude}) are always plain means, since they describe where
+the cameras are rather than what they sampled. A deployment with a missing or negative
+length has no weight; a cell where no deployment has any falls back to the plain mean,
+with a warning. \code{cellEffort} is unaffected: it is always the total camera-days.
+}
+
+\examples{
+# load the Woomargama wombat project shipped with WildObsR
+dp <- example_datapackages("NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")[[1]]
+
+# extract one table of deployments and their covariates
+deps <- frictionless::read_resource(dp, "deployments")
+covs <- frictionless::read_resource(dp, "covariates")
+# merge both tables together based on several shared columns 
+covs <- merge(deps, covs, by = intersect(names(deps), names(covs)))
+
+# assign every camera to a 1 km2 hexagonal cell (scales are cell areas in m2)
+covs_cellID <- spatial_hexagon_generator(covs, scales = 1e6)
+
+# for occupancy and abundance models, resample the covariates only: one row per cell
+cell <- resample_covariates_and_observations(covs_cellID, mode_cols_covs = "baitUse")
+cell_covs <- cell$spatially_resampled_covariates$cellID_1km2
+head(cell_covs[, c("cellID_1km2", "cellEffort", "mode_baitUse")])
+
+# observations that can be placed on a camera (obscured records cannot)
+obs <- frictionless::read_resource(dp, "observations")
+obs <- obs[obs$deploymentID \%in\% covs_cellID$deploymentID, ]
+
+# or resample the observations to cells and days too, for matrix_generator() or summaries
+resamp <- resample_covariates_and_observations(covs_cellID, obs, individuals = "sum",
+                                               obs_covs = c("baitUse", "featureType"))
+head(resamp$spatially_resampled_observations$cellID_1km2[, c("cellID_1km2", "scientificName",
+                                                             "totalIndividuals")])
 
 }
 \author{

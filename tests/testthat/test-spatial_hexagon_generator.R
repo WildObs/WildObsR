@@ -6,7 +6,7 @@ create_test_data <- function(n = 3) {
     deploymentID = paste0("dep", 1:n),
     locationName = "TestLocation",
     deploymentGroups = paste0("Survey_2023_", letters[1:n]),
-    source = "TestContributor",
+    projectName = "QLD_Test_project_2023_WildObsID_0042",
     latitude = c(-33.87, -33.88, -33.89)[1:n],
     longitude = c(151.20, 151.21, 151.22)[1:n],
     deploymentStart = as.POSIXct(c("2023-01-01", "2023-01-15", "2023-02-01")[1:n]),
@@ -34,13 +34,13 @@ test_that("spatial_hexagon_generator errors without deploymentGroups column", {
   )
 })
 
-test_that("spatial_hexagon_generator errors without source column", {
+test_that("spatial_hexagon_generator errors without projectName column", {
   data <- create_test_data()
-  data$source <- NULL
+  data$projectName <- NULL
 
   expect_error(
     spatial_hexagon_generator(data, scales = 1e6),
-    "does not contain a column for 'source'"
+    "does not contain a column for 'projectName'"
   )
 })
 
@@ -171,13 +171,64 @@ test_that("spatial_hexagon_generator creates cellID with temporal info", {
   expect_true(all(grepl("2023", result$cellID_1km2)))
 })
 
-test_that("spatial_hexagon_generator creates cellID with source info", {
+test_that("spatial_hexagon_generator labels cellIDs with the WildObsID from projectName", {
   data <- create_test_data()
-  data$source <- "TestSource"
   result <- spatial_hexagon_generator(data, scales = 1e6)
 
-  # cellID should contain source information
-  expect_true(all(grepl("TestSource", result$cellID_1km2)))
+  # the cellID carries the project's WildObsID
+  expect_true(all(grepl("_WildObsID_0042$", result$cellID_1km2)))
+  # but not the rest of the projectName
+  expect_false(any(grepl("QLD_Test_project", result$cellID_1km2)))
+})
+
+test_that("spatial_hexagon_generator uses the whole projectName when it has no WildObsID", {
+  # a project from outside WildObs
+  data <- create_test_data()
+  data$projectName <- "MyOwnSurvey"
+  result <- spatial_hexagon_generator(data, scales = 1e6)
+
+  expect_true(all(grepl("_MyOwnSurvey$", result$cellID_1km2)))
+})
+
+test_that("spatial_hexagon_generator adds no source column to the data it returns", {
+  # projectName already identifies the project, so no copy of it is returned
+  data <- create_test_data()
+  result <- spatial_hexagon_generator(data, scales = 1e6)
+
+  expect_false("source" %in% names(result))
+})
+
+test_that("spatial_hexagon_generator warns when two projects sample one cell at the same time", {
+  ## two WildObs projects, same place and survey period
+  data <- create_test_data()
+  data$projectName <- c("QLD_A_2023_WildObsID_0001", "QLD_B_2023_WildObsID_0002",
+                        "QLD_A_2023_WildObsID_0001")
+  # all three cameras within metres of each other
+  data$latitude <- c(-33.8700, -33.8701, -33.8702)
+  data$longitude <- c(151.2000, 151.2001, 151.2002)
+
+  # the overlap is flagged, naming the polygon column and both projects
+  expect_warning(result <- spatial_hexagon_generator(data, scales = 1e6),
+                 "polygon_1km2: 1 cell\\(s\\).*WildObsID_0001, WildObsID_0002")
+  # the cameras share one polygon
+  expect_equal(length(unique(result$polygon_1km2)), 1)
+  # but no cellID is shared between the two projects
+  in_0001 <- result$cellID_1km2[grepl("0001$", result$projectName)]
+  in_0002 <- result$cellID_1km2[grepl("0002$", result$projectName)]
+  expect_length(intersect(in_0001, in_0002), 0)
+})
+
+test_that("spatial_hexagon_generator does not warn when two projects share a cell at different times", {
+  data <- create_test_data()
+  data$projectName <- c("QLD_A_2023_WildObsID_0001", "QLD_B_2023_WildObsID_0002",
+                        "QLD_A_2023_WildObsID_0001")
+  data$latitude <- c(-33.8700, -33.8701, -33.8702)
+  data$longitude <- c(151.2000, 151.2001, 151.2002)
+  # project 0002 samples a year after project 0001 finished
+  data$deploymentStart <- as.POSIXct(c("2023-01-01", "2024-06-01", "2023-01-01"))
+  data$deploymentEnd <- as.POSIXct(c("2023-03-01", "2024-08-01", "2023-03-01"))
+
+  expect_no_warning(spatial_hexagon_generator(data, scales = 1e6))
 })
 
 test_that("spatial_hexagon_generator handles single deployment", {
@@ -253,7 +304,7 @@ test_that("spatial_hexagon_generator handles widely spaced coordinates", {
     deploymentID = c("perth", "sydney"),
     locationName = c("WA", "NSW"),
     deploymentGroups = c("Survey_2023_a", "Survey_2023_b"),
-    source = "TestContributor",
+    projectName = "QLD_Test_project_2023_WildObsID_0042",
     latitude = c(-31.9505, -33.8688),  # Perth and Sydney
     longitude = c(115.8605, 151.2093),
     deploymentStart = as.POSIXct(c("2023-01-01", "2023-01-01")),
@@ -272,7 +323,7 @@ test_that("spatial_hexagon_generator handles closely spaced coordinates", {
     deploymentID = c("cam1", "cam2", "cam3"),
     locationName = "CloseLocation",
     deploymentGroups = c("Survey_2023_a", "Survey_2023_a", "Survey_2023_a"),
-    source = "TestContributor",
+    projectName = "QLD_Test_project_2023_WildObsID_0042",
     latitude = c(-33.8700, -33.8701, -33.8702),  # Very close
     longitude = c(151.2000, 151.2001, 151.2002),
     deploymentStart = as.POSIXct(c("2023-01-01", "2023-01-01", "2023-01-01")),

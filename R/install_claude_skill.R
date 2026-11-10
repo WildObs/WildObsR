@@ -9,6 +9,12 @@
 #' how the tables join, what each field means, which analyses the data can support,
 #' and the WildObs additions to Camtrap DP. It contains documentation only, no code.
 #'
+#' The skill's counts of projects and records describe the public database on the date
+#' given in the skill, so treat them as approximate. They drift between releases as projects
+#' are added and as embargoes are set, extended or released, which moves projects between
+#' `open` and `partial`. The skill tells Claude to check each project's sharing preference
+#' when it runs, rather than relying on those counts.
+#'
 #' The function works as follows:
 #' \enumerate{
 #'   \item It checks that `skill` is one of the skills bundled with this version of

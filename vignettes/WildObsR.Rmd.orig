@@ -1,0 +1,220 @@
+---
+title: "Get started with WildObsR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Get started with WildObsR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+<!-- This file is the source. Edit it, then run vignettes/precompute.R with a WildObs API
+key to rebuild WildObsR.Rmd, which ships with its results already in place. -->
+
+WildObsR finds, downloads and prepares camera trap data from
+[WildObs](https://wildobs.org.au), Australia's national wildlife camera database.
+Every project arrives as a [Camera Trap Data Package](https://camtrap-dp.tdwg.org/)
+(Camtrap DP), which contains tables of [camera deployments](https://camtrap-dp.tdwg.org/data/#deployments),
+[observations](https://camtrap-dp.tdwg.org/data/#observations), [media](https://camtrap-dp.tdwg.org/data/#media),
+and a WildObs-generated table containing spatio-temporal covariates for each camera
+deployment, along with the Creative Commons licences, formatted citation and field
+definitions that travel with the data package. This vignette takes you from 
+installation to your first downloaded data package in about ten lines of code.
+
+## Install WildObsR
+
+WildObsR is installed from GitHub:
+
+```{r install, eval = FALSE}
+# install.packages("pak")
+pak::pak("WildObs/WildObsR")
+```
+
+`remotes::install_github("WildObs/WildObsR")` works too. WildObsR relies on the
+spatial package `sf`, which needs the GDAL, PROJ and GEOS libraries. On Windows and
+macOS they come with `sf` itself. On Linux, install them first, for example
+`sudo apt install libgdal-dev libproj-dev libgeos-dev libssl-dev` on Ubuntu.
+
+To install a particular release rather than the latest version, add its tag, for example
+`pak::pak("WildObs/WildObsR@v0.2.0")`.
+
+## Get an API key
+
+Database access requires a personal API key, tied to your own WildObs account. API keys are
+generated per-user, not per-project. All API keys provides access to the public WildObs 
+Database, where sensitive species records are obscured and data sharing agreements are 
+applied. Therefore, each API key delivers the same data for everyone.
+
+1. Create an account or log in at the [WildObs Dashboard](https://dashboard.wildobs.org.au).
+   - Note that if you have submitted data to the WildObs Database, please create an account
+     using the same email address you used to share data to ensure you have access to your
+     private unobscured data.
+2. Under **WildObs Database**, select **Get Started** to open the
+   [database page](https://dashboard.wildobs.org.au/camdb).
+3. In the panel at the top right, select **Create** under **API Key**, and copy the key.
+   Treat it like a password: do not share it or paste it into a script.
+4. Store it in your `.Renviron` file, which R reads when it starts, so the key stays out
+   of your code. Open the file with `usethis::edit_r_environ()`, add the line below with
+   your own key, save it and restart R.
+
+```
+WILDOBSR_API_KEY=your_key_here
+```
+
+Paste the key without quotes or spaces after the `=`, and end the file with a blank
+line, or R ignores the last entry. Then read the key into your session:
+
+```{r key}
+library(WildObsR)
+
+# read the key from .Renviron; it is never printed
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
+# Check that R has found it, should return TRUE 
+nzchar(api_key)
+```
+
+If this returns `FALSE`, check the spelling of `WILDOBSR_API_KEY` and that you restarted
+your R session. 
+
+## Find projects
+
+`wildobs_mongo_query()` is a quick and light-weight function that queries the 
+metadata of all projects along multiple parameters and returns the IDs of those
+that match. Filters include where in space camera were active, time surveys were 
+collecting data, species detected in the survey, camera deployment sampling designs,
+and contributors associated with each project. Multiple filters can be combined, 
+and the projects that are returned must match all of them. Here we look for projects
+in a spatial box around the Wet Tropics Rainforests of Far North Queensland that list
+Zachary Amir as a contributor:
+
+```{r query}
+# a box around the Wet Tropics, in latitude and longitude (i.e., decimal degrees)
+wet_tropics <- list(xmin = 144.9, xmax = 146.5, ymin = -19.6, ymax = -15.3)
+
+# find every project with cameras inside the box and Zachary Amir among its contributors
+ids <- wildobs_mongo_query(api_key = api_key, spatial = wet_tropics,
+                           contributors = "Zachary Amir")
+# check which project IDs were returned
+ids
+```
+
+Leave out `contributors` to see every project in the box.
+
+By default the search returns two kinds of projects: 
+
+- **Open** projects, which have no remaining embargo period, contain
+  all available data tables. 
+    - Include `tabularSharingPreference = "open"` in `wildobs_mongo_query()` to 
+      find only projects you can download in full.
+- **Partial** projects have a remaining embargo period, and only contain 
+  their project-level metadata. This data is useful for discovering projects
+  and providing information such as where, when and who collected the data. 
+
+You can learn more about WildObs's data sharing agreements [here](https://support.wildobs.org.au/support/solutions/articles/6000282861-data-sharing-terms). 
+
+
+## Download them
+
+`wildobs_dp_download()` returns a named list with one data package per project. Media
+tables, which record one row per camera trap image or video are by far the largest 
+table, and the default behavior of this function is to leave it out unless you ask
+for `media = TRUE`.
+
+```{r download}
+# one data package per project, without the media table
+dp_list <- wildobs_dp_download(api_key = api_key, project_ids = ids)
+
+# count how many tables each package holds; a partial project holds none
+vapply(dp_list, function(dp) length(dp$resources), integer(1))
+```
+
+Each package holds its tables as [Frictionless Data Package](https://datapackage.org/overview/introduction/)
+resources. Read them with `frictionless::read_resource()`, which returns 
+each column with the type its schema defines, and formats date-times in 
+the project's own time zone. The package also keeps a copy in `dp$data`, 
+because the `camtrapdp` class expects one, but other tools do not always keep
+that copy up to date, so read tables with `read_resource()`.
+
+```{r tables}
+# the first open project
+dp <- dp_list[["ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001"]] # or dp_list[[1]]
+
+# read the camera deployments table, one row per camera deployment
+deployments <- frictionless::read_resource(dp, "deployments")
+# inspect a few key fields 
+head(deployments[, c("deploymentID", "locationName", "deploymentStart", "deploymentEnd")])
+
+# read the observations table
+observations <- frictionless::read_resource(dp, "observations")
+# inspect what types of observations are contained in this table 
+sort(table(observations$observationType))
+```
+
+## Set obscured records aside
+
+Records of threatened species are obscured where the species is listed under the
+*Environment Protection and Biodiversity Conservation Act 1999*. They keep the species,
+date and count, but the foreign keys that link back to both the deployments, media, and 
+covariates tables read `obscured_for_<category>_species`, so they cannot be joined. Count
+them, then set them aside before any spatial analysis:
+
+```{r obscured}
+# which detections cannot be placed on a camera
+obscured <- grepl("^obscured_for_", observations$deploymentID)
+# how many, by threat category
+table(observations$deploymentID[obscured])
+# keep the rest
+observations <- observations[!obscured, ]
+```
+
+## Read the metadata, and cite the data
+
+`extract_metadata()` turns the metadata of one or many packages into tables, such as
+who collected the data, under which licence, and with what sampling design.
+`cite_datapackages()` provides citations formatted by WildObs, including each dataset's
+Research Activity Identifier ([RAiD](https://ardc.edu.au/services/ardc-identifier-services/raid-research-activity-identifier-service/)), which provides a persistent identifier to reference data used in research. 
+Additional parameters allow you to include the data package version you downloaded and citations
+for the WildObs-generated covariates table. 
+
+```{r metadata}
+# the licence of every project
+extract_metadata(dp_list, "licenses")[, c("name", "scope", "DPID")]
+
+# the references to cite, one per project
+writeLines(cite_datapackages(dp_list))
+```
+
+## Work offline with the example data
+
+Two open projects ship with WildObsR, so you can try every function without
+a key or an internet connection. `example_datapackages()` returns them in the same shape
+as `wildobs_dp_download()`, with animal detections only and no media table:
+
+```{r example}
+# the bundled copies of two projects
+examples <- example_datapackages()
+names(examples)
+```
+
+## Where to next
+
+- *Discover what exists* searches the database in more depth and cites what you find.
+- *Inside a WildObs data package* explains each table and field, and where WildObs
+  differs from the Camtrap DP standard.
+- *Camtrap DP interoperability* exports WildObs data for the camtrapdp and camtrapR
+  packages and for GBIF.
+
+WildObsR checks its own version the first time you query or download data in a session,
+and warns if a newer release is available. Update by reinstalling as above.
+
+<details>
+<summary>Session information</summary>
+
+```{r session}
+sessionInfo()
+```
+
+</details>

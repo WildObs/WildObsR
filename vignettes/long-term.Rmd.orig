@@ -1,0 +1,362 @@
+---
+title: "Fit multi-season models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Fit multi-season models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+<!-- This file is the source. Edit it, then run vignettes/precompute.R to rebuild
+long-term.Rmd, which ships with its results already in place, because the Bayesian model
+takes minutes to run. -->
+
+Multi-season models follow the same sites through several seasons, and ask how occupancy
+changes between them. This vignette uses [project 0010](https://raid.org/10.83062/9eec588a),
+shipped with WildObsR: 28 camera stations in Woomargama National Park, New South Wales, that
+ran almost continuously for ten months in 2021–22. It builds on *Detection histories and sampling
+effort* and *Fit single-season models*.
+
+## How WildObs splits a long survey
+
+When curating data for the database, WildObs splits long-term sampling into single-season
+surveys, called `deploymentGroups`, of at most 100 days, so each can be modelled as one closed
+season. The WildObsR function `survey_and_deployment_generator()` defines them from the timing
+of the records. Here it rebuilds 0010's surveys from its observations:
+
+```{r surveys, warning = FALSE}
+# load the R packages
+library(WildObsR)      # for data access and wrangling
+library(unmarked)      # for multi-season occupancy models
+library(spOccupancy)   # for Bayesian multi-season occupancy models
+
+# grab the Woomargama project shipped with WildObsR
+dp <- example_datapackages("NSW_Woomargama_wombats_Linley_2021-22_WildObsID_0010")[[1]]
+# extract the deployments and observations, read with their schema types
+deps <- frictionless::read_resource(dp, "deployments")
+obs <- frictionless::read_resource(dp, "observations")
+
+# remove obscured observations
+caps <- obs[!grepl("^obscured_for_", obs$deploymentID), ]
+# merge locationName (the project's landscape) to observations via deploymentID
+caps <- merge(caps, deps[, c("deploymentID", "locationName")], by = "deploymentID")
+
+# the survey generator needs a dataSource column, which it uses to name the surveys
+caps$dataSource <- dp$name
+# it also needs every deployment to have records, so keep the deployments with at least
+# one record left after removing the obscured ones
+deps_rec <- deps[deps$deploymentID %in% caps$deploymentID, ]
+
+# group the records into surveys of at most 100 days (default settings)
+caps <- survey_and_deployment_generator(caps, deps_rec)
+
+# look up the deploymentGroups (surveys) WildObs recorded for each record's deployment
+recorded <- deps$deploymentGroups[match(caps$deploymentID, deps$deploymentID)]
+# compile the records in each rebuilt survey, beside the survey WildObs recorded
+table(rebuilt = caps$new_deploymentGroups, recorded = sub("_Linley.*", "", recorded))
+```
+
+The rebuilt surveys match the four recorded ones. The data package already holds them, so you
+rarely need to run this yourself. You can inspect the start and stop dates of each survey in
+the metadata:
+
+```{r blocks}
+# grab the start and end of each survey, from the temporal metadata
+blocks <- dp$temporal[grepl("WildObsID", names(dp$temporal))]
+# compile into a table for display
+data.frame(survey = names(blocks), start = sapply(blocks, `[[`, "start"),
+           end = sapply(blocks, `[[`, "end"), row.names = NULL)
+
+# and calculate the total duration (in days) from overall start and stop dates, including the start date (+1)
+total_dur <- as.numeric(difftime(dp$temporal$end, dp$temporal$start, units = "days")) + 1
+total_dur
+```
+
+Notice the end date of a prior survey shares the start date of the next survey,
+indicating that the continuous sampling was split into 100-day blocks. The fourth
+survey lasted only a few days, so we fold it into the
+third season when preparing the analysis.
+
+## Rebuild long-term deployments
+
+Because surveys end at 100 days, a camera that ran for ten months appears as several
+deployments. The WildObsR function `recombine_deployment_groups()` joins them back
+into one deployment per camera location within each `multiSeason_deploymentGroup`, and
+keeps a crosswalk to the original 100-day deployments (*i.e.*, pieces):
+
+```{r recombine}
+# rebuild the data package with one deployment per camera per multi-season group
+dp_long <- recombine_deployment_groups(dp)
+
+# extract the rebuilt deployments, and the crosswalk to the original pieces
+deps_long <- frictionless::read_resource(dp_long, "deployments")
+crosswalk <- frictionless::read_resource(dp_long, "deployment_crosswalk")
+# also extract the observations, now pointing at the rebuilt deployments
+obs_long <- frictionless::read_resource(dp_long, "observations")
+
+# compare the number of deployments before and after
+c(original = nrow(deps), rebuilt = nrow(deps_long))
+
+# confirm the locationIDs remain unchanged from the 100-day deployments
+setdiff(deps$locationID, deps_long$locationID)
+# and the reverse
+setdiff(deps_long$locationID, deps$locationID)
+```
+
+## Effort on a shared calendar
+
+A multi-season model needs occasion `k` to cover the same dates at every site, so the
+`align = "calendar"` parameter in the WildObsR `effort_matrix()` function starts every
+station's occasions on the first day of the project. The crosswalk takes effort from
+the original pieces, so any gap between them counts as no effort.
+
+We model three seasons by folding the short fourth survey into the third season. Its six
+extra days make the third season slightly longer than the others.
+
+With 10-day occasions over the 306 days, each season has 10 occasions, and the third season
+gains an 11th occasion of 6 days, with less sampling effort than the others:
+
+```{r effort}
+# camera-days per station (locationID) and 10-day occasion, over the whole project
+eff <- effort_matrix(deps_long, site_col = "locationID", w = 10, dur = total_dur,
+                     # put every station on one calendar, and take effort from the original pieces via the crosswalk
+                     align = "calendar", crosswalk = crosswalk,
+                     # specify the project's timezone
+                     time_zone = dp$temporal$timeZone)
+
+# grab the start date of every occasion
+occ_start <- unique(eff$occasions[, c("occasion", "start")])$start
+# define the survey each occasion starts in: the last survey that began on or before it
+season <- vapply(occ_start, function(s) {
+  # the surveys that had begun by this date
+  begun <- vapply(blocks, function(b) as.Date(b$start) <= s, logical(1))
+  # take the latest of them
+  names(blocks)[max(which(begun))]
+}, character(1))
+# fold the short fourth survey into the third season
+season[season == names(blocks)[4]] <- names(blocks)[3]
+
+# view how many occasions each season holds
+table(season)
+```
+
+## Covariates that change each season
+
+Recombining 100-day deployments into multi-season deployments averages each covariate over a
+camera's entire duration, so weather that changes between seasons is
+lost. The original `covariates` table has one row per 100-day deployment, with its station and
+survey, so covariates that change each season come from there instead. Covariates that stay
+the same, such as altitude, need one value per station:
+
+```{r season-covs}
+# grab the covariates of the original 100-day deployments, each with its station and survey
+covs <- frictionless::read_resource(dp, "covariates")
+# leave out the short fourth survey, so its short window does not skew the third season
+covs <- covs[covs$deploymentGroups != names(blocks)[4], ]
+
+## extract rainfall and temperature covariates by averaging values in each survey: station x season
+rain <- tapply(covs$mean_monthly_precipitation_point, list(covs$locationID, covs$deploymentGroups), mean)
+temp <- tapply(covs$mean_monthly_temperature_point, list(covs$locationID, covs$deploymentGroups), mean)
+# order the stations and seasons to match the effort matrix
+rain <- rain[rownames(eff$effort), unique(season)]
+temp <- temp[rownames(eff$effort), unique(season)]
+
+# view the mean monthly temperature of the first three stations in each season
+round(head(temp, 3), 1)
+
+# altitude does not change between seasons, so average it to one value per station
+elev <- aggregate(altitude_point ~ locationID, data = covs, FUN = mean)
+# view the first few stations
+head(elev, 3)
+```
+
+## Colonisation and extinction in unmarked
+
+The black rat (*Rattus rattus*), an introduced species, was detected at multiple stations across
+each season. The function `colext()` from unmarked estimates the occupancy of the first season,
+then the probability that an empty station is colonised and that an occupied one goes extinct
+between seasons. It takes covariates that differ among stations (`siteCovs`), covariates that
+also change between seasons (`yearlySiteCovs`), and detection covariates that change each
+occasion (`obsCovs`):
+
+```{r rat-frame}
+# create the detection history of black rats in each station and occasion
+y_rat <- detection_matrix(obs = obs_long, effort = eff, scientificNames = "Rattus rattus", type = "occupancy")
+
+# format the matrix for unmarked, using one site covariate for elevation
+umf <- model_matrix_input(detections = y_rat, effort = eff, site_covs = elev,
+                          # and specifying the season of every occasion
+                          seasons = season, output = "unmarked")
+# add the covariates that change each season, one row per station and season, station by station
+unmarked::yearlySiteCovs(umf) <- data.frame(rain = as.vector(t(rain)), temp = as.vector(t(temp)))
+
+# view the number of stations, seasons and occasions in total
+c(stations = unmarked::numSites(umf), seasons = umf@numPrimary, occasions = ncol(unmarked::getY(umf)))
+```
+
+In addition to the occupancy formula (`psiformula`) and detection probability formula
+(`pformula`) shared with single-season occupancy models, `colext()` adds formulas
+for colonisation probability (`gammaformula`) and extinction probability
+(`epsilonformula`) from one season to the next. Another departure from the single-season
+occupancy model is that `psiformula` describes occupancy in the *first season only*.
+A season's `yearlySiteCovs` act on the change to the next season, so the last season's
+values are not used.
+
+```{r colext}
+# fit the multi-season occupancy model, where altitude affects the first season
+rat_colext <- colext(psiformula = ~ scale(altitude_point),
+                     # rainfall affects colonisation, and temperature affects extinction
+                     gammaformula = ~ scale(rain), epsilonformula = ~ scale(temp),
+                     # and detection changes with effort
+                     pformula = ~ scale(effort), data = umf)
+# view the model results
+rat_colext
+
+# the share of stations occupied in each season, for the population and for these 28 stations
+rbind(population = rat_colext@projected.mean["occupied", ],
+      these_stations = smoothed(rat_colext)["occupied", ])
+```
+
+Occupancy rose from winter 2021 to summer 2022 because colonisation outweighed extinction.
+At average rainfall and temperature, an empty station had about a 67% chance of being
+colonised between seasons, and an occupied one about a 16% chance of going extinct (the
+intercepts, back-transformed with `plogis()`). None of the covariates had a significant
+effect (`P(>|z|)` < 0.05) on its parameter; they are here to show how each kind of
+covariate enters the model.
+
+## Occupancy over time in spOccupancy
+
+The function `tPGOcc()` from the spOccupancy package models occupancy in each season directly,
+here from covariates in each season, rather than through colonisation and extinction. Its `y`
+is station x season x occasion:
+
+```{r tpgocc-data, warning = FALSE}
+# format the detections for spOccupancy, with site covariates and a season dimension
+rat_sp <- model_matrix_input(y_rat, eff, site_covs = elev, seasons = season, output = "spOccupancy")
+# view station x season x occasion dimensions
+dim(rat_sp$y)
+
+# the number of stations
+n_station <- nrow(rat_sp$y)
+# make the occupancy covariates a list, so covariates that change each season can join elevation
+rat_sp$occ.covs <- as.list(rat_sp$occ.covs)
+# a station x season matrix of season numbers, for a trend in occupancy (~ season)
+rat_sp$occ.covs$season <- matrix(1:3, n_station, 3, byrow = TRUE)
+# add the station x season covariates
+rat_sp$occ.covs$rain <- rain
+rat_sp$occ.covs$temp <- temp
+# the season of every station, season and occasion, for detection
+rat_sp$det.covs$season <- array(rep(1:3, each = n_station), dim = dim(rat_sp$y))
+# number each station, for a random intercept in detection
+rat_sp$det.covs$station <- seq_len(n_station)
+```
+
+Note that unlike unmarked, `tPGOcc()` has no colonisation or extinction parameters. Instead,
+it models occupancy in each season directly, though you can link neighbouring seasons through
+a temporal random effect by specifying the parameter `ar1 = TRUE`. Here occupancy follows a
+trend across the seasons (`season`), with the altitude and rainfall covariates from the unmarked
+model. Temperature is left out: it rose with the seasons (a correlation of 0.97 with `season`
+here), so the model cannot tell a temperature effect from the trend. `colext()` had no such
+problem, because temperature acted on extinction there and no other term followed the seasons.
+
+To compare like with like, the first model uses the same detection formula as `colext()`:
+
+```{r tpgocc}
+# make the chains repeatable
+set.seed(1)
+# fit the multi-season model, with a trend across seasons plus altitude and rainfall on occupancy,
+rat_t <- tPGOcc(occ.formula = ~ scale(altitude_point) + scale(rain) + season,
+                # detection changing with effort, as in colext()
+                det.formula = ~ scale(effort),
+                # and specify the data source and MCMC settings
+                data = rat_sp, n.batch = 600, batch.length = 25, n.burn = 5000,
+                n.thin = 10, n.chains = 3, verbose = FALSE)
+# view the results
+summary(rat_t)
+```
+
+`psi.samples` holds the occupancy probability of every station in every season, for every
+posterior sample. Averaged over stations and samples, it gives the expected share of stations
+occupied in each season, which `colext()` also estimates:
+
+```{r tpgocc-compare}
+# the share of stations occupied in each season, from each approach
+rbind(colext = rat_colext@projected.mean["occupied", ],
+      tPGOcc = apply(rat_t$psi.samples, 3, mean))
+```
+
+Both approaches give almost the same answer: about 57% of stations occupied in the first
+season, rising to about 85% in the third. In `tPGOcc()` the rise shows as a positive `season`
+effect (0.63, with a 95% credible interval of 0.01 to 1.28). As in unmarked, altitude and
+rainfall have no clear effect (*i.e.*, their 95% credible intervals overlap zero).
+
+Like our single-season models, spOccupancy offers model goodness-of-fit tests
+through the `ppcOcc()` function that computes a posterior predictive check. We
+use the Freeman-Tukey fit statistic, summed by station and then by occasion:
+
+```{r tpgocc-ppc}
+# compare real and simulated detections, summed by station
+summary(ppcOcc(rat_t, fit.stat = "freeman-tukey", group = 1))
+
+# then summed by occasion
+summary(ppcOcc(rat_t, fit.stat = "freeman-tukey", group = 2))
+```
+
+The occasions fit (0.32), but the stations do not (a Bayesian p-value near 0): some stations
+detected rats on many more occasions than others, which one detection formula shared by every
+station cannot reproduce. `colext()` uses the same detection formula, so it likely misses this
+too. A random intercept for each station in detection, and an effect for each season, allow for
+it:
+
+```{r tpgocc-station}
+# make the chains repeatable
+set.seed(1)
+# the same occupancy formula,
+rat_t2 <- tPGOcc(occ.formula = ~ scale(altitude_point) + scale(rain) + season,
+                 # with detection now differing by season and among stations
+                 det.formula = ~ scale(effort) + factor(season) + (1 | station),
+                 # and the same data and MCMC settings
+                 data = rat_sp, n.batch = 600, batch.length = 25, n.burn = 5000,
+                 n.thin = 10, n.chains = 3, verbose = FALSE)
+# view the results
+summary(rat_t2)
+
+# check the goodness of fit again, by station and then by occasion
+summary(ppcOcc(rat_t2, fit.stat = "freeman-tukey", group = 1))
+summary(ppcOcc(rat_t2, fit.stat = "freeman-tukey", group = 2))
+
+# and compare the share of stations occupied in each season across all three models
+rbind(colext = rat_colext@projected.mean["occupied", ],
+      tPGOcc = apply(rat_t$psi.samples, 3, mean),
+      tPGOcc_station = apply(rat_t2$psi.samples, 3, mean))
+```
+
+The fit by station improves greatly, from near 0 to 0.14, though both Bayesian p-values (0.14
+and 0.22) still fall below the 0.25 to 0.75 we treat as an adequate fit. Occupancy still rises
+across the seasons (`season` is 1.93, with a 95% credible interval of 0.23 to 4.15), but from a
+higher level: 0.90 to 0.98. Once detection can differ among stations, a station with few
+detections may hold rats that are simply hard to detect there, so more stations count as
+occupied. Every model finds the same rise; the level depends on how detection is modelled.
+Before trusting either level, try detection covariates that change within a season, or a
+random effect for each station in each season. With 28 stations, simpler models may also suit
+the data better.
+
+## Learn more
+
+- unmarked: [dynamic occupancy models](https://rbchan.github.io/unmarked/articles/colext.html).
+- spOccupancy: [multi-season (space-time) occupancy models](https://doserlab.com/files/spoccupancy-web/articles/spaceTimeModels.pdf).
+- *Combine projects to ask one question*: one occupancy model across four projects, with
+  their sampling artifacts.
+
+<details>
+<summary>Session information</summary>
+
+```{r session}
+sessionInfo()
+```
+
+</details>

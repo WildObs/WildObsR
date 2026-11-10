@@ -27,7 +27,7 @@ frames, with a `DPID` column naming the package. Supported elements: `contributo
 |---|---|
 | `contributors` | `title` (name), `role` (exactly one `principalInvestigator` per project; also `contributor`, `rightsHolder`, `contact`, `publisher`), and where known `email`, `path` (often an ORCID), `organization`, `ROR` (**WildObs**: the organisation's ROR ID). Missing entries come back as `NA`. |
 | `sources` | A list of sources the data came from (`title`, and where known `path`, `email`), e.g. Wildlife Insights. One row per source in `extract_metadata()`. Until the next database release the public API returns a single source rather than a list; `extract_metadata()` handles both. |
-| `relatedIdentifiers` | Linked papers and records: `relationType`, `relatedIdentifier`, `relatedIdentifierType` (`DOI`, `URL`, or **`RAiD`**, a WildObs addition identifying the research activity). |
+| `relatedIdentifiers` | Linked papers and records: `relationType`, `relatedIdentifier`, `relatedIdentifierType` (`DOI`, `URL`, or **`RAiD`**, a WildObs addition identifying the research activity). Projects published to the ALA and GBIF list their GBIF dataset DOI (`https://doi.org/10.15468/...`) here; their public images are hosted by the ALA. |
 | `references` | Free-text references. Empty in every current project. |
 
 ## Coverage
