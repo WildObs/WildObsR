@@ -1,0 +1,67 @@
+# Update common names to binomial nomenclature
+
+This function is used to convert species names from common names into
+binomial nomenclature, based off the WildObs verified taxonomy database.
+This is acheived by taking each missing species name, searching the
+common name column of binomial verifeid and suggesting replacements to
+the user from binomial_verified for any matches to the common name. If a
+common_name is not found it will tell you.
+
+## Usage
+
+``` r
+update_common_to_binomial(obs_data, verified_data, interactive = FALSE)
+```
+
+## Arguments
+
+- obs_data:
+
+  A data frame containing observation data with a species column (either
+  "scientificName" or "Species")
+
+- verified_data:
+
+  A data frame with verified species information containing columns:
+  Common_name, user_provided_name, and binomial_verified
+
+- interactive:
+
+  Logical. If TRUE, prompts user to choose replacement when multiple
+  matches exist (default: FALSE)
+
+## Value
+
+The obs_data data frame with scientificName column updated with verified
+binomial nomenclature where matches were found
+
+## Details
+
+The function can work interactivtly, allowing users to verify a name is
+correct or not. If more than binomial name is found it, will present
+options to specify the correct name by entering numbers. If nothing
+matches hit enter to skip that species. It ignores capitals. A
+replacement will be done on the Species column of the caps frame with
+the user selected replacements. Interactive defaults to FALSE, because
+knitting a Rmd document with an interactive funciton is not logical. Any
+time there is more than one different binomial name to replace the
+common name, it gets skipped for closer inspection later, but prints a
+message to let us know.
+
+## Author
+
+Tom Bruce & Zachary Amir & Shinyen Chiu
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+obs <- data.frame(Species = c("Red Fox", "Coyote", "Lace monitor"))
+verified <- data.frame(
+  Common_name = c("Red Fox", "Coyote", "goanna"),
+  user_provided_name = c("fox", "", ""),
+  binomial_verified = c("Vulpes vulpes", "Canis latrans", "Varanus varius")
+)
+update_common_to_binomial(obs, verified)
+} # }
+```

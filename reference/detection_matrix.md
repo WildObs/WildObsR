@@ -1,0 +1,167 @@
+# Build Detection Histories that Match a Sampling Effort Matrix
+
+Counts detections of each species for every site and occasion of an
+[`effort_matrix()`](https://wildobs.github.io/WildObsR/reference/effort_matrix.md),
+so detections and effort share exactly the same sites, occasions and day
+boundaries. A cell is `NA` where no camera was running and 0 where
+cameras ran but the species was not detected, so non-detections are
+never confused with no sampling.
+
+The steps are:
+
+1.  Obscured threatened-species records
+    (`obscured_for_<category>_species`), which carry no camera, and
+    observations that are not of animals, are set aside with a message
+    saying how many.
+
+2.  Each detection is placed on its deployment's site, and on the local
+    calendar day of its `eventStart` in the effort matrix's time zone. A
+    detection on a day its camera was not running stops the function,
+    because it means the deployment dates and the observations disagree.
+
+3.  With `type = "occupancy"`, a cell is 1 if the species was detected
+    at all.
+
+4.  With `type = "abundance"`, counts are combined in two steps:
+
+    1.  Within each event (`eventID`, a 30-minute window at one camera
+        in WildObs data), the largest `count` among its observations is
+        the number of animals seen. Repeat triggers by the same animals
+        are therefore counted once.
+
+    2.  Events are then combined over the occasion with `individuals`:
+        `"sum"` adds them, a relative abundance index; `"max"` takes the
+        largest single event, the most animals seen at once, as
+        N-mixture models assume.
+
+    With `by_camera = FALSE`, the second step pools the events of every
+    camera in the site, so `"sum"` can count an animal twice if it
+    passes two cameras, while `"max"` cannot. The day of a detection
+    only decides which occasion its event falls in; nothing is
+    summarised per day.
+
+## Usage
+
+``` r
+detection_matrix(
+  obs,
+  effort,
+  scientificNames,
+  type = c("occupancy", "abundance"),
+  individuals = c("sum", "max"),
+  by_camera = FALSE
+)
+```
+
+## Arguments
+
+- obs:
+
+  A data frame of observations with at least `deploymentID`,
+  `eventStart` (POSIXct) and `scientificName`; `count` and `eventID` are
+  used for abundance, and `observationType` to keep animals only.
+
+- effort:
+
+  The result of
+  [`effort_matrix()`](https://wildobs.github.io/WildObsR/reference/effort_matrix.md)
+  for the same deployments.
+
+- scientificNames:
+
+  Character vector of species to build histories for. A species never
+  detected is kept, with zeros wherever cameras ran.
+
+- type:
+
+  `"occupancy"` (default) or `"abundance"`.
+
+- individuals:
+
+  For abundance: `"sum"` (default) or `"max"`, how events are combined
+  over an occasion; see Description.
+
+- by_camera:
+
+  Logical. Keep each deployment separate, as a fourth dimension matching
+  the third dimension of `effort$effort`? Defaults to `FALSE`. This is
+  for custom models that treat each camera's detection separately. It
+  cannot be used with an effort matrix built with `split_by`, whose
+  third dimension holds the split levels rather than cameras; to model
+  detection by a split such as trail status, keep `FALSE` and use the
+  share covariates
+  [`model_matrix_input()`](https://wildobs.github.io/WildObsR/reference/model_matrix_input.md)
+  adds.
+
+## Value
+
+A numeric array, species x site x occasion (x deployment slot when
+`by_camera = TRUE`), with dimnames from `effort` and a `type` attribute
+(`"occupancy"` or `"abundance"`). `NA` marks cells with no effort. Stops
+if the observations name deployments that are not in `effort`, or fall
+on days their camera was not running.
+
+## See also
+
+[`effort_matrix()`](https://wildobs.github.io/WildObsR/reference/effort_matrix.md)
+for the effort these detections match.
+
+## Author
+
+Zachary Amir
+
+## Examples
+
+``` r
+# one camera at each of two stations, running 10 days
+deps <- data.frame(
+  deploymentID = c("A", "B"),
+  locationID = c("station_1", "station_2"),
+  deploymentStart = as.POSIXct("2024-03-01 00:00", tz = "UTC"),
+  deploymentEnd = as.POSIXct("2024-03-11 00:00", tz = "UTC")
+)
+eff <- effort_matrix(deps, site_col = "locationID", w = 5)
+
+# three detections of a pademelon, two of them at station 1
+obs <- data.frame(
+  deploymentID = c("A", "A", "B"),
+  eventID = c("e1", "e2", "e3"),
+  eventStart = as.POSIXct(c("2024-03-02 03:00", "2024-03-08 21:00", "2024-03-03 01:00"),
+                          tz = "UTC"),
+  scientificName = "Thylogale stigmatica",
+  count = c(1, 2, 1),
+  observationType = "animal"
+)
+
+# detected or not, and the number of individuals, per station and occasion
+detection_matrix(obs, eff, scientificNames = "Thylogale stigmatica")
+#> , , occasion = o1
+#> 
+#>                       site
+#> species                station_1 station_2
+#>   Thylogale stigmatica         1         1
+#> 
+#> , , occasion = o2
+#> 
+#>                       site
+#> species                station_1 station_2
+#>   Thylogale stigmatica         1         0
+#> 
+#> attr(,"type")
+#> [1] "occupancy"
+detection_matrix(obs, eff, "Thylogale stigmatica", type = "abundance")
+#> , , occasion = o1
+#> 
+#>                       site
+#> species                station_1 station_2
+#>   Thylogale stigmatica         1         1
+#> 
+#> , , occasion = o2
+#> 
+#>                       site
+#> species                station_1 station_2
+#>   Thylogale stigmatica         2         0
+#> 
+#> attr(,"type")
+#> [1] "abundance"
+```

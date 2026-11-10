@@ -1,0 +1,59 @@
+# Determine Australian State from Coordinates
+
+This function uses the `ozmaps` library to determine the Australian
+state in which each camera deployment is located, based on the average
+coordinates (latitude and longitude) for each deployment. It assigns
+state codes (e.g., "NSW", "QLD") to the input data based on the
+geographic location of the deployments.
+
+## Usage
+
+``` r
+AUS_state_locator(deps)
+```
+
+## Arguments
+
+- deps:
+
+  A data frame containing camera deployment data. This must include
+  columns for `deploymentID`, `Latitude` or `latitude`, and `Longitude`
+  or `longitude`.
+
+## Value
+
+A data frame with the original deployment data, along with an additional
+`state` column that contains the abbreviated Australian state or
+territory code (e.g., "NSW", "QLD").
+
+## Details
+
+The function expects the deployment data to have columns for latitude
+and longitude, either named `Latitude`/`Longitude` or
+`latitude`/`longitude`. It calculates the average coordinates for each
+deployment and uses the `ozmaps` package to intersect these with
+Australian state boundaries. If any deployments cannot be matched to a
+state, the function will search for the nearest state and assign it that
+value (e.g., coordinates near coast)
+
+## Author
+
+Zachary Amir & Tom Bruce
+
+## Examples
+
+``` r
+# Example data
+deps <- data.frame(
+  deploymentID = c("dep1", "dep2"),
+  Latitude = c(-33.8688, -27.4698),
+  Longitude = c(151.2093, 153.0251)
+)
+
+# Run the function to find states
+deps_with_states <- AUS_state_locator(deps)
+print(deps_with_states)
+#>   deploymentID Latitude Longitude state
+#> 1         dep1 -33.8688  151.2093   NSW
+#> 2         dep2 -27.4698  153.0251   QLD
+```

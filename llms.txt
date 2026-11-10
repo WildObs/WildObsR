@@ -1,0 +1,315 @@
+# WildObsR
+
+![WildObsR logo](reference/figures/WildObsLogo_green.svg)![WildObsR
+icon](reference/figures/wildobs.svg)
+
+The Wildlife Observatory of Australia
+([WildObs](https://www.wildobs.org.au)) provides a suite of tools, such
+as the [WildObs Image
+Platform](https://www.wildobs.org.au/image-platform) and [Tagged Image
+Repository](https://www.wildobs.org.au/tagged-image-repository), to
+enhance and support camera trapping across Australia. WildObsR provides
+programmatic access to query, download and prepare camera trap data from
+the [WildObs Database](https://www.wildobs.org.au/database). Every
+project arrives as a [Camera Trap Data
+Package](https://camtrap-dp.tdwg.org/) (Camtrap DP), meaning each
+dataset contains tables of camera deployments, wildlife detections and
+media (*i.e.*, images and/or videos), along with Creative Commons
+licences, formatted citations and field definitions that travel with
+them.
+
+- **Discover** what data exist: search projects by place, time, species,
+  sampling design or contributor, including embargoed projects, which
+  are listed before their data are released.
+- **Access** curated data packages, with threatened-species records
+  protected, image records, and a citation for every project
+  ([`cite_datapackages()`](https://wildobs.github.io/WildObsR/reference/cite_datapackages.md)).
+- **Interoperate** with other Camtrap DP tools:
+  [`as_camtrapdp()`](https://wildobs.github.io/WildObsR/reference/as_camtrapdp.md)
+  converts to canonical Camtrap DP for the camtrapdp and camtrapR
+  packages and for GBIF.
+- **Harmonise** projects with different designs: group cameras into
+  cells of any size, rebuild long-term deployments, and reclassify
+  independent detections.
+- **Add spatial context**: state, IBRA bioregion and CAPAD protected
+  area, with the layers shipped in the package.
+
+Full documentation and tutorials:
+**<https://wildobs.github.io/WildObsR/>**
+
+## Installation
+
+``` r
+
+# install.packages("pak")
+pak::pak("WildObs/WildObsR")
+```
+
+WildObsR needs R 4.1 or later. On Linux, install the GDAL, PROJ, GEOS
+and OpenSSL development libraries first (for example
+`sudo apt install libgdal-dev libproj-dev libgeos-dev libssl-dev`).
+
+## Quick start
+
+Downloading data needs a free personal API key from the [WildObs
+Dashboard](https://dashboard.wildobs.org.au), stored in your `.Renviron`
+file as `WILDOBSR_API_KEY`. The [Get
+started](https://wildobs.github.io/WildObsR/articles/WildObsR.html)
+article walks through it.
+
+``` r
+
+library(WildObsR)
+api_key <- Sys.getenv("WILDOBSR_API_KEY")
+
+# find every project with cameras in a box around the Wet Tropics of Queensland
+ids <- wildobs_mongo_query(api_key = api_key,
+                           spatial = list(xmin = 144.9, xmax = 146.5,
+                                          ymin = -19.6, ymax = -15.3))
+
+# download them as Camtrap DP data packages; embargoed projects arrive as metadata only
+dp_list <- wildobs_dp_download(api_key = api_key, project_ids = ids)
+
+# read a table, and cite the data
+deployments <- frictionless::read_resource(dp_list[[1]], "deployments")
+writeLines(cite_datapackages(dp_list))
+```
+
+No key yet? Two open projects, from the Queensland Wet Tropics and New
+South Wales, ship with the package:
+
+``` r
+
+dp_list <- example_datapackages()
+```
+
+## Tutorials
+
+| Article | What it covers |
+|----|----|
+| [Get started](https://wildobs.github.io/WildObsR/articles/WildObsR.html) | Installing, getting an API key, the first download |
+| [Discover what exists](https://wildobs.github.io/WildObsR/articles/discover.html) | Searching the database and reading project metadata |
+| [Inside a WildObs data package](https://wildobs.github.io/WildObsR/articles/data-package.html) | Every table and identifier, and how WildObs extends Camtrap DP |
+| [For data providers](https://wildobs.github.io/WildObsR/articles/data-providers.html) | Your projects as others see them: embargoes, obscuring, citations |
+| [Images for computer vision](https://wildobs.github.io/WildObsR/articles/images.html) | Downloading labelled images |
+| [Camtrap DP interoperability](https://wildobs.github.io/WildObsR/articles/interoperability.html) | camtrapdp, GBIF, camtrapR and its survey dashboard |
+| [Spatial context](https://wildobs.github.io/WildObsR/articles/spatial-context.html) | States, bioregions, protected areas and camera spacing |
+| [Detection histories and sampling effort](https://wildobs.github.io/WildObsR/articles/detection-histories.html) | Effort and detection matrices for occupancy and abundance models |
+| [Fit single-season models](https://wildobs.github.io/WildObsR/articles/fitting-models.html) | unmarked, spOccupancy, spAbundance and NIMBLE on one survey |
+| [Fit multi-season models](https://wildobs.github.io/WildObsR/articles/long-term.html) | Long-term deployments, colonisation and extinction, and trends |
+| [Combine projects to ask one question](https://wildobs.github.io/WildObsR/articles/combining-projects.html) | One model across four projects, and their sampling artifacts |
+| [Working with Claude](https://wildobs.github.io/WildObsR/articles/claude-skill.html) | A guide to the data for AI coding assistants |
+
+## Keeping WildObsR up to date
+
+WildObsR checks its own version the first time you query or download
+data in a session and warns if a newer release is available; it never
+blocks your work. Update by running the install command again. WildObsR
+uses [semantic versioning](https://semver.org/) (`major.minor.patch`):
+
+| Change | Example | What it means for you |
+|----|----|----|
+| **major** | `1.0.0` → `2.0.0` | **Not backwards compatible.** An old installed version will produce broken or wrong downloads. Update before running anything. |
+| **minor** | `0.3.0` → `0.4.0` | Backwards-compatible additions, such as new functions, or database changes that old code still handles correctly. Update when convenient. |
+| **patch** | `0.4.0` → `0.4.1` | Behaviour-preserving fixes. Nothing you rely on changes. |
+
+## Citation
+
+Please cite the release of WildObsR you used, and every data package you
+analysed:
+
+``` r
+
+citation("WildObsR")
+cite_datapackages(dp_list)
+```
+
+## Getting help and contributing
+
+- Bugs and tutorial requests: [GitHub
+  issues](https://github.com/WildObs/WildObsR/issues)
+- Questions about a project’s data: <data@wildobs.org.au>
+- Contributing code: see
+  [CONTRIBUTING](https://wildobs.github.io/WildObsR/CONTRIBUTING.md)
+
+## License
+
+MIT License; see
+[LICENSE.md](https://wildobs.github.io/WildObsR/LICENSE.md). The bundled
+CAPAD 2022 and IBRA 7 layers are © Commonwealth of Australia (DCCEEW),
+licensed under Creative Commons Attribution.
+
+## Acknowledgments
+
+WildObsR development is supported by:
+
+- **Queensland Cyber Infrastructure Foundation (QCIF)**
+- **Terrestrial Ecosystem Research Network (TERN)**
+- **Australian Research Data Commons (ARDC)**
+- **Atlas of Living Australia (ALA)**
+- **University of Queensland, School of the Environment**
+
+# Package index
+
+## Discover
+
+Search the WildObs database and read what each project describes.
+
+- [`wildobs_mongo_query()`](https://wildobs.github.io/WildObsR/reference/wildobs_mongo_query.md)
+  : Query WildObs MongoDB for Relevant Project IDs
+- [`extract_metadata()`](https://wildobs.github.io/WildObsR/reference/extract_metadata.md)
+  : Extract Metadata Elements from Data Packages
+
+## Access
+
+Download data packages and images, and cite them.
+
+- [`wildobs_dp_download()`](https://wildobs.github.io/WildObsR/reference/wildobs_dp_download.md)
+  : Download Data from WildObs' MongoDB and Format as Frictionless Data
+  Packages
+- [`wildobs_media_download()`](https://wildobs.github.io/WildObsR/reference/wildobs_media_download.md)
+  : Download the Media Files Listed in a Camtrap DP Media Table
+- [`cite_datapackages()`](https://wildobs.github.io/WildObsR/reference/cite_datapackages.md)
+  : Cite the Camera Trap Data Packages Used in an Analysis
+- [`example_datapackages()`](https://wildobs.github.io/WildObsR/reference/example_datapackages.md)
+  : Example WildObs Data Packages
+
+## Interoperate
+
+Move between WildObs and canonical Camtrap DP.
+
+- [`as_camtrapdp()`](https://wildobs.github.io/WildObsR/reference/as_camtrapdp.md)
+  : Convert a WildObs Data Package to Canonical Camtrap DP
+- [`apply_schema_types()`](https://wildobs.github.io/WildObsR/reference/apply_schema_types.md)
+  : Apply camtrapDP Schemas to Data
+- [`extract_tags()`](https://wildobs.github.io/WildObsR/reference/extract_tags.md)
+  : Extract Tag Key:Value Pairs into Individual Columns
+
+## Harmonise
+
+Resample many projects to shared spatial and temporal units.
+
+- [`spatial_hexagon_generator()`](https://wildobs.github.io/WildObsR/reference/spatial_hexagon_generator.md)
+  : Generate spatially distinct sampling units
+- [`resample_covariates_and_observations()`](https://wildobs.github.io/WildObsR/reference/resample_covariates_and_observations.md)
+  : Spatially resample the covariates and observations resources
+  Spatially Resample Covariates and Observations Across Spatial Scales
+- [`update_temporally_overlapping_deployments()`](https://wildobs.github.io/WildObsR/reference/update_temporally_overlapping_deployments.md)
+  : Group Temporally Overlapping Deployment IDs
+- [`recombine_deployment_groups()`](https://wildobs.github.io/WildObsR/reference/recombine_deployment_groups.md)
+  : Recombine 100-Day Deployments Into Continuous Long-Term Deployments
+- [`reclassify_eventID()`](https://wildobs.github.io/WildObsR/reference/reclassify_eventID.md)
+  : Reclassify eventID Values Using a New Temporal Threshold
+- [`survey_and_deployment_generator()`](https://wildobs.github.io/WildObsR/reference/survey_and_deployment_generator.md)
+  : Determine Single-Season Sampling Efforts from Camera Trap Images
+
+## Model
+
+Build sampling effort and detection histories, and format them for
+modelling packages.
+
+- [`effort_matrix()`](https://wildobs.github.io/WildObsR/reference/effort_matrix.md)
+  : Build a Sampling Effort Matrix from Camera Deployments
+- [`detection_matrix()`](https://wildobs.github.io/WildObsR/reference/detection_matrix.md)
+  : Build Detection Histories that Match a Sampling Effort Matrix
+- [`model_matrix_input()`](https://wildobs.github.io/WildObsR/reference/model_matrix_input.md)
+  : Format Detection Histories and Covariates for Occupancy and
+  Abundance Models
+
+### Legacy
+
+Kept for existing workflows.
+
+- [`matrix_generator()`](https://wildobs.github.io/WildObsR/reference/matrix_generator.md)
+  : Generate Detection History and Covariate Matrices from camtrapDP
+  Formatted Data
+
+## Spatial context
+
+Place cameras in their Australian setting.
+
+- [`AUS_state_locator()`](https://wildobs.github.io/WildObsR/reference/AUS_state_locator.md)
+  : Determine Australian State from Coordinates
+- [`ibra_classification()`](https://wildobs.github.io/WildObsR/reference/ibra_classification.md)
+  : Determine Interim Biogeographic Regionalisation for Australia (IBRA)
+  bio-regions and subregions
+- [`locationName_verification_CAPAD()`](https://wildobs.github.io/WildObsR/reference/locationName_verification_CAPAD.md)
+  : Verify Location Names Using the Collaborative Australian Protected
+  Areas Database
+- [`locationName_buffer_CAPAD()`](https://wildobs.github.io/WildObsR/reference/locationName_buffer_CAPAD.md)
+  : Generate Location Buffers and Assign CAPAD Protected Area Names
+- [`UTM_coord_generator()`](https://wildobs.github.io/WildObsR/reference/UTM_coord_generator.md)
+  : Generate UTMs when latitude,longitude,and UTM_Zone have been
+  provided in a dataframe
+- [`find_nearest_neighbor_distance()`](https://wildobs.github.io/WildObsR/reference/find_nearest_neighbor_distance.md)
+  : Calculate Nearest Neighbor Distances for Camera Trap Locations
+
+## Utilities
+
+- [`WildObsR-package`](https://wildobs.github.io/WildObsR/reference/WildObsR.md)
+  [`WildObsR`](https://wildobs.github.io/WildObsR/reference/WildObsR.md)
+  : WildObsR: Professional tools for camera trap data access,
+  management, and analysis in R
+- [`install_claude_skill()`](https://wildobs.github.io/WildObsR/reference/install_claude_skill.md)
+  : Install a WildObsR Skill for Claude
+- [`update_common_to_binomial()`](https://wildobs.github.io/WildObsR/reference/update_common_to_binomial.md)
+  : Update common names to binomial nomenclature
+- [`verify_col_match()`](https://wildobs.github.io/WildObsR/reference/verify_col_match.md)
+  : Verify Column Matches Between Two Dataframes
+- [`rename_or_add_column()`](https://wildobs.github.io/WildObsR/reference/rename_or_add_column.md)
+  : Rename or Add a Column
+- [`get_decimal_places()`](https://wildobs.github.io/WildObsR/reference/get_decimal_places.md)
+  : Get Decimal Places from Numeric Values
+- [`` `%>%` ``](https://wildobs.github.io/WildObsR/reference/pipe.md) :
+  Pipe operator
+
+## Data
+
+- [`capad`](https://wildobs.github.io/WildObsR/reference/capad.md) :
+  Collaborative Australian Protected Areas Database (CAPAD) 2022,
+  Terrestrial
+- [`ibra`](https://wildobs.github.io/WildObsR/reference/ibra.md) :
+  Interim Biogeographic Regionalisation for Australia (IBRA7) Subregions
+- [`species_traits`](https://wildobs.github.io/WildObsR/reference/species_traits.md)
+  : Species Trait Data
+
+## Deprecated
+
+- [`check_schema()`](https://wildobs.github.io/WildObsR/reference/check_schema.md)
+  : Validate Data Against CamTrap DP Schemas
+
+# Articles
+
+### Find and access data
+
+- [Discover what
+  exists](https://wildobs.github.io/WildObsR/articles/discover.md):
+- [Inside a WildObs data
+  package](https://wildobs.github.io/WildObsR/articles/data-package.md):
+- [For data providers: your projects in
+  WildObs](https://wildobs.github.io/WildObsR/articles/data-providers.md):
+- [Images for computer
+  vision](https://wildobs.github.io/WildObsR/articles/images.md):
+
+### Interoperate and add context
+
+- [Camtrap DP
+  interoperability](https://wildobs.github.io/WildObsR/articles/interoperability.md):
+- [Spatial context for camera
+  locations](https://wildobs.github.io/WildObsR/articles/spatial-context.md):
+
+### Model the data
+
+- [Detection histories and sampling
+  effort](https://wildobs.github.io/WildObsR/articles/detection-histories.md):
+- [Fit single-season
+  models](https://wildobs.github.io/WildObsR/articles/fitting-models.md):
+- [Fit multi-season
+  models](https://wildobs.github.io/WildObsR/articles/long-term.md):
+- [Combine projects to ask one
+  question](https://wildobs.github.io/WildObsR/articles/combining-projects.md):
+
+### About
+
+- [Working with
+  Claude](https://wildobs.github.io/WildObsR/articles/claude-skill.md):

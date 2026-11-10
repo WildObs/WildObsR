@@ -1,0 +1,27 @@
+# Convert Area to Hexagon Apothem
+
+Calculates the apothem (distance from center to midpoint of side) for a
+regular hexagon given its area in square meters.
+
+## Usage
+
+``` r
+area_to_apothem(area_m2)
+```
+
+## Arguments
+
+- area_m2:
+
+  Numeric vector of hexagon areas in square meters. Must be positive
+  values.
+
+## Value
+
+A numeric vector of apothem values (in meters) with names indicating the
+original area (formatted as "km2" or "m2")
+
+## Details
+
+Calculates hexagon dimensions using standard formulas: side length =
+sqrt((2 \* area) / (3 \* sqrt(3))) apothem = (side \* sqrt(3)) / 2

@@ -1,0 +1,20 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  claude-skill: claude-skill.html
+  combining-projects: combining-projects.html
+  data-package: data-package.html
+  data-providers: data-providers.html
+  detection-histories: detection-histories.html
+  discover: discover.html
+  fitting-models: fitting-models.html
+  images: images.html
+  interoperability: interoperability.html
+  long-term: long-term.html
+  spatial-context: spatial-context.html
+  WildObsR: WildObsR.html
+last_built: 2026-11-10T05:12Z
+urls:
+  reference: https://wildobs.github.io/WildObsR/reference
+  article: https://wildobs.github.io/WildObsR/articles
