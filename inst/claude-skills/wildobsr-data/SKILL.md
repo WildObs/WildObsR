@@ -292,14 +292,21 @@ returns the table with `localPath`, `downloadStatus` (`downloaded`, `copied`,
 `out_dir/<projectName>/<deploymentID>/<mediaID>.<ext>`, and re-running it only fetches
 what is missing.
 
-Through the public API, `filePath` takes one of two forms:
+Through the public API, `filePath` takes one of three forms:
 
 | `filePath` | Share of public media | What happens |
 |---|---|---|
-| `https://data.wildobs.org.au/...` | ~3% | Downloads. These are exactly the `filePublic = TRUE` rows. |
+| `https://data.wildobs.org.au/...` | <1% | Downloads. Hosted by WildObs; `filePublic = TRUE`. |
+| `https://images.ala.org.au/store/.../original` | ~2% | Downloads. Hosted by the Atlas of Living Australia (ALA); `filePublic = TRUE`. |
 | `not_publicly_accessible` | ~97% | The image exists but is not shared publicly. Skipped. |
 
-So filter to public files first: `media[media$filePublic, ]`. Start with a few rows
+The ALA is the external tagged image repository for WildObs projects published to the ALA
+and GBIF. Those projects also list a GBIF dataset DOI (`https://doi.org/10.15468/...`) in
+`relatedIdentifiers`, which is the record to cite for the ALA/GBIF copy. ALA paths have no
+file extension; `wildobs_media_download()` takes it from `fileMediatype`.
+
+So filter to public files first: `media[media$filePublic, ]`; `filePublic = TRUE` marks
+every downloadable file, whichever host serves it. Start with a few rows
 (`head(..., 20)`) to check the result before downloading thousands. Users with direct
 database access see each file's original location instead (for example a Wildlife Insights
 `gs://` bucket, which needs `gcs_token`); see `?wildobs_media_download`.
