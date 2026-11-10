@@ -67,26 +67,24 @@ contributors[, c("title", "role", "DPID")]
 #> 3       Zachary Amir principalInvestigator
 #> 4     Matthew Luskin          rightsHolder
 #> 5  Linda Behrendorff               contact
-#> 6   Steven Salisbury           contributor
-#> 7       Zachary Amir principalInvestigator
-#> 8  Linda Behrendorff          rightsHolder
-#> 9     Matthew Luskin           contributor
-#> 10      Zachary Amir principalInvestigator
-#> 11         Tom Bruce               contact
-#> 12    Matthew Luskin          rightsHolder
+#> 6       Zachary Amir principalInvestigator
+#> 7  Linda Behrendorff          rightsHolder
+#> 8     Matthew Luskin           contributor
+#> 9       Zachary Amir principalInvestigator
+#> 10         Tom Bruce               contact
+#> 11    Matthew Luskin          rightsHolder
 #>                                             DPID
 #> 1  QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005
 #> 2  QLD_Dwyers_Scrub_ANIM3018_2023_WildObsID_0005
 #> 3      QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
 #> 4      QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
 #> 5      QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
-#> 6      QLD_Kgari_BIOL2015_2023-24_WildObsID_0004
+#> 6    QLD_Kgari_potoroos_Amir_2022_WildObsID_0003
 #> 7    QLD_Kgari_potoroos_Amir_2022_WildObsID_0003
 #> 8    QLD_Kgari_potoroos_Amir_2022_WildObsID_0003
-#> 9    QLD_Kgari_potoroos_Amir_2022_WildObsID_0003
+#> 9      ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 #> 10     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 #> 11     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
-#> 12     ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 
 # view the licence of the data and of the media
 extract_metadata(meta, "licenses")[, c("name", "scope", "DPID")]
@@ -199,10 +197,10 @@ downloaded, so you can search for your RAiD to find where your data were used:
 ``` r
 # view citations from all projects with metadata
 writeLines(cite_datapackages(meta))
-#> Zachary Amir & Annabel Smith (2023). WildObs Camera Trap Data Package: UQ's undergraduate widlife techonologies camera trapping module comparing human and AI comptuer vision [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/a3efd562. WildObs data package version 1.0.1.
-#> Zachary Amir, Linda Behrendorff & Matthew Luskin (2022). WildObs Camera Trap Data Package: UQ & QPWS collaboration to study impacts of 2019-20 bushfires on K'gari's long-nosed potoroos [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/ba8f4587. WildObs data package version 1.0.2.
-#> Zachary Amir, Matthew Luskin & Linda Behrendorff (2023). WildObs Camera Trap Data Package: Camera Trap Module for UQ's BIOL2015 Field Ecology Studies Course from 2023, 2024, 2025 [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/1b8c4374. WildObs data package version 2.1.1.
-#> Zachary Amir, Tom Bruce & Matthew Luskin (2022). WildObs Camera Trap Data Package: Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/cb5829ab. WildObs data package version 1.1.1.
+#> Zachary Amir & Annabel Smith (2023). WildObs Camera Trap Data Package: UQ's undergraduate widlife techonologies camera trapping module comparing human and AI comptuer vision [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/a3efd562. WildObs data package version 1.1.0.
+#> Zachary Amir, Linda Behrendorff & Matthew Luskin (2022). WildObs Camera Trap Data Package: UQ & QPWS collaboration to study impacts of 2019-20 bushfires on K'gari's long-nosed potoroos [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/ba8f4587. WildObs data package version 1.1.0.
+#> Zachary Amir, Matthew Luskin & Linda Behrendorff (2023). WildObs Camera Trap Data Package: Camera Trap Module for UQ's BIOL2015 Field Ecology Studies Course from 2023, 2024, 2025 [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/1b8c4374. WildObs data package version 2.2.0.
+#> Zachary Amir, Tom Bruce & Matthew Luskin (2022). WildObs Camera Trap Data Package: Zachary Amir's camera trap surveys from 6 national parks in QLD's Wet Tropics rainforests from late 2022 to early 2023 targeting feral and native vertebrates [Camera Trap Data Package]. WildObs National Wildlife Camera Database. https://wildobs.org.au. RAiD: https://raid.org/10.83062/cb5829ab. WildObs data package version 1.2.0.
 ```
 
 Papers and datasets that are associated with a project are listed in its `relatedIdentifiers`:
@@ -218,11 +216,13 @@ related[related$relatedIdentifierType == "DOI", c("relationType", "relatedIdenti
 #> 8  IsSupplementTo https://doi.org/10.1016/j.scitotenv.2026.181926
 #> 9      IsSourceOf                 https://doi.org/10.15468/kjqw3f
 #> 10      IsCitedBy         https://doi.org/10.5281/zenodo.19552244
+#> 11     IsSourceOf              https://doi.org/10.25901/mn1n-gq28
 #>                                         DPID
 #> 6  ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 #> 8  ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 #> 9  ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 #> 10 ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
+#> 11 ZAmir_QLD_Wet_Tropics_2022_WildObsID_0001
 ```
 
 To add a publication that uses your data, please send its DOI to <data@wildobs.org.au>.
@@ -237,12 +237,12 @@ sessionInfo()
 #> Platform: aarch64-apple-darwin20
 #> Running under: macOS Tahoe 26.5.1
 #> 
-#> Matrix products: internal
+#> Matrix products: default
 #> BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib 
 #> LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
 #> 
 #> locale:
-#> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+#> [1] C.UTF-8/C.UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
 #> 
 #> time zone: Australia/Brisbane
 #> tzcode source: internal
@@ -254,45 +254,26 @@ sessionInfo()
 #> [1] WildObsR_0.3.0.9000 here_1.0.1         
 #> 
 #> loaded via a namespace (and not attached):
-#>   [1] DBI_1.3.0             remotes_2.5.0         permute_0.9-10       
-#>   [4] rlang_1.3.0           magrittr_2.0.5        shinydashboard_0.7.3 
-#>   [7] camtrapR_3.0.5        otel_0.2.0            e1071_1.7-17         
-#>  [10] compiler_4.5.1        mgcv_1.9-3            mongolite_4.1.0      
-#>  [13] vctrs_0.7.3           reshape2_1.4.4        oz_1.0-22            
-#>  [16] stringr_1.6.0         pkgconfig_2.0.3       crayon_1.5.3         
-#>  [19] fastmap_1.2.0         ellipsis_0.3.2        geojsonsf_2.0.5      
-#>  [22] utf8_1.2.6            promises_1.3.3        sessioninfo_1.2.3    
-#>  [25] tzdb_0.5.0            purrr_1.2.2           bit_4.6.0            
-#>  [28] xfun_0.61             cachem_1.1.0          jsonlite_2.0.0       
-#>  [31] camtrapdp_0.6.0       later_1.4.2           terra_1.9-50         
-#>  [34] parallel_4.5.1        cluster_2.1.8.1       R6_2.6.1             
-#>  [37] stringi_1.8.9         RColorBrewer_1.1-3    pkgload_1.4.1        
-#>  [40] lubridate_1.9.5       Rcpp_1.1.2            knitr_1.52           
-#>  [43] usethis_3.2.1         readr_2.2.0           httpuv_1.6.16        
-#>  [46] Matrix_1.7-3          splines_4.5.1         timechange_0.4.0     
-#>  [49] tidyselect_1.2.1      abind_1.4-8           rstudioapi_0.17.1    
-#>  [52] stringdist_0.9.17     vegan_2.7-6           codetools_0.2-20     
-#>  [55] curl_8.0.0            pkgbuild_1.4.8        lattice_0.22-7       
-#>  [58] tibble_3.3.1          plyr_1.8.9            shiny_1.10.0         
-#>  [61] withr_3.0.3           S7_0.2.0              evaluate_1.0.5       
-#>  [64] desc_1.4.3            sf_1.1-3              RcppParallel_5.1.11-1
-#>  [67] units_1.0-1           proxy_0.4-29          pillar_1.11.1        
-#>  [70] frictionless_1.3.0    KernSmooth_2.23-26    DT_0.33              
-#>  [73] generics_0.1.4        sp_2.2-0              vroom_1.7.1          
-#>  [76] rprojroot_2.1.1       hms_1.1.4             ggplot2_4.0.3        
-#>  [79] scales_1.4.0          xtable_1.8-4          chron_2.3-63         
-#>  [82] class_7.3-23          glue_1.8.1            ozmaps_0.4.5         
-#>  [85] tools_4.5.1           data.table_1.17.4     mvtnorm_1.3-3        
-#>  [88] fs_1.6.6              grid_4.5.1            jsonvalidate_1.5.0   
-#>  [91] tidyr_1.3.2           crosstalk_1.2.1       shinyBS_0.61.1       
-#>  [94] devtools_2.4.6        nlme_3.1-168          raster_3.6-32        
-#>  [97] secr_5.3.0            cli_3.6.6             dplyr_1.2.1          
-#> [100] V8_8.2.0              gtable_0.3.6          digest_0.6.37        
-#> [103] RcppNumerical_0.6-0   classInt_0.4-11       lutz_0.3.2           
-#> [106] htmlwidgets_1.6.4     farver_2.1.2          memoise_2.0.1        
-#> [109] htmltools_0.5.8.1     lifecycle_1.0.5       leaflet_2.2.2        
-#> [112] httr_1.4.9            mime_0.13             bit64_4.8.6          
-#> [115] MASS_7.3-65
+#>  [1] stringdist_0.9.17  xfun_0.61          devtools_2.4.6     remotes_2.5.0     
+#>  [5] lattice_0.22-7     tzdb_0.5.0         vctrs_0.7.3        tools_4.5.1       
+#>  [9] generics_0.1.4     curl_8.0.0         parallel_4.5.1     tibble_3.3.1      
+#> [13] proxy_0.4-29       cluster_2.1.8.1    chron_2.3-63       pkgconfig_2.0.3   
+#> [17] Matrix_1.7-3       KernSmooth_2.23-26 desc_1.4.3         lifecycle_1.0.5   
+#> [21] compiler_4.5.1     stringr_1.6.0      terra_1.9-50       codetools_0.2-20  
+#> [25] permute_0.9-10     usethis_3.2.1      class_7.3-23       pillar_1.11.1     
+#> [29] tidyr_1.3.2        MASS_7.3-65        ellipsis_0.3.2     classInt_0.4-11   
+#> [33] mongolite_4.1.0    cachem_1.1.0       vegan_2.7-6        sessioninfo_1.2.3 
+#> [37] nlme_3.1-168       tidyselect_1.2.1   stringi_1.8.9      sf_1.1-3          
+#> [41] dplyr_1.2.1        purrr_1.2.2        splines_4.5.1      rprojroot_2.1.1   
+#> [45] fastmap_1.2.0      grid_4.5.1         cli_3.6.6          magrittr_2.0.5    
+#> [49] pkgbuild_1.4.8     e1071_1.7-17       withr_3.0.3        readr_2.2.0       
+#> [53] lubridate_1.9.5    timechange_0.4.0   httr_1.4.9         ozmaps_0.4.5      
+#> [57] otel_0.2.0         lutz_0.3.2         hms_1.1.4          memoise_2.0.1     
+#> [61] evaluate_1.0.5     knitr_1.52         mgcv_1.9-3         frictionless_1.3.0
+#> [65] rlang_1.3.0        Rcpp_1.1.2         glue_1.8.1         DBI_1.3.0         
+#> [69] geojsonsf_2.0.5    pkgload_1.4.1      rstudioapi_0.17.1  jsonlite_2.0.0    
+#> [73] R6_2.6.1           plyr_1.8.9         oz_1.0-22          fs_1.6.6          
+#> [77] units_1.0-1
 ```
 
 </details>

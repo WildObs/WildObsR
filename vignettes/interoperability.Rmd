@@ -125,7 +125,7 @@ dim(ct$CTtable)
 #> [1] 32 27
 # repeat for the record table 
 dim(ct$recordTable)
-#> [1] 2885   30
+#> [1] 2885   31
 ```
 
 camtrapR joins every deployment at a sampling location `locationID` into one row 
@@ -217,7 +217,7 @@ sessionInfo()
 #> LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
 #> 
 #> locale:
-#> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+#> [1] C.UTF-8/C.UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
 #> 
 #> time zone: Australia/Brisbane
 #> tzcode source: internal
@@ -263,7 +263,7 @@ sessionInfo()
 #>  [94] devtools_2.4.6        nlme_3.1-168          raster_3.6-32        
 #>  [97] secr_5.3.0            cli_3.6.6             dplyr_1.2.1          
 #> [100] V8_8.2.0              gtable_0.3.6          digest_0.6.37        
-#> [103] RcppNumerical_0.6-0   classInt_0.4-11       lutz_0.3.2           
+#> [103] classInt_0.4-11       RcppNumerical_0.6-0   lutz_0.3.2           
 #> [106] htmlwidgets_1.6.4     farver_2.1.2          memoise_2.0.1        
 #> [109] htmltools_0.5.8.1     lifecycle_1.0.5       leaflet_2.2.2        
 #> [112] httr_1.4.9            mime_0.13             bit64_4.8.6          

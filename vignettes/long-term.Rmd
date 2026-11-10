@@ -376,7 +376,7 @@ summary(rat_t)
 #> Thinning Rate: 10
 #> Number of Chains: 3
 #> Total Posterior Samples: 3000
-#> Run Time (min): 0.1155
+#> Run Time (min): 0.1065
 #> 
 #> Occurrence (logit scale): 
 #>                          Mean     SD    2.5%     50%  97.5%   Rhat  ESS
@@ -504,7 +504,7 @@ summary(rat_t2)
 #> Thinning Rate: 10
 #> Number of Chains: 3
 #> Total Posterior Samples: 3000
-#> Run Time (min): 0.1845
+#> Run Time (min): 0.1737
 #> 
 #> Occurrence (logit scale): 
 #>                          Mean     SD    2.5%     50%  97.5%   Rhat  ESS
@@ -620,7 +620,7 @@ sessionInfo()
 #> LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
 #> 
 #> locale:
-#> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+#> [1] C.UTF-8/C.UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
 #> 
 #> time zone: Australia/Brisbane
 #> tzcode source: internal

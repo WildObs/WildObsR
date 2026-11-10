@@ -63,10 +63,11 @@ length(open_ids)
 ```
 
 The difference is the **partial** projects. Their metadata are made public, but their
-data tables are withheld because of an embargo (of up to 24 months) placed by a data
-provider. Partial projects are worth knowing about: a partial project in your study
-region is a dataset you could request from its contributors or plan to use once its
-embargo has expired.
+data tables are withheld because of an embargo placed by a data provider. Data providers
+can extend or release an embargo, so a project can move between open and partial from one
+database release to the next, and the counts above will change. Partial projects are worth
+knowing about: a partial project in your study region is a dataset you could request from
+its contributors or plan to use once its embargo has expired.
 
 Filters combine as an intersection. For example, the projects that recorded feral cats in
 2022 with a targeted design:

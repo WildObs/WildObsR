@@ -59,7 +59,7 @@ dp$version
 #> [1] "1.0.2"
 # and, separately, the three-point version control for changes applied to this dataset
 dp$versionControlWildObs
-#> [1] "1.0.1"
+#> [1] "1.1.0"
 
 # inspect the data package class, recognised by the camtrapdp and frictionless packages, and base R
 class(dp)
@@ -209,9 +209,9 @@ head(deps_tags[, c("deploymentID", "lure", "predatorManagement")], 3)
 #> # A tibble: 3 × 3
 #>   deploymentID                     lure  predatorManagement
 #>   <chr>                            <chr> <chr>             
-#> 1 T1_C1_SEVT_WildObsID_0005_2023   none  no management     
-#> 2 T1_C1_Sclero_WildObsID_0005_2023 none  no management     
-#> 3 T1_C2_SEVT_WildObsID_0005_2023   none  no management
+#> 1 T1_C1_SEVT_WildObsID_0005_2023   none  noManagement      
+#> 2 T1_C1_Sclero_WildObsID_0005_2023 none  noManagement      
+#> 3 T1_C2_SEVT_WildObsID_0005_2023   none  noManagement
 ```
 
 ## Observations, events and media: three linked identifiers
@@ -328,12 +328,12 @@ Image Repository.
 table(med$filePublic)
 #> 
 #> FALSE  TRUE 
-#>  3678 17832
+#> 13208  8302
 # images eligible for the Tagged Image Repository
 table(med$TIR)
 #> 
 #> FALSE  TRUE 
-#>  3581 17929
+#> 13111  8399
 ```
 
 ## Covariates: the environment around each camera
@@ -417,7 +417,7 @@ sessionInfo()
 #> LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1
 #> 
 #> locale:
-#> [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+#> [1] C.UTF-8/C.UTF-8/C.UTF-8/C/C.UTF-8/C.UTF-8
 #> 
 #> time zone: Australia/Brisbane
 #> tzcode source: internal
