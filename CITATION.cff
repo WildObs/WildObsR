@@ -17,7 +17,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-8398-2059"
   - given-names: Tom
     family-names: Bruce
-version: 0.3.0.9000
+version: 0.4.0
 license: MIT
 repository-code: "https://github.com/WildObs/WildObsR"
 url: "https://github.com/WildObs/WildObsR"
