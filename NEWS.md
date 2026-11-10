@@ -196,7 +196,8 @@ it.
   that Camtrap DP 1.0.x requires, so `as_camtrapdp()` exports would have failed the
   Camtrap DP profile. `wildobs_dp_download()`, `recombine_deployment_groups()` and
   `as_camtrapdp()` now keep every table in the v1 form with either frictionless
-  version. The full test suite passes against the frictionless development version.
+  version. The full test suite passes against both frictionless 1.3.0 and 2.0.1. WildObsR now requires frictionless 1.3.0 or later, the first version with
+  `resource_names()` and `schema()`.
 - The `wildobs_mongo_query()` help no longer says the function filters out
   projects still under embargo. Embargoed projects are stored as `partial` until
   the embargo ends, and the help now says so. Its example uses `api_key` rather
